@@ -1,0 +1,2 @@
+-- CareOne local development seed data
+-- Real patient data must never exist in local or test environments.
