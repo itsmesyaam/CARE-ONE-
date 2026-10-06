@@ -172,30 +172,45 @@ export type Database = {
       };
       hospital_settings: {
         Row: {
+          accent_color: string;
+          casualty_phone: string;
           created_at: string;
           hospital_name: string;
           id: string;
+          logo_path: string | null;
           logo_url: string | null;
           primary_color: string;
           secondary_color: string;
+          short_code: string;
+          time_zone: string;
           updated_at: string;
         };
         Insert: {
+          accent_color?: string;
+          casualty_phone?: string;
           created_at?: string;
           hospital_name?: string;
           id?: string;
+          logo_path?: string | null;
           logo_url?: string | null;
           primary_color?: string;
           secondary_color?: string;
+          short_code?: string;
+          time_zone?: string;
           updated_at?: string;
         };
         Update: {
+          accent_color?: string;
+          casualty_phone?: string;
           created_at?: string;
           hospital_name?: string;
           id?: string;
+          logo_path?: string | null;
           logo_url?: string | null;
           primary_color?: string;
           secondary_color?: string;
+          short_code?: string;
+          time_zone?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -323,6 +338,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      get_public_hospital_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       request_emergency_access: {
         Args: { p_patient_id: string; p_reason: string };
         Returns: string;
