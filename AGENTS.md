@@ -6,6 +6,7 @@ A patient-engagement and doctor-assistant web app for one hospital in Kerala, In
 The full specification is @docs/ARCHITECTURE.md. Read it in full before planning any task. If a request conflicts with it, stop and ask. Do not change the architecture without my approval.
 
 ## Project in brief
+- This build is a demo. It runs on a free Supabase project with fictional demo data only. Polish, speed and a smooth demo matter more than backups and operations.
 - One hospital. Five roles: patient or guardian, doctor, front desk, hospital admin, and us (the platform team, with no routine access to patient data).
 - V1 features: patient registration and app invites by the front desk; appointments; doctor chart (history, allergies, medicines, consultation notes, reports, timeline); care plans; reminders by web push and email; patient report uploads with a doctor review queue; "What changed since the last visit" built from plain SQL queries; hospital admin dashboard showing counts only; English and Malayalam.
 - Not in V1: any AI feature, payments, SMS or WhatsApp, video consultations, doctor-patient messaging.
