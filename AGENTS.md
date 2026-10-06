@@ -67,3 +67,17 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 - All UI text goes through i18n keys in the English and Malayalam files; no hard-coded strings in components.
 - Times are stored as `timestamptz` (UTC) and shown in Asia/Kolkata.
 - Folder layout follows "Repository and pipelines" in the spec.
+
+## Phase procedure
+When I start a phase:
+1. Read AGENTS.md, docs/ARCHITECTURE.md and docs/PROGRESS.md (create PROGRESS.md if it does not exist).
+2. Reply with a plan broken into small tasks. For each task: files, migrations, tests, how you will verify it, and risks. Add your questions and assumptions. Then stop.
+3. Build only after I write "Approved: Task N", following the task procedure above.
+
+When I write "Finish phase":
+1. Run every check (typecheck, lint, unit tests, supabase db reset, supabase test db, build) and paste the real output.
+2. List every SQL table, policy, function and trigger added in this phase, each with one line saying who it allows and why.
+3. Update docs/PROGRESS.md: what now works, demo accounts, decisions made, known gaps, next phase.
+4. Commit and stop.
+
+Packages: a phase prompt may approve specific packages. Still confirm each one with npm view before installing. Any package not approved in AGENTS.md or the phase prompt needs my approval.
