@@ -1,0 +1,12 @@
+{
+  "app": {
+    "title": "CareOne Hospital Platform",
+    "description": "Patient engagement and doctor assistant",
+    "hospitalName": "ABC Hospital"
+  },
+  "common": {
+    "welcome": "Welcome to CareOne",
+    "loading": "Loading...",
+    "signIn": "Sign In"
+  }
+}
