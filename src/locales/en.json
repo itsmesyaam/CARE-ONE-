@@ -1,0 +1,10 @@
+{
+  "app": {
+    "title": "CareOne Hospital Platform",
+    "description": "Patient engagement and doctor assistant"
+  },
+  "common": {
+    "welcome": "Welcome to CareOne",
+    "loading": "Loading..."
+  }
+}
