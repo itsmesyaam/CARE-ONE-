@@ -23,6 +23,64 @@ export type Database = {
   };
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string;
+          created_at: string;
+          department_id: string | null;
+          doctor_id: string;
+          id: string;
+          notes: string | null;
+          patient_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          appointment_date: string;
+          created_at?: string;
+          department_id?: string | null;
+          doctor_id: string;
+          id?: string;
+          notes?: string | null;
+          patient_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          appointment_date?: string;
+          created_at?: string;
+          department_id?: string | null;
+          doctor_id?: string;
+          id?: string;
+          notes?: string | null;
+          patient_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'appointments_department_id_fkey';
+            columns: ['department_id'];
+            isOneToOne: false;
+            referencedRelation: 'departments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'appointments_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'appointments_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       audit_log: {
         Row: {
           action: string;
@@ -107,20 +165,61 @@ export type Database = {
           },
         ];
       };
+      consents: {
+        Row: {
+          agreed_at: string;
+          consent_type: string;
+          created_at: string;
+          id: string;
+          patient_id: string;
+          user_id: string;
+          version: string;
+        };
+        Insert: {
+          agreed_at?: string;
+          consent_type?: string;
+          created_at?: string;
+          id?: string;
+          patient_id: string;
+          user_id: string;
+          version?: string;
+        };
+        Update: {
+          agreed_at?: string;
+          consent_type?: string;
+          created_at?: string;
+          id?: string;
+          patient_id?: string;
+          user_id?: string;
+          version?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'consents_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       departments: {
         Row: {
+          archived_at: string | null;
           code: string;
           created_at: string;
           id: string;
           name: string;
         };
         Insert: {
+          archived_at?: string | null;
           code: string;
           created_at?: string;
           id?: string;
           name: string;
         };
         Update: {
+          archived_at?: string | null;
           code?: string;
           created_at?: string;
           id?: string;
@@ -260,6 +359,7 @@ export type Database = {
           full_name: string;
           gender: string;
           id: string;
+          id_checked: boolean;
           phone: string;
           uhid: string;
         };
@@ -272,8 +372,9 @@ export type Database = {
           full_name: string;
           gender: string;
           id?: string;
+          id_checked?: boolean;
           phone: string;
-          uhid: string;
+          uhid?: string;
         };
         Update: {
           blood_group?: string | null;
@@ -284,6 +385,7 @@ export type Database = {
           full_name?: string;
           gender?: string;
           id?: string;
+          id_checked?: boolean;
           phone?: string;
           uhid?: string;
         };
@@ -338,6 +440,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      generate_patient_uhid: { Args: Record<PropertyKey, never>; Returns: string };
       get_public_hospital_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       request_emergency_access: {
         Args: { p_patient_id: string; p_reason: string };
