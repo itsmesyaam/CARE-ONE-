@@ -1175,6 +1175,41 @@ export type Database = {
       create_test_reminder: { Args: { p_patient_id: string }; Returns: string };
       generate_daily_medicine_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       generate_patient_uhid: { Args: Record<PropertyKey, never>; Returns: string };
+      get_admin_audit_logs: {
+        Args: {
+          p_action?: string;
+          p_end_date?: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_staff_id?: string;
+          p_start_date?: string;
+        };
+        Returns: {
+          action: string;
+          actor_id: string;
+          actor_name: string;
+          actor_role: string;
+          at: string;
+          id: number;
+          patient_id: string;
+          reason: string;
+          record_id: string;
+          table_name: string;
+        }[];
+      };
+      get_admin_dashboard_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          active_patient_share: number;
+          active_patients_30d: number;
+          consultations_this_month: number;
+          follow_ups_due: number;
+          invited_patients: number;
+          patients_overdue_follow_up: number;
+          reports_waiting_review: number;
+          today_appointments: number;
+        }[];
+      };
       get_public_hospital_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       log_chart_view: { Args: { p_patient_id: string }; Returns: undefined };
       request_emergency_access: {
