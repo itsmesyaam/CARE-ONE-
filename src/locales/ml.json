@@ -118,5 +118,49 @@
         "symptom": "ലക്ഷണം"
       }
     }
+  },
+  "nav": {
+    "home": "പ്രധാന പേജ്",
+    "signIn": "പ്രവേശിക്കുക",
+    "admin": "അഡ്മിൻ ഡാഷ്‌ബോർഡ്",
+    "language": "ഭാഷ",
+    "switchToEnglish": "English",
+    "switchToMalayalam": "മലയാളം"
+  },
+  "config": {
+    "noticeTitle": "സുപാബേസ് ക്രമീകരണം ആവശ്യമാണ്",
+    "noticeMessage": "ഈ പരിസ്ഥിതിയിൽ VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY എന്നിവ നൽകിയിട്ടില്ല. ആപ്ലിക്കേഷൻ സ്റ്റാറ്റിക് പ്രിവ്യൂ മോഡിൽ പ്രവർത്തിക്കുന്നു.",
+    "noticeInstructions": "ഡാറ്റാബേസ് ഫീച്ചറുകൾ പ്രവർത്തനക്ഷമമാക്കാൻ ഹോസ്റ്റിംഗ് ക്രമീകരണങ്ങളിൽ ഈ വേരിയബിളുകൾ നൽകുക."
+  },
+  "errorBoundary": {
+    "title": "എന്തോ തകരാർ സംഭവിച്ചു",
+    "message": "ഈ പേജ് കാണിക്കുന്നതിൽ അപ്രതീക്ഷിത തകരാർ ഉണ്ടായി.",
+    "reload": "ആപ്പ് വീണ്ടും ലോഡ് ചെയ്യുക"
+  },
+  "auth": {
+    "patientTab": "രോഗി ലോഗിൻ",
+    "staffTab": "ജീവനക്കാരുടെ ലോഗിൻ",
+    "patientDescription": "സുരക്ഷിത കോഡ് ലഭിക്കാൻ രജിസ്റ്റർ ചെയ്ത ഇമെയിൽ നൽകുക.",
+    "staffDescription": "ജീവനക്കാരുടെ അക്കൗണ്ടും 2-ഫാക്ടർ ഓതന്റിക്കേറ്ററും ഉപയോഗിച്ച് ലോഗിൻ ചെയ്യുക.",
+    "emailLabel": "ഇമെയിൽ വിലാസം",
+    "emailPlaceholder": "ഉദാ: patient@example.com",
+    "passwordLabel": "പാസ്‌വേഡ്",
+    "passwordPlaceholder": "പാസ്‌വേഡ് നൽകുക",
+    "sendOtp": "കോഡ് അയക്കുക",
+    "sendingOtp": "കോഡ് അയക്കുന്നു...",
+    "verifyOtp": "സ്ഥിരീകരിച്ച് പ്രവേശിക്കുക",
+    "verifyingOtp": "സ്ഥിരീകരിക്കുന്നു...",
+    "otpSentNotice": "6 അക്ക കോഡ് {{email}} എന്ന ഇമെയിലിലേക്ക് അയച്ചിട്ടുണ്ട്.",
+    "otpLabel": "6 അക്ക കോഡ്",
+    "otpPlaceholder": "123456",
+    "changeEmail": "ഇമെയിൽ മാറ്റുക",
+    "totpLabel": "ഓതന്റിക്കേറ്റർ കോഡ് (MFA)",
+    "totpPlaceholder": "6 അക്ക MFA കോഡ് നൽകുക",
+    "verifyTotp": "MFA സ്ഥിരീകരിക്കുക",
+    "demoAccounts": "ഡെമോ അക്കൗണ്ടുകൾ",
+    "useDemo": "ഡെമോ ഉപയോഗിക്കുക: {{name}}",
+    "signInSuccess": "വിജയകരമായി ലോഗിൻ ചെയ്തു",
+    "invalidOtp": "തെറ്റായ അല്ലെങ്കിൽ കാലഹരണപ്പെട്ട കോഡ്. വീണ്ടും ശ്രമിക്കുക.",
+    "authError": "ലോഗിൻ പരാജയപ്പെട്ടു. വിവരങ്ങൾ ശരിയാണോ എന്ന് പരിശോധിക്കുക."
   }
 }

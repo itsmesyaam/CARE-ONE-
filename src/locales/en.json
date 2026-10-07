@@ -118,5 +118,49 @@
         "symptom": "Symptom"
       }
     }
+  },
+  "nav": {
+    "home": "Home",
+    "signIn": "Sign In",
+    "admin": "Admin Dashboard",
+    "language": "Language",
+    "switchToEnglish": "English",
+    "switchToMalayalam": "മലയാളം"
+  },
+  "config": {
+    "noticeTitle": "Supabase Environment Pending",
+    "noticeMessage": "VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are not configured in this environment. The application is running in static preview mode.",
+    "noticeInstructions": "To enable database features, configure these variables in the hosting provider dashboard."
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred while rendering this page.",
+    "reload": "Reload Application"
+  },
+  "auth": {
+    "patientTab": "Patient Sign-In",
+    "staffTab": "Staff Sign-In",
+    "patientDescription": "Enter your registered email to receive a secure sign-in code.",
+    "staffDescription": "Sign in with your staff account and two-factor authenticator app.",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "e.g. patient@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "sendOtp": "Send Sign-in Code",
+    "sendingOtp": "Sending code...",
+    "verifyOtp": "Verify & Sign In",
+    "verifyingOtp": "Verifying...",
+    "otpSentNotice": "A 6-digit sign-in code has been sent to {{email}}.",
+    "otpLabel": "6-Digit Code",
+    "otpPlaceholder": "123456",
+    "changeEmail": "Change Email",
+    "totpLabel": "Authenticator Code (MFA)",
+    "totpPlaceholder": "Enter 6-digit MFA code",
+    "verifyTotp": "Verify MFA & Sign In",
+    "demoAccounts": "Demo Accounts",
+    "useDemo": "Use Demo: {{name}}",
+    "signInSuccess": "Signed in successfully",
+    "invalidOtp": "Invalid or expired code. Please try again.",
+    "authError": "Sign-in failed. Please verify your credentials."
   }
 }

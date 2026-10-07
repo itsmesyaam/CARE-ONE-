@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from './RootLayout';
 import { AdminRouteGuard } from '../components/AdminRouteGuard';
+import { SignInPage } from '../features/auth/SignInPage';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -11,6 +12,14 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+  },
+  {
+    path: '/login',
+    element: <SignInPage />,
+  },
+  {
+    path: '/signin',
+    element: <SignInPage />,
   },
   {
     path: '/admin',
