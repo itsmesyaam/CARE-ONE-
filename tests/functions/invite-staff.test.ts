@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleInviteStaff } from '../../supabase/functions/invite-staff/handler';
+import { resetRateLimits } from '../../supabase/functions/_shared/rate-limit';
 
 describe('Edge Function: invite-staff', () => {
   const mockEnv = {
@@ -10,6 +11,7 @@ describe('Edge Function: invite-staff', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetRateLimits();
   });
 
   it('rejects request with missing Authorization header (401)', async () => {
@@ -127,5 +129,63 @@ describe('Edge Function: invite-staff', () => {
 
     const res = await handleInviteStaff(req, mockEnv);
     expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe('*');
+  });
+
+  it('enforces rate limiting of 10 requests per window per actor (429 Too Many Requests)', async () => {
+    for (let i = 0; i < 10; i++) {
+      const req = new Request('http://localhost/invite-staff', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer mock-jwt-admin-aal2',
+        },
+        body: JSON.stringify({
+          email: `doc-${i}@example.com`,
+          full_name: `Dr. Batch ${i}`,
+          role: 'doctor',
+        }),
+      });
+      const res = await handleInviteStaff(req, mockEnv);
+      expect(res.status).toBe(200);
+    }
+
+    const req11 = new Request('http://localhost/invite-staff', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-admin-aal2',
+      },
+      body: JSON.stringify({
+        email: 'doc-overflow@example.com',
+        full_name: 'Dr. Overflow',
+        role: 'doctor',
+      }),
+    });
+    const res11 = await handleInviteStaff(req11, mockEnv);
+    expect(res11.status).toBe(429);
+    const body = await res11.json();
+    expect(body.error).toMatch(/rate limit|too many requests/i);
+    expect(res11.headers.get('Retry-After')).toBeDefined();
+  });
+
+  it('resolves production origin instead of localhost when in production environment', async () => {
+    const origEnv = process.env.ENVIRONMENT;
+    const origAllowed = process.env.ALLOWED_ORIGIN;
+    try {
+      process.env.ENVIRONMENT = 'production';
+      delete process.env.ALLOWED_ORIGIN;
+
+      const { getAllowedOrigin } = await import('../../supabase/functions/_shared/cors');
+      const origin = getAllowedOrigin();
+      expect(origin).not.toContain('localhost');
+      expect(origin).toBe('https://careone.pages.dev');
+    } finally {
+      process.env.ENVIRONMENT = origEnv;
+      if (origAllowed) {
+        process.env.ALLOWED_ORIGIN = origAllowed;
+      } else {
+        delete process.env.ALLOWED_ORIGIN;
+      }
+    }
   });
 });

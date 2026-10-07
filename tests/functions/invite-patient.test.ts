@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleInvitePatient } from '../../supabase/functions/invite-patient/handler';
+import { resetRateLimits } from '../../supabase/functions/_shared/rate-limit';
 
 describe('Edge Function: invite-patient', () => {
   const mockEnv = {
@@ -10,6 +11,7 @@ describe('Edge Function: invite-patient', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetRateLimits();
   });
 
   it('rejects request with missing Authorization header (401)', async () => {
@@ -141,5 +143,42 @@ describe('Edge Function: invite-patient', () => {
 
     const res = await handleInvitePatient(req, mockEnv);
     expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe('*');
+  });
+
+  it('enforces rate limiting of 10 requests per window per actor (429 Too Many Requests)', async () => {
+    for (let i = 0; i < 10; i++) {
+      const req = new Request('http://localhost/invite-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer mock-jwt-desk-aal2',
+        },
+        body: JSON.stringify({
+          email: `patient-${i}@example.com`,
+          patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          relationship: 'self',
+        }),
+      });
+      const res = await handleInvitePatient(req, mockEnv);
+      expect(res.status).toBe(200);
+    }
+
+    const req11 = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-desk-aal2',
+      },
+      body: JSON.stringify({
+        email: 'patient-overflow@example.com',
+        patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        relationship: 'self',
+      }),
+    });
+    const res11 = await handleInvitePatient(req11, mockEnv);
+    expect(res11.status).toBe(429);
+    const body = await res11.json();
+    expect(body.error).toMatch(/rate limit|too many requests/i);
+    expect(res11.headers.get('Retry-After')).toBeDefined();
   });
 });

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors';
 import { verifyStaffCaller, isTestEnvironment } from '../_shared/auth';
+import { checkRateLimit } from '../_shared/rate-limit';
 
 export interface InviteStaffPayload {
   email: string;
@@ -32,6 +33,25 @@ export async function handleInviteStaff(
   const { caller, response: authResponse } = await verifyStaffCaller(req, env, ['admin']);
   if (!caller || authResponse) {
     return authResponse!;
+  }
+
+  // 1b. Enforce rate limiting per caller
+  const rateLimit = checkRateLimit(`invite-staff:${caller.userId}`, {
+    maxRequests: 10,
+    windowMs: 5 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Too many requests. Rate limit exceeded. Please try again later.' }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': String(rateLimit.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   // 2. Parse and validate payload
