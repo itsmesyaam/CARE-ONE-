@@ -14,16 +14,61 @@
   - pgTAP test suite in `supabase/tests/database/foundation.test.sql` passing.
   - `npm run demo:reset` command resets schema and reapplies migrations.
 
-## Phase 2: App Shell, Design and Branding (Current Phase)
-- **Goal**: Establish consistent, polished, hospital-branded UI shell across mobile and desktop.
-- **Target deliverables**:
-  - `hospital_settings` table update (short code, logo path, primary and accent colours, casualty phone, time zone) + security-definer RPC `public.get_public_hospital_settings()`.
-  - CSS variables loaded from branding settings. Self-hosted Inter and Noto Sans Malayalam fonts via Fontsource.
-  - Mobile-first layout with bottom navigation for patients (Home, Records, Plan, Profile).
-  - Desktop sidebar for staff adapting dynamically by role (Doctor, Front Desk, Admin).
-  - Language switcher between English and Malayalam persisted locally.
-  - Shared UI components: page header, loading skeletons, empty states, error state with retry, confirm dialog, toasts.
-  - Role-based route guards in the SPA.
-  - Staff idle lock after 10 minutes.
-  - PWA configuration (installable on Android, app shell cached only).
-  - Script `npm run i18n:check` validating translation parity between `en.json` and `ml.json`.
+## Phase 2: App Shell, Design and Branding (Completed)
+- `hospital_settings` singleton table with branding RPC `public.get_public_hospital_settings()`.
+- Dynamic hospital branding tokens, theme CSS, and typography.
+- Mobile bottom navigation and responsive desktop staff sidebar.
+
+## Phase 3: Admin & Front Desk (Completed)
+- Department management (create, edit, archive).
+- Front desk patient registration with sequence UHID generator (`ABC-NNNN`) and ID checked checkbox (never storing ID numbers).
+- Edge Functions `invite-staff` and `invite-patient` with AAL2 MFA enforcement.
+- Appointments scheduling with automatic 1-year care team link trigger.
+- Immutable privacy consents in English and Malayalam.
+
+## Phase 4: Doctor Chart & Clinical Workflow (Completed)
+- Tables: `encounters`, `encounter_addenda`, `conditions`, `allergies`, `medications`, `observations`.
+- Freeze trigger preventing modification of signed clinical encounters.
+- Emergency break-glass access RPC requiring written reason of at least 15 characters.
+- Audit logging for chart views (`VIEWED_CHART`).
+- `patient_timeline` view with `security_invoker = true`.
+
+## Phase 5: Reports, Storage & Review Queue (Completed)
+- Private `patient-files` Supabase storage bucket with 10 MB limit and strict mime type validation.
+- Row-level security on storage objects following document permissions.
+- Doctor review queue for patient uploads.
+
+## Phase 6: Care Plans, Reminders & Patient Home (Completed)
+- Tables: `care_plans`, `care_plan_items`, `reminders`, `push_subscriptions`, `symptom_reports`.
+- Trigger automatically scheduling reminders for care plan items.
+- Concurrency-safe reminder claiming RPC `public.claim_due_reminders` with `FOR UPDATE SKIP LOCKED`.
+- Daily medicine reminder generation RPC `public.generate_daily_medicine_reminders`.
+- Patient self-logging of vitals strictly enforced with `source = 'patient'`.
+
+## Phase 7: "What Changed", Admin Dashboard & Access Log (Completed)
+- **What Changed Panel**:
+  - `public.what_changed(p_patient_id uuid)` security invoker function aggregating new lab reports, medication modifications, abnormal vital readings, missed tasks, and reported symptoms since last signed visit.
+  - Doctor chart first panel component `WhatChangedPanel` with category badges, links to target records, IST time formatting, and empty states ("Nothing new since <date>" / "No previous visits").
+- **Admin Operational Dashboard**:
+  - `public.get_admin_dashboard_counts()` security definer RPC checking `admin` role and `aal2` MFA inside, returning operational counts only.
+  - 6 metric cards: Today's Appointments, Follow-ups Due Today, Reports Waiting Review, Overdue Follow-ups, Consultations This Month, and Active App Patients (share & invited totals).
+  - Operational workload distribution bar chart and patient app engagement donut chart powered by `recharts`.
+- **System Access Log**:
+  - `public.get_admin_audit_logs(...)` security definer RPC with AAL2 + admin checks.
+  - Strictly omits `old_row` and `new_row` payloads from client results.
+  - `AccessLogPage` with filtering by date range, staff actor, and action keyword.
+  - Prominent visual highlighting for emergency access events (`EMERGENCY_ACCESS_GRANTED` / `emergency_access`).
+- **Demo Accounts**:
+  - Admin: `admin@example.com` / `admin7@example.com`
+  - Doctor: `doctor@example.com` / `drcare7@example.com`
+  - Front Desk: `desk@example.com` / `desk7@example.com`
+  - Patient: `patient@example.com` / `patient7@example.com`
+- **Decisions Made**:
+  - Date boundaries ("today", "this month") are calculated in `Asia/Kolkata` time zone.
+  - Raw table record payloads (`old_row`, `new_row`) are strictly inaccessible to the API, guaranteeing admin users cannot view individual clinical row data.
+  - Approved `recharts@3.10.1` package installed for visual operational analytics.
+- **Known Gaps**:
+  - External SMS/WhatsApp gateway integration (planned for V2; push & email in V1).
+  - ABDM health data exchange integration (V2).
+- **Next Phase**:
+  - Hardening, end-to-end smoke testing with Playwright, and deployment pipeline configuration.
