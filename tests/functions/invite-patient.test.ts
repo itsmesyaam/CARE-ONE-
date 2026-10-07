@@ -1,0 +1,108 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handleInvitePatient } from '../../supabase/functions/invite-patient/handler';
+
+describe('Edge Function: invite-patient', () => {
+  const mockEnv = {
+    SUPABASE_URL: 'http://127.0.0.1:54321',
+    SUPABASE_ANON_KEY: 'mock-anon-key',
+    SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role-key',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects request with missing Authorization header (401)', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'patient@example.com',
+        patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        relationship: 'self',
+      }),
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toMatch(/authorization/i);
+  });
+
+  it('rejects caller when session is at aal1 (403 MFA required)', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-aal1',
+      },
+      body: JSON.stringify({
+        email: 'patient@example.com',
+        patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        relationship: 'self',
+      }),
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toMatch(/aal2|two-factor/i);
+  });
+
+  it('rejects caller when caller is a doctor without desk permissions (403 Forbidden)', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-doctor-aal2',
+      },
+      body: JSON.stringify({
+        email: 'patient@example.com',
+        patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        relationship: 'self',
+      }),
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toMatch(/front_desk|admin|privileges/i);
+  });
+
+  it('validates required payload fields (400 Bad Request)', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-desk-aal2',
+      },
+      body: JSON.stringify({
+        email: 'not-an-email',
+      }),
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.status).toBe(400);
+  });
+
+  it('allows active front desk at aal2 to invite patient (200 OK)', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-jwt-desk-aal2',
+      },
+      body: JSON.stringify({
+        email: 'patient.test@example.com',
+        patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        relationship: 'self',
+      }),
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.user_id).toBeDefined();
+  });
+});
