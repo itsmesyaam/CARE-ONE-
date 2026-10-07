@@ -16,7 +16,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
-    "allRoles": "All Roles"
+    "allRoles": "All Roles",
+    "offlineWarning": "You are currently offline. Please reconnect to view or update medical records."
   },
   "roles": {
     "doctor": "Doctor",
