@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors';
-import { verifyStaffCaller } from '../_shared/auth';
+import { verifyStaffCaller, isTestEnvironment } from '../_shared/auth';
 
 export interface InvitePatientPayload {
   email: string;
@@ -73,8 +73,8 @@ export async function handleInvitePatient(
     );
   }
 
-  // Mock test bypass
-  if (caller.userId === 'mock-desk-uid' || caller.userId === 'mock-admin-uid') {
+  // Mock test bypass strictly restricted to test environment
+  if (isTestEnvironment() && (caller.userId === 'mock-desk-uid' || caller.userId === 'mock-admin-uid')) {
     return new Response(
       JSON.stringify({
         success: true,

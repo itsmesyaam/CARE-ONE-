@@ -8,6 +8,17 @@ export interface VerifiedCaller {
   staffId: string;
 }
 
+export function isTestEnvironment(): boolean {
+  const globalDeno = (globalThis as unknown as { Deno?: { env: { get: (k: string) => string | undefined } } }).Deno;
+  if (globalDeno?.env) {
+    return globalDeno.env.get('ENVIRONMENT') === 'test';
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.ENVIRONMENT === 'test';
+  }
+  return false;
+}
+
 export async function verifyStaffCaller(
   req: Request,
   env: { SUPABASE_URL: string; SUPABASE_ANON_KEY: string; SUPABASE_SERVICE_ROLE_KEY: string },
@@ -26,8 +37,8 @@ export async function verifyStaffCaller(
 
   const token = authHeader.replace('Bearer ', '').trim();
 
-  // Test suite / mock bypass handling for fast unit testing
-  if (token.startsWith('mock-jwt-')) {
+  // Test suite / mock bypass handling: strictly restricted to test environment
+  if (isTestEnvironment() && token.startsWith('mock-jwt-')) {
     if (token === 'mock-jwt-aal1') {
       return {
         caller: null,

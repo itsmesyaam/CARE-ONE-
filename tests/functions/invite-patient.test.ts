@@ -105,4 +105,41 @@ describe('Edge Function: invite-patient', () => {
     expect(body.success).toBe(true);
     expect(body.user_id).toBeDefined();
   });
+
+  it('rejects mock tokens when ENVIRONMENT is not test (401)', async () => {
+    const origEnv = process.env.ENVIRONMENT;
+    const origNodeEnv = process.env.NODE_ENV;
+    try {
+      process.env.ENVIRONMENT = 'production';
+      process.env.NODE_ENV = 'production';
+
+      const req = new Request('http://localhost/invite-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer mock-jwt-desk-aal2',
+        },
+        body: JSON.stringify({
+          email: 'patient.test@example.com',
+          patient_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          relationship: 'self',
+        }),
+      });
+
+      const res = await handleInvitePatient(req, mockEnv);
+      expect(res.status).toBe(401);
+    } finally {
+      process.env.ENVIRONMENT = origEnv;
+      process.env.NODE_ENV = origNodeEnv;
+    }
+  });
+
+  it('uses restricted CORS headers and never uses wildcard origin', async () => {
+    const req = new Request('http://localhost/invite-patient', {
+      method: 'OPTIONS',
+    });
+
+    const res = await handleInvitePatient(req, mockEnv);
+    expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe('*');
+  });
 });

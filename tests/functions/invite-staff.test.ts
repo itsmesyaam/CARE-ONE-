@@ -91,4 +91,41 @@ describe('Edge Function: invite-staff', () => {
     expect(body.success).toBe(true);
     expect(body.user_id).toBeDefined();
   });
+
+  it('rejects mock tokens when ENVIRONMENT is not test (401)', async () => {
+    const origEnv = process.env.ENVIRONMENT;
+    const origNodeEnv = process.env.NODE_ENV;
+    try {
+      process.env.ENVIRONMENT = 'production';
+      process.env.NODE_ENV = 'production';
+
+      const req = new Request('http://localhost/invite-staff', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer mock-jwt-admin-aal2',
+        },
+        body: JSON.stringify({
+          email: 'doctor.test@example.com',
+          full_name: 'Dr. Test Kerala',
+          role: 'doctor',
+        }),
+      });
+
+      const res = await handleInviteStaff(req, mockEnv);
+      expect(res.status).toBe(401);
+    } finally {
+      process.env.ENVIRONMENT = origEnv;
+      process.env.NODE_ENV = origNodeEnv;
+    }
+  });
+
+  it('uses restricted CORS headers and never uses wildcard origin', async () => {
+    const req = new Request('http://localhost/invite-staff', {
+      method: 'OPTIONS',
+    });
+
+    const res = await handleInviteStaff(req, mockEnv);
+    expect(res.headers.get('Access-Control-Allow-Origin')).not.toBe('*');
+  });
 });
