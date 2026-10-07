@@ -58,5 +58,20 @@
       "errorName": "Full name must be at least 2 characters",
       "errorEmail": "Please enter a valid email address"
     }
+  },
+  "doctor": {
+    "whatChanged": {
+      "title": "What Changed Since Last Visit",
+      "loading": "Loading changes since last visit...",
+      "nothingNewSince": "Nothing new since {{date}}",
+      "noPreviousVisits": "No previous visits",
+      "kinds": {
+        "report": "Report",
+        "medicine": "Medicine",
+        "reading": "Reading",
+        "missed": "Missed Task",
+        "symptom": "Symptom"
+      }
+    }
   }
 }
