@@ -165,6 +165,124 @@ export type Database = {
         };
         Relationships: [];
       };
+      care_plan_items: {
+        Row: {
+          care_plan_id: string;
+          completed_at: string | null;
+          created_at: string;
+          detail: string;
+          due_date: string | null;
+          id: string;
+          kind: string;
+          patient_id: string;
+          status: string;
+          timing: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          care_plan_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          detail: string;
+          due_date?: string | null;
+          id?: string;
+          kind: string;
+          patient_id: string;
+          status?: string;
+          timing?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          care_plan_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          detail?: string;
+          due_date?: string | null;
+          id?: string;
+          kind?: string;
+          patient_id?: string;
+          status?: string;
+          timing?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'care_plan_items_care_plan_id_fkey';
+            columns: ['care_plan_id'];
+            isOneToOne: false;
+            referencedRelation: 'care_plans';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'care_plan_items_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      care_plans: {
+        Row: {
+          created_at: string;
+          doctor_id: string;
+          encounter_id: string | null;
+          id: string;
+          notes: string | null;
+          patient_id: string;
+          review_date: string | null;
+          status: string;
+          title: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          doctor_id: string;
+          encounter_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          patient_id: string;
+          review_date?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          doctor_id?: string;
+          encounter_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          patient_id?: string;
+          review_date?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'care_plans_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'care_plans_encounter_id_fkey';
+            columns: ['encounter_id'];
+            isOneToOne: false;
+            referencedRelation: 'encounters';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'care_plans_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       care_team: {
         Row: {
           created_at: string;
@@ -818,6 +936,106 @@ export type Database = {
         };
         Relationships: [];
       };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          p256dh: string;
+          updated_at: string;
+          user_agent: string | null;
+          user_id: string;
+        };
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          p256dh: string;
+          updated_at?: string;
+          user_agent?: string | null;
+          user_id: string;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          p256dh?: string;
+          updated_at?: string;
+          user_agent?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      reminders: {
+        Row: {
+          appointment_id: string | null;
+          attempts: number;
+          care_plan_item_id: string | null;
+          channel: string;
+          created_at: string;
+          error_message: string | null;
+          id: string;
+          last_attempt_at: string | null;
+          patient_id: string;
+          scheduled_for: string;
+          status: string;
+          title: string;
+        };
+        Insert: {
+          appointment_id?: string | null;
+          attempts?: number;
+          care_plan_item_id?: string | null;
+          channel?: string;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          last_attempt_at?: string | null;
+          patient_id: string;
+          scheduled_for?: string;
+          status?: string;
+          title: string;
+        };
+        Update: {
+          appointment_id?: string | null;
+          attempts?: number;
+          care_plan_item_id?: string | null;
+          channel?: string;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          last_attempt_at?: string | null;
+          patient_id?: string;
+          scheduled_for?: string;
+          status?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'reminders_appointment_id_fkey';
+            columns: ['appointment_id'];
+            isOneToOne: false;
+            referencedRelation: 'appointments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reminders_care_plan_item_id_fkey';
+            columns: ['care_plan_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'care_plan_items';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reminders_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       staff: {
         Row: {
           created_at: string;
@@ -862,6 +1080,57 @@ export type Database = {
           },
         ];
       };
+      symptom_reports: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          patient_id: string;
+          reported_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          severity: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description: string;
+          id?: string;
+          patient_id: string;
+          reported_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          severity?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          patient_id?: string;
+          reported_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          severity?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'symptom_reports_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'symptom_reports_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       patient_timeline: {
@@ -880,12 +1149,47 @@ export type Database = {
       };
     };
     Functions: {
+      claim_due_reminders: {
+        Args: { p_limit?: number };
+        Returns: {
+          appointment_id: string | null;
+          attempts: number;
+          care_plan_item_id: string | null;
+          channel: string;
+          created_at: string;
+          error_message: string | null;
+          id: string;
+          last_attempt_at: string | null;
+          patient_id: string;
+          scheduled_for: string;
+          status: string;
+          title: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'reminders';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      create_test_reminder: { Args: { p_patient_id: string }; Returns: string };
+      generate_daily_medicine_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       generate_patient_uhid: { Args: Record<PropertyKey, never>; Returns: string };
       get_public_hospital_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       log_chart_view: { Args: { p_patient_id: string }; Returns: undefined };
       request_emergency_access: {
         Args: { p_patient_id: string; p_reason: string };
         Returns: string;
+      };
+      what_changed: {
+        Args: { p_patient_id: string };
+        Returns: {
+          happened_at: string;
+          kind: string;
+          ref_id: string;
+          ref_table: string;
+          summary: string;
+        }[];
       };
     };
     Enums: {
