@@ -23,6 +23,51 @@ export type Database = {
   };
   public: {
     Tables: {
+      allergies: {
+        Row: {
+          created_at: string;
+          id: string;
+          patient_id: string;
+          reaction: string | null;
+          recorded_by: string | null;
+          severity: string;
+          substance: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          patient_id: string;
+          reaction?: string | null;
+          recorded_by?: string | null;
+          severity?: string;
+          substance: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          patient_id?: string;
+          reaction?: string | null;
+          recorded_by?: string | null;
+          severity?: string;
+          substance?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'allergies_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'allergies_recorded_by_fkey';
+            columns: ['recorded_by'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       appointments: {
         Row: {
           appointment_date: string;
@@ -165,6 +210,70 @@ export type Database = {
           },
         ];
       };
+      conditions: {
+        Row: {
+          created_at: string;
+          department_id: string | null;
+          diagnosed_date: string | null;
+          doctor_id: string | null;
+          id: string;
+          name: string;
+          notes: string | null;
+          patient_id: string;
+          sensitivity: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          department_id?: string | null;
+          diagnosed_date?: string | null;
+          doctor_id?: string | null;
+          id?: string;
+          name: string;
+          notes?: string | null;
+          patient_id: string;
+          sensitivity?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          department_id?: string | null;
+          diagnosed_date?: string | null;
+          doctor_id?: string | null;
+          id?: string;
+          name?: string;
+          notes?: string | null;
+          patient_id?: string;
+          sensitivity?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conditions_department_id_fkey';
+            columns: ['department_id'];
+            isOneToOne: false;
+            referencedRelation: 'departments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'conditions_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'conditions_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       consents: {
         Row: {
           agreed_at: string;
@@ -269,6 +378,128 @@ export type Database = {
           },
         ];
       };
+      encounter_addenda: {
+        Row: {
+          created_at: string;
+          doctor_id: string;
+          encounter_id: string;
+          id: string;
+          notes: string;
+          patient_id: string;
+          reason: string;
+        };
+        Insert: {
+          created_at?: string;
+          doctor_id: string;
+          encounter_id: string;
+          id?: string;
+          notes: string;
+          patient_id: string;
+          reason: string;
+        };
+        Update: {
+          created_at?: string;
+          doctor_id?: string;
+          encounter_id?: string;
+          id?: string;
+          notes?: string;
+          patient_id?: string;
+          reason?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'encounter_addenda_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'encounter_addenda_encounter_id_fkey';
+            columns: ['encounter_id'];
+            isOneToOne: false;
+            referencedRelation: 'encounters';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'encounter_addenda_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      encounters: {
+        Row: {
+          chief_complaint: string | null;
+          clinical_notes: string | null;
+          created_at: string;
+          department_id: string | null;
+          diagnosis: string | null;
+          doctor_id: string;
+          examination: string | null;
+          id: string;
+          patient_id: string;
+          sensitivity: string;
+          signed_at: string | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          chief_complaint?: string | null;
+          clinical_notes?: string | null;
+          created_at?: string;
+          department_id?: string | null;
+          diagnosis?: string | null;
+          doctor_id: string;
+          examination?: string | null;
+          id?: string;
+          patient_id: string;
+          sensitivity?: string;
+          signed_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          chief_complaint?: string | null;
+          clinical_notes?: string | null;
+          created_at?: string;
+          department_id?: string | null;
+          diagnosis?: string | null;
+          doctor_id?: string;
+          examination?: string | null;
+          id?: string;
+          patient_id?: string;
+          sensitivity?: string;
+          signed_at?: string | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'encounters_department_id_fkey';
+            columns: ['department_id'];
+            isOneToOne: false;
+            referencedRelation: 'departments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'encounters_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'encounters_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       hospital_settings: {
         Row: {
           accent_color: string;
@@ -313,6 +544,136 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      medications: {
+        Row: {
+          created_at: string;
+          department_id: string | null;
+          doctor_id: string;
+          dose: string;
+          drug: string;
+          duration_days: number | null;
+          id: string;
+          instructions: string | null;
+          patient_id: string;
+          sensitivity: string;
+          status: string;
+          stopped_at: string | null;
+          stopped_reason: string | null;
+          timing: NonNullable<Json>;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          department_id?: string | null;
+          doctor_id: string;
+          dose: string;
+          drug: string;
+          duration_days?: number | null;
+          id?: string;
+          instructions?: string | null;
+          patient_id: string;
+          sensitivity?: string;
+          status?: string;
+          stopped_at?: string | null;
+          stopped_reason?: string | null;
+          timing?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          department_id?: string | null;
+          doctor_id?: string;
+          dose?: string;
+          drug?: string;
+          duration_days?: number | null;
+          id?: string;
+          instructions?: string | null;
+          patient_id?: string;
+          sensitivity?: string;
+          status?: string;
+          stopped_at?: string | null;
+          stopped_reason?: string | null;
+          timing?: NonNullable<Json>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'medications_department_id_fkey';
+            columns: ['department_id'];
+            isOneToOne: false;
+            referencedRelation: 'departments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'medications_doctor_id_fkey';
+            columns: ['doctor_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'medications_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      observations: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          measured_at: string;
+          out_of_range: boolean;
+          patient_id: string;
+          recorded_by: string | null;
+          source: string;
+          unit: string | null;
+          value_text: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          measured_at?: string;
+          out_of_range?: boolean;
+          patient_id: string;
+          recorded_by?: string | null;
+          source?: string;
+          unit?: string | null;
+          value_text: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          measured_at?: string;
+          out_of_range?: boolean;
+          patient_id?: string;
+          recorded_by?: string | null;
+          source?: string;
+          unit?: string | null;
+          value_text?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'observations_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'observations_recorded_by_fkey';
+            columns: ['recorded_by'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       patient_access: {
         Row: {
@@ -437,11 +798,25 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      patient_timeline: {
+        Row: {
+          actor_id: string | null;
+          details: string | null;
+          event_id: string | null;
+          event_type: string | null;
+          happened_at: string | null;
+          patient_id: string | null;
+          sensitivity: string | null;
+          status: string | null;
+          title: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       generate_patient_uhid: { Args: Record<PropertyKey, never>; Returns: string };
       get_public_hospital_settings: { Args: Record<PropertyKey, never>; Returns: Json };
+      log_chart_view: { Args: { p_patient_id: string }; Returns: undefined };
       request_emergency_access: {
         Args: { p_patient_id: string; p_reason: string };
         Returns: string;
