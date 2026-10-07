@@ -7,6 +7,56 @@
   "common": {
     "welcome": "Welcome to CareOne",
     "loading": "Loading...",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "all": "All",
+    "active": "Active",
+    "archived": "Archived",
+    "deactivated": "Deactivated",
+    "actions": "Actions",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "allRoles": "All Roles"
+  },
+  "roles": {
+    "doctor": "Doctor",
+    "front_desk": "Front Desk",
+    "admin": "Admin"
+  },
+  "admin": {
+    "departments": {
+      "title": "Departments",
+      "subtitle": "Manage clinical departments and specialities",
+      "add": "Add Department",
+      "edit": "Edit Department",
+      "name": "Department Name",
+      "code": "Code",
+      "status": "Status",
+      "empty": "No departments found.",
+      "errorName": "Department name must be at least 2 characters",
+      "errorCode": "Department code must be at least 2 characters"
+    },
+    "staff": {
+      "title": "Hospital Staff",
+      "subtitle": "Manage doctor, front desk, and administrator accounts",
+      "invite": "Invite Staff",
+      "inviteTitle": "Invite Hospital Staff",
+      "searchPlaceholder": "Search staff by name or phone...",
+      "name": "Staff Name",
+      "role": "Role",
+      "department": "Department",
+      "status": "Status",
+      "empty": "No staff members found.",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "selectDept": "Select Department...",
+      "sending": "Sending...",
+      "sendInvite": "Send Invite",
+      "errorName": "Full name must be at least 2 characters",
+      "errorEmail": "Please enter a valid email address"
+    }
   }
 }
