@@ -24,7 +24,7 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 1. Do not ask me for credentials until a task truly needs them.
 2. The only credentials you may ever use are the local values from `supabase status` and, when I give them, the STAGING project URL and its publishable (anon) key. Store them only in `.env.local`, which must stay gitignored.
 3. Never accept or use a service-role or secret key, a database password, an access token, or anything for the production project. If I paste one by mistake, do not use it, and tell me to rotate it immediately.
-4. Never push to GitHub, change repository settings, add collaborators, or create GitHub secrets. I do those myself.
+4. You may push to origin after all checks pass and the secret check is clean. Never force push. Never change repository settings, add collaborators, or create GitHub secrets. I do those myself.
 
 ## Safety rules: never break these
 1. Work only against the local Supabase stack started with `supabase start`. Never run `supabase link`, `supabase db push`, `supabase functions deploy` or `supabase secrets`. Never use `--linked`, `--db-url` or `--project-ref`. Never deploy anything; I deploy through GitHub Actions myself.
@@ -52,7 +52,7 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 1. Plan first. For every task, write a plan: files to create or change, migrations, tests, commands, risks. Wait for my approval before writing code.
 2. One small task at a time. Do not touch unrelated files. No unrequested refactors or dependency upgrades.
 3. For any access rule, write the failing pgTAP test first, then the policy, then show the test passing.
-4. Work on a feature branch with small, clear commits. Never commit to `main`, never push, and never commit `.env` files, keys or real data.
+4. Work on a feature branch with small, clear commits. You may push to origin after all checks pass and the secret check is clean. Never force push, never commit `.env` files, keys or real data.
 
 ## When I write "Approved: Task N"
 1. Restate the task and its acceptance checks in three lines.
