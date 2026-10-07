@@ -239,13 +239,21 @@ npx supabase db push
 ### 3. Deploying Edge Functions
 ```bash
 # Set production secrets
-npx supabase secrets set ALLOWED_ORIGIN="https://careone.pages.dev" ENVIRONMENT="production"
+npx supabase secrets set ALLOWED_ORIGIN="https://<your-app-domain>" ENVIRONMENT="production"
 
 # Deploy Edge Functions
 npx supabase functions deploy invite-staff
 npx supabase functions deploy invite-patient
 npx supabase functions deploy send-reminders
 ```
+
+### 4. Frontend Hosting Options (Vercel & Cloudflare Pages)
+
+CareOne supports dual hosting with full Single-Page Application (SPA) routing and strict security headers:
+- **Vercel**: Configured via [`vercel.json`](./vercel.json) with `$schema`, SPA rewrites (`/(.*)` → `/index.html`), and all 7 HTTP security headers. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in project environment settings.
+- **Cloudflare Pages**: Configured via [`public/_headers`](./public/_headers), outputting to `dist/_headers` on build. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+For complete step-by-step instructions, see [`docs/DEPLOY.md`](./docs/DEPLOY.md).
 
 ---
 
