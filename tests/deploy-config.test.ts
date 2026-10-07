@@ -12,10 +12,12 @@ describe('Deploy configuration files', () => {
     const content = fs.readFileSync(headersPath, 'utf8');
     expect(content).toContain('Content-Security-Policy');
     expect(content).toContain('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    expect(content).toContain('X-Frame-Options: DENY');
     expect(content).toContain('X-Content-Type-Options: nosniff');
     expect(content).toContain('Referrer-Policy: no-referrer');
     expect(content).toContain('Permissions-Policy: camera=(self), microphone=(), geolocation=()');
     expect(content).toContain('Cross-Origin-Opener-Policy: same-origin');
+    expect(content).not.toContain('sentry.io');
   });
 
   it('.github/workflows/keepalive.yml exists and contains scheduled cron job', () => {

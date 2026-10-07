@@ -33,9 +33,10 @@ describe('Local Supabase and Environment Configuration', () => {
     expect(envExample).not.toContain('SECRET');
   });
 
-  it('validates .gitignore protects local environment files', () => {
+  it('validates .gitignore protects all local and environment files', () => {
     const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
     expect(gitignore).toContain('.env.local');
+    expect(gitignore).toMatch(/\.env\*/);
     expect(gitignore).toContain('!.env.example');
   });
 });

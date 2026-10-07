@@ -117,11 +117,26 @@ export function AdminDashboard(): React.JSX.Element {
     },
   });
 
-  const error =
+  const rawError =
     (countsError instanceof Error ? countsError.message : null) ||
     (auditError instanceof Error ? auditError.message : null) ||
     (deptsError instanceof Error ? deptsError.message : null) ||
     (staffError instanceof Error ? staffError.message : null);
+
+  const error = (() => {
+    if (!rawError) return null;
+    if (
+      rawError.includes('violates') ||
+      rawError.includes('constraint') ||
+      rawError.includes('relation') ||
+      rawError.includes('SQLSTATE') ||
+      rawError.includes('syntax error') ||
+      rawError.includes('permission denied for table')
+    ) {
+      return 'An unexpected database error occurred. Please contact system administration.';
+    }
+    return rawError;
+  })();
 
   const handleSaveDepartment = async (formData: DepartmentFormData) => {
     await saveDeptMutation.mutateAsync(formData);
