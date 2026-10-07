@@ -173,9 +173,10 @@ SELECT is(
 
 -- 20. claim_due_reminders returns due reminders
 SET LOCAL ROLE postgres;
-UPDATE public.reminders SET scheduled_for = now() - interval '5 minutes', status = 'pending';
+UPDATE public.reminders SET scheduled_for = now() - interval '5 minutes', status = 'pending'
+WHERE patient_id = 'aaaa6666-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 SELECT is(
-  (SELECT count(*)::int FROM public.claim_due_reminders(10)),
+  (SELECT count(*)::int FROM public.claim_due_reminders(10) WHERE patient_id = 'aaaa6666-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
   1,
   'claim_due_reminders claims due pending reminders'
 );

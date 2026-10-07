@@ -89,7 +89,7 @@ VALUES
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated","aal":"aal2"}', true);
 SELECT is(
-  (SELECT count(*)::int FROM public.patients),
+  (SELECT count(*)::int FROM public.patients WHERE id IN ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc')),
   3,
   'Front desk with AAL2 can read all patients'
 );
