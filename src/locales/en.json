@@ -24,6 +24,45 @@
     "admin": "Admin"
   },
   "admin": {
+    "tabs": {
+      "overview": "Overview",
+      "departments": "Departments",
+      "staff": "Staff",
+      "auditLog": "Access Log"
+    },
+    "overview": {
+      "title": "Hospital Operational Overview",
+      "subtitle": "Real-time key operational metrics across clinical departments",
+      "todayAppointments": "Today's Appointments",
+      "followUpsDue": "Follow-ups Due Today",
+      "reportsWaitingReview": "Reports Waiting Review",
+      "patientsOverdue": "Overdue Follow-ups",
+      "consultationsMonth": "Consultations This Month",
+      "activePatients": "Active App Patients",
+      "invitedRatio": "{{active}} of {{total}} invited",
+      "loading": "Loading dashboard metrics...",
+      "activityChartTitle": "Operational Workload Distribution",
+      "adoptionChartTitle": "Patient App Engagement (30 Days)"
+    },
+    "auditLog": {
+      "title": "System Access Log",
+      "subtitle": "Immutable audit trail of access events and sensitive clinical views",
+      "loading": "Loading access logs...",
+      "filterStart": "From Date",
+      "filterEnd": "To Date",
+      "filterStaff": "Filter by Staff Member",
+      "filterAction": "Filter action...",
+      "allStaff": "All Staff Members",
+      "emergencyBadge": "Emergency Access",
+      "headers": {
+        "timestamp": "When (IST)",
+        "actor": "Actor",
+        "action": "Action",
+        "table": "Target",
+        "reason": "Reason / Note"
+      },
+      "empty": "No audit log entries matching filters."
+    },
     "departments": {
       "title": "Departments",
       "subtitle": "Manage clinical departments and specialities",

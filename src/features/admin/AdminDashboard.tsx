@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users } from 'lucide-react';
+import { Building2, Users, BarChart3, ShieldCheck } from 'lucide-react';
+import { AdminOverviewPanel } from './AdminOverviewPanel';
+import { AccessLogPage } from './AccessLogPage';
 import { DepartmentList } from './DepartmentList';
 import { DepartmentFormDialog } from './DepartmentFormDialog';
 import { StaffList } from './StaffList';
@@ -14,18 +16,51 @@ import {
   fetchStaff,
   toggleStaffActive,
   inviteStaff,
+  fetchAdminDashboardCounts,
+  fetchAdminAuditLogs,
 } from './api';
-import type { Department, StaffMember, DepartmentFormData, InviteStaffFormData } from './types';
+import type {
+  Department,
+  StaffMember,
+  DepartmentFormData,
+  InviteStaffFormData,
+  AuditLogFilter,
+} from './types';
 
 export function AdminDashboard(): React.JSX.Element {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'departments' | 'staff'>('departments');
+  const [activeTab, setActiveTab] = useState<'overview' | 'departments' | 'staff' | 'audit_log'>(
+    'overview'
+  );
 
   // Dialog states
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+
+  // Audit filter state
+  const [auditFilter, setAuditFilter] = useState<AuditLogFilter>({});
+
+  const {
+    data: dashboardCounts,
+    isLoading: countsLoading,
+    error: countsError,
+  } = useQuery({
+    queryKey: ['admin', 'counts'],
+    queryFn: fetchAdminDashboardCounts,
+    enabled: activeTab === 'overview',
+  });
+
+  const {
+    data: auditLogs = [],
+    isLoading: auditLoading,
+    error: auditError,
+  } = useQuery({
+    queryKey: ['admin', 'audit-logs', auditFilter],
+    queryFn: () => fetchAdminAuditLogs(auditFilter),
+    enabled: activeTab === 'audit_log',
+  });
 
   const {
     data: departments = [],
@@ -82,8 +117,9 @@ export function AdminDashboard(): React.JSX.Element {
     },
   });
 
-  const loading = deptsLoading || staffLoading;
   const error =
+    (countsError instanceof Error ? countsError.message : null) ||
+    (auditError instanceof Error ? auditError.message : null) ||
     (deptsError instanceof Error ? deptsError.message : null) ||
     (staffError instanceof Error ? staffError.message : null);
 
@@ -104,71 +140,114 @@ export function AdminDashboard(): React.JSX.Element {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col items-start justify-between gap-4 border-slate-200 border-b pb-4 sm:flex-row sm:items-center dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="font-bold text-2xl text-slate-900 dark:text-white">
             {t('app.hospitalName')} — {t('roles.admin')}
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-slate-500 text-sm dark:text-slate-400">
             {t('admin.departments.subtitle', 'Hospital administration and staff management')}
           </p>
         </div>
 
-        <nav className="flex space-x-1 rounded-xl bg-slate-100 p-1" aria-label="Tabs">
+        <nav
+          className="flex space-x-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
+          aria-label="Tabs"
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('overview')}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+              activeTab === 'overview'
+                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            {t('admin.tabs.overview', 'Overview')}
+          </button>
           <button
             type="button"
             onClick={() => setActiveTab('departments')}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
               activeTab === 'departments'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
             }`}
           >
-            <Building2 className="w-4 h-4" />
-            {t('admin.departments.title')}
+            <Building2 className="h-4 w-4" />
+            {t('admin.tabs.departments', 'Departments')}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('staff')}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
               activeTab === 'staff'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
             }`}
           >
-            <Users className="w-4 h-4" />
-            {t('admin.staff.title')}
+            <Users className="h-4 w-4" />
+            {t('admin.tabs.staff', 'Staff')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('audit_log')}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+              activeTab === 'audit_log'
+                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            {t('admin.tabs.auditLog', 'Access Log')}
           </button>
         </nav>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-rose-50 p-4 text-sm font-medium text-rose-700 border border-rose-200">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 font-medium text-rose-700 text-sm dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
           {error}
         </div>
       )}
 
-      {loading ? (
-        <div className="py-12 text-center text-slate-500">{t('common.loading')}</div>
+      {activeTab === 'overview' ? (
+        <AdminOverviewPanel counts={dashboardCounts ?? null} isLoading={countsLoading} />
       ) : activeTab === 'departments' ? (
-        <DepartmentList
-          departments={departments}
-          onAdd={() => {
-            setEditingDept(null);
-            setDeptDialogOpen(true);
-          }}
-          onEdit={(dept) => {
-            setEditingDept(dept);
-            setDeptDialogOpen(true);
-          }}
-          onToggleArchive={handleToggleArchive}
-        />
+        deptsLoading ? (
+          <div className="py-12 text-center text-slate-500">{t('common.loading')}</div>
+        ) : (
+          <DepartmentList
+            departments={departments}
+            onAdd={() => {
+              setEditingDept(null);
+              setDeptDialogOpen(true);
+            }}
+            onEdit={(dept) => {
+              setEditingDept(dept);
+              setDeptDialogOpen(true);
+            }}
+            onToggleArchive={handleToggleArchive}
+          />
+        )
+      ) : activeTab === 'staff' ? (
+        staffLoading ? (
+          <div className="py-12 text-center text-slate-500">{t('common.loading')}</div>
+        ) : (
+          <StaffList
+            staff={staff}
+            onInvite={() => setInviteDialogOpen(true)}
+            onToggleActive={handleToggleStaffActive}
+          />
+        )
       ) : (
-        <StaffList
-          staff={staff}
-          onInvite={() => setInviteDialogOpen(true)}
-          onToggleActive={handleToggleStaffActive}
+        <AccessLogPage
+          logs={auditLogs}
+          staffList={staff}
+          isLoading={auditLoading}
+          filter={auditFilter}
+          onFilterChange={setAuditFilter}
         />
       )}
 

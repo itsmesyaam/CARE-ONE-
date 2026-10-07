@@ -31,3 +31,34 @@ export interface InviteStaffFormData {
   department_id?: string | null;
   phone?: string | null;
 }
+
+export interface AdminDashboardCounts {
+  today_appointments: number;
+  follow_ups_due: number;
+  reports_waiting_review: number;
+  patients_overdue_follow_up: number;
+  consultations_this_month: number;
+  active_patients_30d: number;
+  invited_patients: number;
+  active_patient_share: number;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_role: string | null;
+  action: string;
+  table_name: string | null;
+  record_id: string | null;
+  patient_id: string | null;
+  reason: string | null;
+}
+
+export interface AuditLogFilter {
+  startDate?: string;
+  endDate?: string;
+  staffId?: string;
+  action?: string;
+}
