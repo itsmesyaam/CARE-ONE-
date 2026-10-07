@@ -336,6 +336,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      documents: {
+        Row: {
+          created_at: string;
+          file_size_bytes: number | null;
+          id: string;
+          mime_type: string;
+          patient_id: string;
+          report_date: string;
+          review_status: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          source: string;
+          storage_path: string;
+          title: string;
+          type: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          file_size_bytes?: number | null;
+          id?: string;
+          mime_type: string;
+          patient_id: string;
+          report_date?: string;
+          review_status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source?: string;
+          storage_path: string;
+          title: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          file_size_bytes?: number | null;
+          id?: string;
+          mime_type?: string;
+          patient_id?: string;
+          report_date?: string;
+          review_status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source?: string;
+          storage_path?: string;
+          title?: string;
+          type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'documents_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'documents_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       emergency_access: {
         Row: {
           created_at: string;
