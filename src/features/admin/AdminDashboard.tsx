@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, BarChart3, ShieldCheck } from 'lucide-react';
+import { Building2, Users, BarChart3, ShieldCheck, LogOut } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { AdminOverviewPanel } from './AdminOverviewPanel';
 import { AccessLogPage } from './AccessLogPage';
 import { DepartmentList } from './DepartmentList';
@@ -41,6 +42,7 @@ export function AdminDashboard(): React.JSX.Element {
 
   // Audit filter state
   const [auditFilter, setAuditFilter] = useState<AuditLogFilter>({});
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const {
     data: dashboardCounts,
@@ -154,6 +156,17 @@ export function AdminDashboard(): React.JSX.Element {
     await inviteStaffMutation.mutateAsync(formData);
   };
 
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await supabase.auth.signOut();
+      queryClient.clear();
+      window.location.href = '/';
+    } catch {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex flex-col items-start justify-between gap-4 border-slate-200 border-b pb-4 sm:flex-row sm:items-center dark:border-slate-800">
@@ -166,59 +179,72 @@ export function AdminDashboard(): React.JSX.Element {
           </p>
         </div>
 
-        <nav
-          className="flex space-x-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
-          aria-label="Tabs"
-        >
+        <div className="flex flex-wrap items-center gap-3">
+          <nav
+            className="flex space-x-1 overflow-x-auto rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
+            aria-label="Tabs"
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+                activeTab === 'overview'
+                  ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {t('admin.tabs.overview', 'Overview')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('departments')}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+                activeTab === 'departments'
+                  ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+              }`}
+            >
+              <Building2 className="h-4 w-4" />
+              {t('admin.tabs.departments', 'Departments')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('staff')}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+                activeTab === 'staff'
+                  ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              {t('admin.tabs.staff', 'Staff')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('audit_log')}
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
+                activeTab === 'audit_log'
+                  ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {t('admin.tabs.auditLog', 'Access Log')}
+            </button>
+          </nav>
+
           <button
             type="button"
-            onClick={() => setActiveTab('overview')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
-              activeTab === 'overview'
-                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
-            }`}
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-700 text-sm shadow-xs transition hover:bg-slate-50 hover:text-rose-600 focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 dark:hover:text-rose-400"
+            title={t('common.signOut', 'Sign Out')}
           >
-            <BarChart3 className="h-4 w-4" />
-            {t('admin.tabs.overview', 'Overview')}
+            <LogOut className="h-4 w-4" />
+            <span>{isSigningOut ? t('common.signingOut', 'Signing out...') : t('common.signOut', 'Sign Out')}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('departments')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
-              activeTab === 'departments'
-                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
-            }`}
-          >
-            <Building2 className="h-4 w-4" />
-            {t('admin.tabs.departments', 'Departments')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('staff')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
-              activeTab === 'staff'
-                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            {t('admin.tabs.staff', 'Staff')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('audit_log')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-sm transition sm:px-4 ${
-              activeTab === 'audit_log'
-                ? 'bg-white text-emerald-800 shadow-xs dark:bg-slate-900 dark:text-emerald-400'
-                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
-            }`}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            {t('admin.tabs.auditLog', 'Access Log')}
-          </button>
-        </nav>
+        </div>
       </div>
 
       {error && (

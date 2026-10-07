@@ -20,7 +20,9 @@
     "offlineWarning": "You are currently offline. Please reconnect to view or update medical records.",
     "authRequired": "Authentication Required",
     "adminAuthMessage": "Please sign in with your staff credentials and two-factor authentication to access the administration dashboard.",
-    "returnHome": "Return to Home"
+    "returnHome": "Return to Home",
+    "signOut": "Sign Out",
+    "signingOut": "Signing out..."
   },
   "roles": {
     "doctor": "Doctor",
