@@ -3,6 +3,13 @@ import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from './RootLayout';
 import { AdminRouteGuard } from '../components/AdminRouteGuard';
 import { SignInPage } from '../features/auth/SignInPage';
+import { PatientProvider } from '../features/patient/PatientContext';
+import { PatientSignIn } from '../features/patient/PatientSignIn';
+import { PatientLayout } from '../features/patient/PatientLayout';
+import { PatientHome } from '../features/patient/PatientHome';
+import { PatientCarePlan } from '../features/patient/PatientCarePlan';
+import { PatientRecords } from '../features/patient/PatientRecords';
+import { PatientProfile } from '../features/patient/PatientProfile';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -20,6 +27,52 @@ export const router = createBrowserRouter([
   {
     path: '/signin',
     element: <SignInPage />,
+  },
+  {
+    path: '/patient/login',
+    element: (
+      <PatientProvider initialStep="welcome">
+        <PatientSignIn />
+      </PatientProvider>
+    ),
+  },
+  {
+    path: '/patient/signin',
+    element: (
+      <PatientProvider initialStep="welcome">
+        <PatientSignIn />
+      </PatientProvider>
+    ),
+  },
+  {
+    path: '/patient',
+    element: (
+      <PatientProvider initialStep="app">
+        <PatientLayout />
+      </PatientProvider>
+    ),
+    children: [
+      {
+        index: true,
+        element: <PatientHome />,
+      },
+      {
+        path: 'plan',
+        element: <PatientCarePlan />,
+      },
+      {
+        path: 'records',
+        element: <PatientRecords />,
+      },
+      {
+        path: 'profile',
+        element: <PatientProfile />,
+      },
+      {
+        path: 'me',
+        element: <PatientProfile />,
+      },
+    ],
   },
   {
     path: '/admin',

@@ -12,9 +12,11 @@ const resources = {
   },
 };
 
+const savedLang = typeof window !== 'undefined' ? localStorage.getItem('careone_lang') || 'en' : 'en';
+
 void i18n.use(initReactI18next).init({
   resources,
-  lng: 'en',
+  lng: savedLang,
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,

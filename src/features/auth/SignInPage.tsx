@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Stethoscope,
+  Shield,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { ConfigBanner } from '../../components/ConfigBanner';
@@ -57,7 +58,6 @@ export function SignInPage(): React.JSX.Element {
     if (!patientEmail) return;
 
     if (!isSupabaseConfigured) {
-      // Offline/demo fallback when env vars are not set
       setOtpSent(true);
       setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
       return;
@@ -127,7 +127,6 @@ export function SignInPage(): React.JSX.Element {
     if (!staffEmail || !staffPassword) return;
 
     if (!isSupabaseConfigured) {
-      // Demo preview mode fallback
       setStaffSuccess(t('auth.signInSuccess'));
       setTimeout(() => navigate('/admin'), 800);
       return;
@@ -204,7 +203,7 @@ export function SignInPage(): React.JSX.Element {
     }
   };
 
-  // Demo account quick filers
+  // Demo account helper
   const fillDemoAccount = (role: 'patient' | 'admin' | 'doctor' | 'desk') => {
     if (role === 'patient') {
       setActiveTab('patient');
@@ -228,64 +227,70 @@ export function SignInPage(): React.JSX.Element {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-[#F4F6FB] text-[#0B1533]">
       <ConfigBanner />
 
-      {/* Top Bar */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      {/* Floating Header */}
+      <header className="sticky top-3 z-30 mx-auto w-full max-w-5xl px-4 sm:px-6">
+        <nav
+          aria-label="Navigation Header"
+          className="flex items-center justify-between rounded-full border border-[rgba(11,21,51,0.08)] bg-white/90 px-4 py-2.5 shadow-[0_12px_34px_-14px_rgba(11,21,51,0.18)] backdrop-blur-md sm:px-6"
+        >
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
+            className="flex items-center gap-2 text-xs font-bold text-[#0B1533] hover:text-[#2B59FF] transition"
           >
             <ArrowLeft className="h-4 w-4" />
-            {t('nav.home')}
+            <span>{t('nav.home')}</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="hidden text-xs font-bold uppercase tracking-wider text-[#6B7596] sm:inline">
               {t('app.hospitalName')}
             </span>
+
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+              className="flex items-center gap-1.5 rounded-full border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] px-3 py-1.5 text-xs font-bold text-[#0B1533] hover:bg-slate-100 transition"
               aria-label={t('nav.language')}
             >
-              <Languages className="h-3.5 w-3.5 text-slate-500" />
-              {i18n.language === 'ml' ? 'English' : 'മലയാളം'}
+              <Languages className="h-3.5 w-3.5 text-[#6B7596]" />
+              <span>{i18n.language === 'ml' ? 'English' : 'മലയാളം'}</span>
             </button>
           </div>
-        </div>
+        </nav>
       </header>
 
-      {/* Sign In Card Container */}
-      <main className="flex flex-1 items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      {/* Sign In Card */}
+      <main role="main" className="flex flex-1 items-center justify-center p-4 py-8 sm:py-12">
+        <div className="w-full max-w-md rounded-[26px] border border-[rgba(11,21,51,0.08)] bg-white p-6 shadow-[0_20px_50px_-20px_rgba(11,21,51,0.3)] sm:p-8">
           {/* Logo / Header */}
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
               <Stethoscope className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900">{t('app.title')}</h1>
-            <p className="mt-1 text-xs text-slate-500">{t('app.description')}</p>
+            <h1 className="text-xl font-extrabold tracking-tight text-[#0B1533] sm:text-2xl">
+              {t('app.title')}
+            </h1>
+            <p className="mt-1 text-xs text-[#6B7596]">{t('app.description')}</p>
           </div>
 
-          {/* Role Tabs */}
-          <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
+          {/* Pill Segmented Tab Control */}
+          <div className="mb-6 flex rounded-full bg-[#F4F6FB] p-1 border border-[rgba(11,21,51,0.06)]">
             <button
               type="button"
               onClick={() => {
                 setActiveTab('patient');
                 setPatientError(null);
               }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-xs font-medium transition ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2 text-xs font-bold transition ${
                 activeTab === 'patient'
-                  ? 'bg-white text-sky-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B1533] shadow-xs'
+                  : 'text-[#6B7596] hover:text-[#0B1533]'
               }`}
             >
               <User className="h-3.5 w-3.5" />
-              {t('auth.patientTab')}
+              <span>{t('auth.patientTab')}</span>
             </button>
             <button
               type="button"
@@ -293,28 +298,28 @@ export function SignInPage(): React.JSX.Element {
                 setActiveTab('staff');
                 setStaffError(null);
               }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-xs font-medium transition ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2 text-xs font-bold transition ${
                 activeTab === 'staff'
-                  ? 'bg-white text-sky-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-[#0B1533] shadow-xs'
+                  : 'text-[#6B7596] hover:text-[#0B1533]'
               }`}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
-              {t('auth.staffTab')}
+              <span>{t('auth.staffTab')}</span>
             </button>
           </div>
 
-          {/* PATIENT TAB FORM */}
+          {/* PATIENT TAB */}
           {activeTab === 'patient' && (
             <div>
-              <p className="mb-4 text-xs text-slate-600">
+              <p className="mb-4 text-xs leading-relaxed text-[#6B7596]">
                 {t('auth.patientDescription')}
               </p>
 
               {patientError && (
                 <div
                   role="alert"
-                  className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700"
+                  className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700"
                 >
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
                   <span>{patientError}</span>
@@ -324,9 +329,9 @@ export function SignInPage(): React.JSX.Element {
               {patientSuccess && (
                 <div
                   role="status"
-                  className="mb-4 flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800"
+                  className="mb-4 flex items-start gap-2 rounded-xl bg-[#E8F7EE] p-3 text-xs text-[#15803D]"
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
                   <span>{patientSuccess}</span>
                 </div>
               )}
@@ -336,12 +341,12 @@ export function SignInPage(): React.JSX.Element {
                   <div>
                     <label
                       htmlFor="patient-email"
-                      className="block text-xs font-medium text-slate-700"
+                      className="block text-xs font-bold text-[#0B1533]"
                     >
                       {t('auth.emailLabel')}
                     </label>
-                    <div className="relative mt-1">
-                      <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative mt-1.5">
+                      <Mail className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
                       <input
                         id="patient-email"
                         type="email"
@@ -349,7 +354,7 @@ export function SignInPage(): React.JSX.Element {
                         value={patientEmail}
                         onChange={e => setPatientEmail(e.target.value)}
                         placeholder={t('auth.emailPlaceholder')}
-                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:outline-hidden focus:ring-1 focus:ring-sky-600"
+                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
                     </div>
                   </div>
@@ -357,7 +362,7 @@ export function SignInPage(): React.JSX.Element {
                   <button
                     type="submit"
                     disabled={patientLoading}
-                    className="w-full rounded-lg bg-sky-700 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-sky-800 disabled:opacity-50 transition"
+                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
                   >
                     {patientLoading ? t('auth.sendingOtp') : t('auth.sendOtp')}
                   </button>
@@ -367,12 +372,12 @@ export function SignInPage(): React.JSX.Element {
                   <div>
                     <label
                       htmlFor="patient-otp"
-                      className="block text-xs font-medium text-slate-700"
+                      className="block text-xs font-bold text-[#0B1533]"
                     >
                       {t('auth.otpLabel')}
                     </label>
-                    <div className="relative mt-1">
-                      <KeyRound className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative mt-1.5">
+                      <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
                       <input
                         id="patient-otp"
                         type="text"
@@ -381,23 +386,23 @@ export function SignInPage(): React.JSX.Element {
                         value={otpCode}
                         onChange={e => setOtpCode(e.target.value)}
                         placeholder={t('auth.otpPlaceholder')}
-                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 font-mono text-base tracking-widest text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:outline-hidden focus:ring-1 focus:ring-sky-600 text-center"
+                        className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2.5">
                     <button
                       type="button"
                       onClick={() => setOtpSent(false)}
-                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                      className="rounded-full border border-[rgba(11,21,51,0.14)] bg-[#F4F6FB] px-4 py-2.5 text-xs font-bold text-[#0B1533] hover:bg-slate-100 transition"
                     >
                       {t('auth.changeEmail')}
                     </button>
                     <button
                       type="submit"
                       disabled={patientLoading}
-                      className="flex-1 rounded-lg bg-sky-700 py-2 text-xs font-semibold text-white shadow-xs hover:bg-sky-800 disabled:opacity-50 transition"
+                      className="btn-pill flex-1 bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
                     >
                       {patientLoading ? t('auth.verifyingOtp') : t('auth.verifyOtp')}
                     </button>
@@ -407,17 +412,17 @@ export function SignInPage(): React.JSX.Element {
             </div>
           )}
 
-          {/* STAFF TAB FORM */}
+          {/* STAFF TAB */}
           {activeTab === 'staff' && (
             <div>
-              <p className="mb-4 text-xs text-slate-600">
+              <p className="mb-4 text-xs leading-relaxed text-[#6B7596]">
                 {t('auth.staffDescription')}
               </p>
 
               {staffError && (
                 <div
                   role="alert"
-                  className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700"
+                  className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700"
                 >
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
                   <span>{staffError}</span>
@@ -427,9 +432,9 @@ export function SignInPage(): React.JSX.Element {
               {staffSuccess && (
                 <div
                   role="status"
-                  className="mb-4 flex items-start gap-2 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800"
+                  className="mb-4 flex items-start gap-2 rounded-xl bg-[#E8F7EE] p-3 text-xs text-[#15803D]"
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
                   <span>{staffSuccess}</span>
                 </div>
               )}
@@ -439,12 +444,12 @@ export function SignInPage(): React.JSX.Element {
                   <div>
                     <label
                       htmlFor="staff-email"
-                      className="block text-xs font-medium text-slate-700"
+                      className="block text-xs font-bold text-[#0B1533]"
                     >
                       {t('auth.emailLabel')}
                     </label>
-                    <div className="relative mt-1">
-                      <Mail className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative mt-1.5">
+                      <Mail className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
                       <input
                         id="staff-email"
                         type="email"
@@ -452,7 +457,7 @@ export function SignInPage(): React.JSX.Element {
                         value={staffEmail}
                         onChange={e => setStaffEmail(e.target.value)}
                         placeholder="staff@example.com"
-                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:outline-hidden focus:ring-1 focus:ring-sky-600"
+                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
                     </div>
                   </div>
@@ -460,12 +465,12 @@ export function SignInPage(): React.JSX.Element {
                   <div>
                     <label
                       htmlFor="staff-password"
-                      className="block text-xs font-medium text-slate-700"
+                      className="block text-xs font-bold text-[#0B1533]"
                     >
                       {t('auth.passwordLabel')}
                     </label>
-                    <div className="relative mt-1">
-                      <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative mt-1.5">
+                      <Lock className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
                       <input
                         id="staff-password"
                         type="password"
@@ -473,7 +478,7 @@ export function SignInPage(): React.JSX.Element {
                         value={staffPassword}
                         onChange={e => setStaffPassword(e.target.value)}
                         placeholder={t('auth.passwordPlaceholder')}
-                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:outline-hidden focus:ring-1 focus:ring-sky-600"
+                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
                     </div>
                   </div>
@@ -481,7 +486,7 @@ export function SignInPage(): React.JSX.Element {
                   <button
                     type="submit"
                     disabled={staffLoading}
-                    className="w-full rounded-lg bg-sky-700 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-sky-800 disabled:opacity-50 transition"
+                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
                   >
                     {staffLoading ? t('common.loading') : t('common.signIn')}
                   </button>
@@ -491,12 +496,12 @@ export function SignInPage(): React.JSX.Element {
                   <div>
                     <label
                       htmlFor="staff-totp"
-                      className="block text-xs font-medium text-slate-700"
+                      className="block text-xs font-bold text-[#0B1533]"
                     >
                       {t('auth.totpLabel')}
                     </label>
-                    <div className="relative mt-1">
-                      <KeyRound className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="relative mt-1.5">
+                      <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
                       <input
                         id="staff-totp"
                         type="text"
@@ -505,7 +510,7 @@ export function SignInPage(): React.JSX.Element {
                         value={totpCode}
                         onChange={e => setTotpCode(e.target.value)}
                         placeholder={t('auth.totpPlaceholder')}
-                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 font-mono text-base tracking-widest text-slate-900 placeholder:text-slate-400 focus:border-sky-600 focus:outline-hidden focus:ring-1 focus:ring-sky-600 text-center"
+                        className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
                     </div>
                   </div>
@@ -513,7 +518,7 @@ export function SignInPage(): React.JSX.Element {
                   <button
                     type="submit"
                     disabled={staffLoading}
-                    className="w-full rounded-lg bg-sky-700 py-2 text-xs font-semibold text-white shadow-xs hover:bg-sky-800 disabled:opacity-50 transition"
+                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
                   >
                     {staffLoading ? t('common.loading') : t('auth.verifyTotp')}
                   </button>
@@ -522,45 +527,51 @@ export function SignInPage(): React.JSX.Element {
             </div>
           )}
 
-          {/* Quick Demo Credentials */}
-          <div className="mt-8 border-t border-slate-100 pt-6">
-            <p className="mb-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          {/* Quick Demo Accounts */}
+          <div className="mt-8 border-t border-[rgba(11,21,51,0.08)] pt-6">
+            <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-[#6B7596]">
               {t('auth.demoAccounts')}
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => fillDemoAccount('patient')}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-slate-700 hover:bg-slate-100 transition"
+                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
               >
-                <span className="font-semibold text-sky-800 block">Patient</span>
-                <span className="text-[10px] text-slate-500">patient@example.com</span>
+                <span className="block font-bold text-[#15803D]">Patient</span>
+                <span className="mono block text-[10px] text-[#6B7596]">patient@example.com</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemoAccount('doctor')}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-slate-700 hover:bg-slate-100 transition"
+                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
               >
-                <span className="font-semibold text-sky-800 block">Doctor</span>
-                <span className="text-[10px] text-slate-500">dr.rahul@example.com</span>
+                <span className="block font-bold text-[#2B59FF]">Doctor</span>
+                <span className="mono block text-[10px] text-[#6B7596]">dr.rahul@example.com</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemoAccount('desk')}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-slate-700 hover:bg-slate-100 transition"
+                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
               >
-                <span className="font-semibold text-sky-800 block">Front Desk</span>
-                <span className="text-[10px] text-slate-500">desk@example.com</span>
+                <span className="block font-bold text-[#0B1533]">Front Desk</span>
+                <span className="mono block text-[10px] text-[#6B7596]">desk@example.com</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemoAccount('admin')}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-slate-700 hover:bg-slate-100 transition"
+                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
               >
-                <span className="font-semibold text-sky-800 block">Admin</span>
-                <span className="text-[10px] text-slate-500">admin@example.com</span>
+                <span className="block font-bold text-[#0B1533]">Admin</span>
+                <span className="mono block text-[10px] text-[#6B7596]">admin@example.com</span>
               </button>
             </div>
+          </div>
+
+          {/* Privacy Footnote */}
+          <div className="mt-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-[#15803D]">
+            <Shield className="h-3.5 w-3.5" />
+            <span>DPDP Act Protected</span>
           </div>
         </div>
       </main>
