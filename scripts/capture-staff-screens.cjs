@@ -144,6 +144,51 @@ async function main() {
     await pageMobile.screenshot({ path: path.join(dir, 'doctor-today-mobile-ml.png') });
     console.log('Saved doctor-today-mobile-ml.png');
 
+    // ─────────────────────────────────────────────────────────────
+    // SCREEN 3: Patients Directory & Emergency Access Modal
+    // ─────────────────────────────────────────────────────────────
+    console.log('Capturing Doctor Patients Directory screenshots...');
+
+    // 3A. Patients Directory Desktop EN
+    await pageDesktop.goto('http://127.0.0.1:4173/doctor/patients', { waitUntil: 'networkidle' });
+    await pageDesktop.waitForTimeout(600);
+    await pageDesktop.screenshot({ path: path.join(dir, 'doctor-patients-desktop-en.png') });
+    console.log('Saved doctor-patients-desktop-en.png');
+
+    // 3B. Patients Directory Desktop ML
+    await pageDesktop.locator('aside button[aria-label="Toggle language"]').click();
+    await pageDesktop.waitForTimeout(400);
+    await pageDesktop.screenshot({ path: path.join(dir, 'doctor-patients-desktop-ml.png') });
+    console.log('Saved doctor-patients-desktop-ml.png');
+
+    // Toggle back to EN
+    await pageDesktop.locator('aside button[aria-label="Toggle language"]').click();
+    await pageDesktop.waitForTimeout(400);
+
+    // 3C. Patients Directory Mobile EN
+    await pageMobile.goto('http://127.0.0.1:4173/doctor/patients', { waitUntil: 'networkidle' });
+    await pageMobile.waitForTimeout(600);
+    await pageMobile.screenshot({ path: path.join(dir, 'doctor-patients-mobile-en.png') });
+    console.log('Saved doctor-patients-mobile-en.png');
+
+    // 3D. Patients Directory Mobile ML
+    await pageMobile.locator('header button[aria-label="Toggle language"]').click();
+    await pageMobile.waitForTimeout(400);
+    await pageMobile.screenshot({ path: path.join(dir, 'doctor-patients-mobile-ml.png') });
+    console.log('Saved doctor-patients-mobile-ml.png');
+
+    // 3E. Emergency Access Modal Desktop
+    await pageDesktop.goto('http://127.0.0.1:4173/doctor/patients', { waitUntil: 'networkidle' });
+    await pageDesktop.waitForTimeout(600);
+    const searchInput = pageDesktop.locator('input[aria-label="Search patients"]');
+    await searchInput.fill('Harikrishnan');
+    await pageDesktop.waitForTimeout(400);
+    const emergencyBtn = pageDesktop.locator('button:has-text("Emergency access")');
+    await emergencyBtn.click();
+    await pageDesktop.waitForTimeout(400);
+    await pageDesktop.screenshot({ path: path.join(dir, 'doctor-emergency-modal-desktop.png') });
+    console.log('Saved doctor-emergency-modal-desktop.png');
+
     await browser.close();
     console.log('All staff & doctor screenshots captured successfully!');
   } finally {

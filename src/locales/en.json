@@ -282,5 +282,41 @@
     "patients": "Patients",
     "review": "Review",
     "account": "Account"
+  },
+  "doctorPatients": {
+    "title": "Patients",
+    "subtitle": "Patients in your care team. Booking a visit adds a patient to it for a year.",
+    "searchPlaceholder": "Search by name, phone or hospital number",
+    "all": "All",
+    "needsReview": "Needs review",
+    "overdue": "Overdue follow-up",
+    "patientCol": "Patient",
+    "conditionsCol": "Conditions",
+    "lastVisitCol": "Last visit",
+    "nextVisitCol": "Next visit",
+    "sinceLastVisitCol": "Since last visit",
+    "noPatientsMatch": "No patients match",
+    "noPatientsBody": "Check the spelling, or search by phone or hospital number.",
+    "noneMatchCareTeam": "None of your patients match.",
+    "otherHospitalPatients": "Other patients at ABC Hospital",
+    "otherPatientsNote": "Not in your care team, so you see contact details only. Opening a chart needs a reason, lasts 4 hours and alerts the admin.",
+    "emergencyAccess": "Emergency access",
+    "openChart": "Open chart",
+    "accessActive": "Active ({{hours}}h left)",
+    "overdueSince": "Overdue since {{date}}",
+    "draftNote": "Draft note"
+  },
+  "emergencyModal": {
+    "title": "Emergency access",
+    "warning": "Use this only when you need the record to treat this patient now. Your reason and every record you open are logged, and the hospital admin is alerted straight away.",
+    "reason": "Reason",
+    "reasonPh": "For example: in casualty with chest pain, need medication history",
+    "reasonHint": "At least 10 characters. The admin reads this.",
+    "quickReasons": "Common reasons",
+    "endsAt": "Access ends at {{time}}, 4 hours from now.",
+    "ackCheckbox": "I understand this access is logged and reviewed.",
+    "submitBtn": "Open chart for 4 hours",
+    "grantedToast": "Emergency access until {{time}}. The admin has been alerted.",
+    "underDoctor": "{{mrn}}. Under {{doctor}}, {{dept}}."
   }
 }

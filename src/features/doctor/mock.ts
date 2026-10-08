@@ -158,3 +158,118 @@ export const MOCK_WAITING_SYMPTOMS: WaitingSymptomItem[] = [
 ];
 
 export const IS_MOCK_DATA = true;
+
+export interface DirectoryPatient {
+  id: string;
+  name: string;
+  age: number;
+  sex: 'male' | 'female' | 'other';
+  mrn: string;
+  phone: string;
+  conditions: string[];
+  lastVisit: string;
+  nextVisit: string;
+  overdue?: string | null;
+  signals: PatientSignals;
+  inCareTeam: boolean;
+  owner?: string;
+  dept?: string;
+}
+
+export const MOCK_DIRECTORY_PATIENTS: DirectoryPatient[] = [
+  {
+    id: 'anjali',
+    name: 'Anjali Menon',
+    age: 42,
+    sex: 'female',
+    mrn: 'P-10492',
+    phone: '+91 98470 12345',
+    conditions: ['Type 2 Diabetes', 'Hypertension'],
+    lastVisit: '22 Sep 2026',
+    nextVisit: 'Thu, 15 Oct, 10:00 AM',
+    overdue: null,
+    signals: { rep: 1, rd: 3, sx: 0, miss: 0, med: 0 },
+    inCareTeam: true,
+  },
+  {
+    id: 'vinod',
+    name: 'Vinod Kumar',
+    age: 56,
+    sex: 'male',
+    mrn: 'P-09823',
+    phone: '+91 94471 23456',
+    conditions: ['Essential Hypertension', 'Dyslipidemia'],
+    lastVisit: '18 Aug 2026',
+    nextVisit: 'Thu, 15 Oct, 10:30 AM',
+    overdue: null,
+    signals: { rep: 0, rd: 1, sx: 0, miss: 0, med: 1 },
+    inCareTeam: true,
+  },
+  {
+    id: 'thankamma',
+    name: 'Thankamma Varghese',
+    age: 68,
+    sex: 'female',
+    mrn: 'P-11204',
+    phone: '+91 98462 34567',
+    conditions: ['Heart Failure (NYHA II)', 'Osteoarthritis'],
+    lastVisit: '10 Jul 2026',
+    nextVisit: 'Thu, 15 Oct, 11:00 AM',
+    overdue: '15 Aug 2026',
+    signals: { rep: 2, rd: 0, sx: 1, miss: 0, med: 0 },
+    inCareTeam: true,
+  },
+  {
+    id: 'suresh',
+    name: 'Suresh Pillai',
+    age: 39,
+    sex: 'male',
+    mrn: 'P-08711',
+    phone: '+91 94463 45678',
+    conditions: ['Prediabetes', 'Obesity'],
+    lastVisit: '12 Jan 2026',
+    nextVisit: 'Thu, 15 Oct, 11:30 AM',
+    overdue: null,
+    signals: { rep: 0, rd: 0, sx: 0, miss: 0, med: 0 },
+    inCareTeam: true,
+  },
+  {
+    id: 'harikrishnan',
+    name: 'Harikrishnan Nair',
+    age: 51,
+    sex: 'male',
+    mrn: 'P-07612',
+    phone: '+91 94475 99887',
+    conditions: ['Coronary Artery Disease', 'Post-PTCA'],
+    lastVisit: '04 Oct 2026',
+    nextVisit: 'Not scheduled with you',
+    overdue: null,
+    signals: { rep: 0, rd: 0, sx: 0, miss: 0, med: 0 },
+    inCareTeam: false,
+    owner: 'Dr. Anita Paul',
+    dept: 'Cardiology',
+  },
+  {
+    id: 'fathima',
+    name: 'Fathima Beevi',
+    age: 63,
+    sex: 'female',
+    mrn: 'P-12055',
+    phone: '+91 98472 88776',
+    conditions: ['Bronchial Asthma'],
+    lastVisit: '28 Sep 2026',
+    nextVisit: 'Not scheduled with you',
+    overdue: null,
+    signals: { rep: 0, rd: 0, sx: 0, miss: 0, med: 0 },
+    inCareTeam: false,
+    owner: 'Dr. Meera Iyer',
+    dept: 'Pulmonology',
+  },
+];
+
+export const GLASS_QUICK_REASONS = [
+  'In casualty with chest pain, need medication history',
+  'Severe allergic reaction in casualty',
+  'Emergency surgery needed',
+  'Patient unconscious, family requested review',
+];

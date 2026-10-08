@@ -14,6 +14,7 @@ import { PatientProfile } from '../features/patient/PatientProfile';
 import { StaffSignIn } from '../features/auth/StaffSignIn';
 import { DoctorLayout } from '../features/doctor/DoctorLayout';
 import { DoctorToday } from '../features/doctor/DoctorToday';
+import { DoctorPatients } from '../features/doctor/DoctorPatients';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
       {
         path: 'today',
         element: <DoctorToday />,
+      },
+      {
+        path: 'patients',
+        element: <DoctorPatients />,
       },
     ],
   },

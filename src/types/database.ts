@@ -94,13 +94,13 @@ isOneToOne: false
                   ]
                 },"care_plan_items": {
                   Row: {
-                    "care_plan_id": string,"completed_at": string | null,"created_at": string,"detail": string,"due_date": string | null,"id": string,"kind": string,"patient_id": string,"status": string,"timing": Json | null,"updated_at": string
+                    "care_plan_id": string,"completed_at": string | null,"created_at": string,"detail": string,"diet_guide_id": string | null,"doctor_note": string | null,"due_date": string | null,"id": string,"kind": string,"patient_id": string,"status": string,"timing": Json | null,"updated_at": string
                   }
                   Insert: {
-                    "care_plan_id": string,"completed_at"?: string | null,"created_at"?: string,"detail": string,"due_date"?: string | null,"id"?: string,"kind": string,"patient_id": string,"status"?: string,"timing"?: Json | null,"updated_at"?: string
+                    "care_plan_id": string,"completed_at"?: string | null,"created_at"?: string,"detail": string,"diet_guide_id"?: string | null,"doctor_note"?: string | null,"due_date"?: string | null,"id"?: string,"kind": string,"patient_id": string,"status"?: string,"timing"?: Json | null,"updated_at"?: string
                   }
                   Update: {
-                    "care_plan_id"?: string,"completed_at"?: string | null,"created_at"?: string,"detail"?: string,"due_date"?: string | null,"id"?: string,"kind"?: string,"patient_id"?: string,"status"?: string,"timing"?: Json | null,"updated_at"?: string
+                    "care_plan_id"?: string,"completed_at"?: string | null,"created_at"?: string,"detail"?: string,"diet_guide_id"?: string | null,"doctor_note"?: string | null,"due_date"?: string | null,"id"?: string,"kind"?: string,"patient_id"?: string,"status"?: string,"timing"?: Json | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -108,6 +108,12 @@ isOneToOne: false
       columns: ["care_plan_id"]
 isOneToOne: false
       referencedRelation: "care_plans"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "care_plan_items_diet_guide_id_fkey"
+      columns: ["diet_guide_id"]
+isOneToOne: false
+      referencedRelation: "diet_guides"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "care_plan_items_patient_id_fkey"
@@ -235,6 +241,31 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"diet_guides": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"avoid_en": string,"avoid_ml": string,"condition_tags": (string)[],"created_at": string,"eat_less_en": string,"eat_less_ml": string,"eat_more_en": string,"eat_more_ml": string,"id": string,"parent_id": string | null,"status": string,"tips_en": string,"tips_ml": string,"title_en": string,"title_ml": string,"updated_at": string,"version": number
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"avoid_en": string,"avoid_ml": string,"condition_tags"?: (string)[],"created_at"?: string,"eat_less_en": string,"eat_less_ml": string,"eat_more_en": string,"eat_more_ml": string,"id"?: string,"parent_id"?: string | null,"status"?: string,"tips_en": string,"tips_ml": string,"title_en": string,"title_ml": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"avoid_en"?: string,"avoid_ml"?: string,"condition_tags"?: (string)[],"created_at"?: string,"eat_less_en"?: string,"eat_less_ml"?: string,"eat_more_en"?: string,"eat_more_ml"?: string,"id"?: string,"parent_id"?: string | null,"status"?: string,"tips_en"?: string,"tips_ml"?: string,"title_en"?: string,"title_ml"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "diet_guides_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
+      referencedRelation: "staff"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "diet_guides_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "diet_guides"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"documents": {
                   Row: {

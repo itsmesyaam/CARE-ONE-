@@ -1311,6 +1311,28 @@ body {
 .staff-theme .btn-light:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+.staff-theme .btn-tint {
+  background: var(--leaft);
+  color: var(--leafd);
+}
+.staff-theme .btn-tint:hover {
+  background: #D3E6DA;
+}
+.staff-theme .btn-danger {
+  background: var(--lat);
+  color: #fff;
+}
+.staff-theme .btn-danger:hover {
+  background: #963322;
+}
+.staff-theme .btn-dline {
+  color: var(--lat);
+  border: 1.5px solid #E6B5AA;
+  background: #fff;
+}
+.staff-theme .btn-dline:hover {
+  background: #FDF6F5;
+}
 .staff-theme .btn-ghost {
   background: transparent;
   color: var(--leaf);
@@ -1750,6 +1772,93 @@ body {
   color: #8D5400;
   padding: 12px 20px;
   font-size: 0.9rem;
+}
+
+.staff-theme .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink2);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.staff-theme .chip.on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.staff-theme .warn {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--latt);
+  color: #6B2417;
+  font-size: 0.95rem;
+}
+
+.staff-theme .check {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.staff-theme .check input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 8px;
+  border: 2px solid #A9BAB1;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s;
+  background: #fff;
+}
+.staff-theme .check input:checked {
+  background: var(--leaf);
+  border-color: var(--leaf);
+}
+.staff-theme .check input:checked::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.staff-theme .tbl-h {
+  display: none;
+}
+
+@media(min-width: 1024px) {
+  .staff-theme .tbl-h {
+    display: grid;
+    grid-template-columns: 2.2fr 1.8fr 1.2fr 1.4fr 1.6fr 28px;
+    gap: 16px;
+    padding: 10px 18px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .staff-theme .prow {
+    display: grid;
+    grid-template-columns: 2.2fr 1.8fr 1.2fr 1.4fr 1.6fr 28px;
+    gap: 16px;
+    align-items: center;
+  }
 }
 
 .staff-theme .press:active {
