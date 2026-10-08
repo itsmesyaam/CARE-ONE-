@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../../lib/supabase';
 import { SAMPLE_PEOPLE, createSampleSeed, PatientPerson, PatientRecordData } from './mock';
 
 export interface PatientSheetConfig {
@@ -48,7 +49,7 @@ export interface PatientContextType {
   addReport: (params: { title: string; kind: string; file: { name: string; size: number }; test?: string | null }) => string;
   addReading: (k: string, v: number | [number, number], ctx?: string | null) => void;
   addSymptom: (params: { sel: string[]; txt: string; sev: 'mild' | 'moderate' | 'severe'; since?: string }) => void;
-  signOut: (msg?: string) => void;
+  signOut: (msg?: string) => Promise<void>;
   isSampleData: boolean;
 }
 
@@ -78,7 +79,18 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
   const [recTab, setRecTab] = useState<string>('reports');
   const [metric, setMetric] = useState<string>('bp');
   const [sheet, setSheet] = useState<PatientSheetConfig | null>(null);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(() => {
+    try {
+      const flash = sessionStorage.getItem('careone_flash_toast');
+      if (flash) {
+        sessionStorage.removeItem('careone_flash_toast');
+        return flash;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [outage, setOutage] = useState<boolean>(false);
   const [contact, setContact] = useState<string>('+91 98••••••10');
   const [push, setPush] = useState<boolean>(true);
@@ -146,7 +158,14 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     setTabState(v);
     window.scrollTo(0, 0);
     try {
-      const targetPath = v === 'home' ? '/patient' : `/patient/${v}`;
+      const targetPath =
+        v === 'home'
+          ? '/patient'
+          : v === 'appts'
+          ? '/patient/appointments'
+          : v === 'me'
+          ? '/patient/profile'
+          : `/patient/${v}`;
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, '', targetPath);
         window.dispatchEvent(new PopStateEvent('popstate'));
@@ -300,14 +319,32 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     );
   };
 
-  const signOut = (msg?: string) => {
+  const signOut = async (msg?: string) => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+    try {
+      const savedLang = localStorage.getItem('careone_lang');
+      localStorage.clear();
+      sessionStorage.clear();
+      if (savedLang) {
+        localStorage.setItem('careone_lang', savedLang);
+      }
+      if (msg) {
+        sessionStorage.setItem('careone_flash_toast', msg);
+      }
+    } catch {
+      // ignore
+    }
     setDb(createSampleSeed());
     setPid('anjali');
     setTabState('home');
     setSheet(null);
     setInst(false);
     setStep('welcome');
-    if (msg) toast(msg);
+    window.location.href = '/patient/signin';
   };
 
   const value: PatientContextType = {

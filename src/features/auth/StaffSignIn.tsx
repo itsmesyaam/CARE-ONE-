@@ -12,6 +12,7 @@ import {
   Languages,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
+import { supabase } from '../../lib/supabase';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
@@ -305,7 +306,17 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
             <button
               type="button"
               className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  await supabase.auth.signOut();
+                } catch {
+                  // ignore
+                }
+                try {
+                  sessionStorage.clear();
+                } catch {
+                  // ignore
+                }
                 setStep('signin');
                 showToast(t('common.signOut'));
               }}

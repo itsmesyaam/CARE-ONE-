@@ -10,6 +10,8 @@ import { PatientHome } from '../features/patient/PatientHome';
 import { PatientCarePlan } from '../features/patient/PatientCarePlan';
 import { PatientRecords } from '../features/patient/PatientRecords';
 import { PatientProfile } from '../features/patient/PatientProfile';
+import { PatientReminders } from '../features/patient/PatientReminders';
+import { PatientAppointments } from '../features/patient/PatientAppointments';
 
 import { StaffSignIn } from '../features/auth/StaffSignIn';
 import { DoctorLayout } from '../features/doctor/DoctorLayout';
@@ -110,6 +112,18 @@ export const router = createBrowserRouter([
       {
         path: 'me',
         element: <PatientProfile />,
+      },
+      {
+        path: 'reminders',
+        element: <PatientReminders />,
+      },
+      {
+        path: 'appointments',
+        element: <PatientAppointments />,
+      },
+      {
+        path: 'appts',
+        element: <PatientAppointments />,
       },
     ],
   },

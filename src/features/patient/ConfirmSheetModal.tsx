@@ -35,9 +35,9 @@ export function ConfirmSheetModal({ k, onClose }: ConfirmSheetModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     onClose();
-    signOut(
+    await signOut(
       isWithdraw
         ? lang === 'ml'
           ? 'സമ്മതം പിൻവലിച്ചു. നിങ്ങൾ സൈൻ ഔട്ട് ആയി.'

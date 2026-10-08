@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Phone,
   Mail,
@@ -64,6 +65,7 @@ function IdCard(): React.JSX.Element {
 
 export function PatientProfile(): React.JSX.Element {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     lang,
     setLang,
@@ -371,7 +373,10 @@ export function PatientProfile(): React.JSX.Element {
             <button
               type="button"
               className="row press text-left"
-              onClick={() => setTab('reminders')}
+              onClick={() => {
+                setTab('reminders');
+                navigate('/patient/reminders');
+              }}
             >
               <span className="ico ico-mist">
                 <Bell size={18} />
@@ -387,7 +392,10 @@ export function PatientProfile(): React.JSX.Element {
             <button
               type="button"
               className="row press text-left"
-              onClick={() => setTab('appts')}
+              onClick={() => {
+                setTab('appts');
+                navigate('/patient/appointments');
+              }}
             >
               <span className="ico ico-mist">
                 <CalendarDays size={18} />

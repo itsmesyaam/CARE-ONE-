@@ -1122,6 +1122,39 @@ body {
   font-weight: 650;
 }
 
+/* Reminders & Notifications */
+.patient-theme .lockscreen {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 24px;
+  padding: 18px;
+}
+
+.patient-theme .notif {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+
+.patient-theme .rem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.patient-theme .rem.is-done {
+  background: transparent;
+}
+
 
 
 

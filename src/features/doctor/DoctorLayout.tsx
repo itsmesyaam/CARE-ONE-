@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { MOCK_DOCTOR, MOCK_WAITING_REPORTS, MOCK_WAITING_SYMPTOMS } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
+import { supabase } from '../../lib/supabase';
 
 export function DoctorLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
@@ -21,6 +22,20 @@ export function DoctorLayout(): React.JSX.Element {
 
   const [isLocked, setIsLocked] = useState(false);
   const [idleSecondsRemaining, setIdleSecondsRemaining] = useState<number | null>(null);
+
+  const handleDoctorSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+    try {
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
+    window.location.href = '/staff/signin';
+  };
 
   const lastActiveRef = useRef<number>(0);
   const reviewCount = MOCK_WAITING_REPORTS.length + MOCK_WAITING_SYMPTOMS.length;
@@ -180,7 +195,7 @@ export function DoctorLayout(): React.JSX.Element {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/login')}
+                onClick={handleDoctorSignOut}
                 className="acct-btn press flex-1 justify-center"
               >
                 <LogOut size={15} />
@@ -220,6 +235,15 @@ export function DoctorLayout(): React.JSX.Element {
               >
                 <Lock size={20} />
               </button>
+              <button
+                type="button"
+                onClick={handleDoctorSignOut}
+                className="p-2 rounded-lg text-[var(--ink2)] hover:text-[var(--ink)]"
+                aria-label={t('doctorToday.signOut')}
+                title={t('doctorToday.signOut')}
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </header>
 
@@ -238,7 +262,13 @@ export function DoctorLayout(): React.JSX.Element {
               <button
                 key={item.key}
                 type="button"
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if (item.key === 'account') {
+                    void handleDoctorSignOut();
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
                 className={`bn ${isActive ? 'on' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
               >

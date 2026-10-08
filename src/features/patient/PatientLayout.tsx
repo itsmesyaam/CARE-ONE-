@@ -27,6 +27,7 @@ import { ConfirmSheetModal } from './ConfirmSheetModal';
 
 function TopBar({ onOpenWho }: { onOpenWho: () => void }) {
   const { lang, p, d, setTab } = usePatient();
+  const navigate = useNavigate();
   const notifCount = d.rem.filter(r => r.w !== 'earlier').length;
 
   return (
@@ -64,7 +65,10 @@ function TopBar({ onOpenWho }: { onOpenWho: () => void }) {
         <button
           type="button"
           className="icon-btn press relative"
-          onClick={() => setTab('reminders')}
+          onClick={() => {
+            setTab('reminders');
+            navigate('/patient/reminders');
+          }}
           aria-label={lang === 'ml' ? `ഓർമ്മപ്പെടുത്തലുകൾ, ${notifCount}` : `Reminders, ${notifCount}`}
         >
           <Bell size={22} className="text-[var(--ink)]" />
@@ -152,6 +156,8 @@ function SideNav({ onOpenWho }: { onOpenWho: () => void }) {
                 if (item.key === 'home') navigate('/patient');
                 else if (item.key === 'plan') navigate('/patient/plan');
                 else if (item.key === 'records') navigate('/patient/records');
+                else if (item.key === 'reminders') navigate('/patient/reminders');
+                else if (item.key === 'appts') navigate('/patient/appointments');
                 else if (item.key === 'me') navigate('/patient/profile');
               }}
               aria-current={isActive ? 'page' : undefined}
@@ -430,6 +436,13 @@ export function PatientLayout(): React.JSX.Element {
       setTab('plan');
     } else if (location.pathname === '/patient/records' && tab !== 'records') {
       setTab('records');
+    } else if (location.pathname === '/patient/reminders' && tab !== 'reminders') {
+      setTab('reminders');
+    } else if (
+      (location.pathname === '/patient/appointments' || location.pathname === '/patient/appts') &&
+      tab !== 'appts'
+    ) {
+      setTab('appts');
     } else if (location.pathname === '/patient' && tab !== 'home') {
       setTab('home');
     }

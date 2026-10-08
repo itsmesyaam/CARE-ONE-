@@ -72,3 +72,15 @@
   - ABDM health data exchange integration (V2).
 - **Next Phase**:
   - Hardening, end-to-end smoke testing with Playwright, and deployment pipeline configuration.
+
+## Bug Fixes & Patient Experience Enhancements (Completed)
+- **Sign-Out Session Eviction**:
+  - `PatientContext` & `ConfirmSheetModal`: `signOut` is now asynchronous, executes `supabase.auth.signOut()`, purges sensitive session/local state, and cleanly redirects to `/patient/signin`.
+  - `DoctorLayout`: Sidebar and mobile headers now execute `supabase.auth.signOut()`, clear session storage, and relocate staff to `/staff/signin`.
+  - `StaffSignIn`: Lock-screen "Not you? Sign out" option explicitly executes `supabase.auth.signOut()` and resets flow to primary sign-in.
+- **Patient Reminders & Appointments Screens**:
+  - Built responsive `PatientReminders.tsx` (grouped time slots, action triggers, push settings toggle, iPhone installation notes, lockscreen notification preview).
+  - Built responsive `PatientAppointments.tsx` (upcoming ticket, historical visits list with status chips, direct casualty/front desk tel links).
+  - Configured routes in `routes.tsx` (`/patient/reminders`, `/patient/appointments`, `/patient/appts`) and synchronized tab state across `PatientLayout` and `PatientProfile`.
+  - Achieved 100% symmetric i18n keys across English and Malayalam for `patientReminders` and `patientAppts`.
+  - Verified with 25 test suites passing (102 tests).

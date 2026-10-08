@@ -318,5 +318,43 @@
     "submitBtn": "Open chart for 4 hours",
     "grantedToast": "Emergency access until {{time}}. The admin has been alerted.",
     "underDoctor": "{{mrn}}. Under {{doctor}}, {{dept}}."
+  },
+  "patientReminders": {
+    "title": "Reminders",
+    "today": "Today",
+    "comingUp": "Coming up",
+    "earlier": "Earlier today",
+    "open": "Open",
+    "view": "View",
+    "upload": "Upload",
+    "logNow": "Log now",
+    "nightMeds": "Night medicines",
+    "morningMeds": "Morning medicines",
+    "checkBp": "Check blood pressure",
+    "fastingSugar": "Fasting sugar",
+    "testsDue": "Tests due",
+    "visitSoon": "Visit tomorrow",
+    "logWeight": "Log weight",
+    "takenAt": "Taken at {{time}}",
+    "notifPreview": "What you'll see on your phone",
+    "now": "now",
+    "hospitalName": "ABC Hospital",
+    "notifText": "You have a new reminder from ABC Hospital",
+    "notifCaption": "Notifications never show health details. Open the app to see what's due.",
+    "pushOn": "Reminders on this phone",
+    "pushSub": "Push notifications",
+    "iphoneNote": "On iPhone, reminders arrive only after you add the app to your Home Screen.",
+    "pushEnabled": "Reminders turned on for this phone",
+    "pushDisabled": "Reminders turned off for this phone"
+  },
+  "patientAppts": {
+    "title": "Appointments",
+    "upcoming": "Upcoming",
+    "past": "Past visits",
+    "completed": "Completed",
+    "missed": "Missed",
+    "bookNote": "To book or change an appointment, call the front desk on 0484 000 1234.",
+    "callDesk": "Call front desk",
+    "deskPhone": "0484 000 1234"
   }
 }
