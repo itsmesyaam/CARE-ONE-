@@ -142,7 +142,7 @@ export function RootLayout(): React.JSX.Element {
 
             {/* Doctor & Staff Console Card */}
             <Link
-              to="/login"
+              to="/staff/signin"
               className="card-dc group flex flex-col justify-between p-6 sm:p-8"
             >
               <div>

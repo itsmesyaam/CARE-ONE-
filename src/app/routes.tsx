@@ -11,6 +11,10 @@ import { PatientCarePlan } from '../features/patient/PatientCarePlan';
 import { PatientRecords } from '../features/patient/PatientRecords';
 import { PatientProfile } from '../features/patient/PatientProfile';
 
+import { StaffSignIn } from '../features/auth/StaffSignIn';
+import { DoctorLayout } from '../features/doctor/DoctorLayout';
+import { DoctorToday } from '../features/doctor/DoctorToday';
+
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
 );
@@ -27,6 +31,36 @@ export const router = createBrowserRouter([
   {
     path: '/signin',
     element: <SignInPage />,
+  },
+  {
+    path: '/staff/login',
+    element: <StaffSignIn />,
+  },
+  {
+    path: '/staff/signin',
+    element: <StaffSignIn />,
+  },
+  {
+    path: '/doctor/login',
+    element: <StaffSignIn />,
+  },
+  {
+    path: '/doctor/signin',
+    element: <StaffSignIn />,
+  },
+  {
+    path: '/doctor',
+    element: <DoctorLayout />,
+    children: [
+      {
+        index: true,
+        element: <DoctorToday />,
+      },
+      {
+        path: 'today',
+        element: <DoctorToday />,
+      },
+    ],
   },
   {
     path: '/patient/login',
