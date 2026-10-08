@@ -9,6 +9,7 @@ import { DepartmentList } from './DepartmentList';
 import { DepartmentFormDialog } from './DepartmentFormDialog';
 import { StaffList } from './StaffList';
 import { InviteStaffDialog } from './InviteStaffDialog';
+import { BuildStamp } from '../../components/BuildStamp';
 import {
   fetchDepartments,
   createDepartment,
@@ -309,6 +310,8 @@ export function AdminDashboard(): React.JSX.Element {
         onClose={() => setInviteDialogOpen(false)}
         onInvite={handleInviteStaff}
       />
+
+      <BuildStamp />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Stethoscope, User, ShieldCheck, Languages, Lock } from 'lucide-react';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ConfigBanner } from '../components/ConfigBanner';
+import { BuildStamp } from '../components/BuildStamp';
 
 export function RootLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
@@ -128,6 +129,8 @@ export function RootLayout(): React.JSX.Element {
           </div>
         </div>
       </main>
+
+      <BuildStamp />
     </div>
   );
 }

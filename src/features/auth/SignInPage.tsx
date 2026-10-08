@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { ConfigBanner } from '../../components/ConfigBanner';
+import { BuildStamp } from '../../components/BuildStamp';
 
 type Tab = 'patient' | 'staff';
 
@@ -563,6 +564,8 @@ export function SignInPage(): React.JSX.Element {
           </div>
         </div>
       </main>
+
+      <BuildStamp />
     </div>
   );
 }
