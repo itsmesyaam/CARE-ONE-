@@ -2,7 +2,14 @@
 
 Oct 6, 2026 · @psbaburam@gmail.com
 
+> [!IMPORTANT]
+> **ARCHITECTURE UPDATE (October 9, 2026):**
+> Supabase has been completely removed in favor of a native Cloudflare architecture (Cloudflare Workers + Hono, Cloudflare D1 + Drizzle ORM, R2, Cron Triggers).
+> All Supabase-specific sections in this specification (PostgreSQL Row-Level Security, GoTrue Auth, Supabase Storage, Edge Functions, pg_cron, Supabase CLI / pgTAP) are **SUPERSEDED by [ADR 012: Move to Cloudflare](adr/012-move-to-cloudflare.md)** and the updated stack rules in [AGENTS.md](../AGENTS.md).
+
 ## Summary
+
+*(Note: The Supabase hosting, database, and auth layer described below is superseded by ADR 012 — see Cloudflare Worker, D1, Drizzle ORM, and R2 architecture).*
 
 Build V1 as one React web app on Supabase, served from Cloudflare, with every access rule enforced inside the database. There is no custom server to run, patch or crash. Supabase supplies the database, logins, file storage and scheduled jobs; Cloudflare serves the app files.
 
@@ -58,6 +65,8 @@ App files come from Cloudflare, but every data request goes straight to Supabase
 
 Everything except the production database runs on free tiers that allow business use. Every piece is mainstream, well documented, and replaceable without rewriting the app.
 
+*(Supabase components in the table below are superseded by ADR 012 in favor of Cloudflare Workers + Hono, D1 + Drizzle ORM, R2, and Cron Triggers).*
+
 | Layer | Choice | Free-tier fit | Why this one |
 | --- | --- | --- | --- |
 | App for all roles | React + TypeScript + Vite, one installable web app (PWA) | Open source | Behind a login there is nothing for server rendering to add; one codebase serves phones and desktops |
@@ -65,15 +74,15 @@ Everything except the production database runs on free tiers that allow business
 | Data and forms | TanStack Query; React Hook Form + Zod | Open source | Caching and retries; one set of validation rules per form |
 | Languages | react-i18next | Open source | English and Malayalam strings from day one |
 | Hosting | [Cloudflare Pages](https://developers.cloudflare.com/pages/platform/limits/) | 500 builds a month; static requests and bandwidth unlimited | Business use allowed; [Vercel's free Hobby plan is non-commercial only](https://vercel.com/docs/limits/fair-use-guidelines) |
-| Database, logins, files, jobs | [Supabase](https://supabase.com/pricing) in the [Mumbai region](https://supabase.com/regions) | Free for development; Pro for production | Database, logins and files stay in India; one managed service |
-| Login and reminder email | [Resend](https://resend.com/pricing) through Supabase's custom email setting | 3,000 a month, 100 a day | Supabase's built-in mailer is meant for testing only |
-| Push reminders | Web Push sent from an Edge Function | Free | No SMS cost; works on Android and on iPhones once the app is added to the home screen |
+| Database, logins, files, jobs | [Supabase](https://supabase.com/pricing) in the [Mumbai region](https://supabase.com/regions) | Free for development; Pro for production | Database, logins and files stay in India; one managed service *(Superseded by ADR 012: Cloudflare D1 + R2 + Workers)* |
+| Login and reminder email | [Resend](https://resend.com/pricing) through Supabase's custom email setting | 3,000 a month, 100 a day | Supabase's built-in mailer is meant for testing only *(Superseded by ADR 012: Direct Resend API in Worker)* |
+| Push reminders | Web Push sent from an Edge Function | Free | No SMS cost; works on Android and on iPhones once the app is added to the home screen *(Superseded by ADR 012: Cloudflare Cron Trigger)* |
 | Bot protection | Cloudflare Turnstile on login and code-request screens | Free | Stops code flooding and scripted login attempts |
 | Error tracking | Sentry, with personal-data scrubbing on | Free developer plan | See crashes without seeing patient data |
 | Uptime alerts | StatusCake | [Free tier allows business use](https://notifier.so/guides/statuscake-vs-uptimerobot/) | Alerts when the app or database stops answering |
 | Off-site backups | [Cloudflare R2](https://developers.cloudflare.com/r2/pricing/) | 10 GB-month free; no download fees | Encrypted copies outside Supabase |
 | Code and pipelines | GitHub private repository + GitHub Actions | Free plan minutes cover this pipeline | Tests, database changes, scheduled backups |
-| Local development | Supabase CLI + Docker | Free | The full stack on a laptop with fake data |
+| Local development | Supabase CLI + Docker | Free | The full stack on a laptop with fake data *(Superseded by ADR 012: wrangler dev with --local D1/R2)* |
 |  |  |  |  |
 |  |  |  |  |
 
@@ -81,21 +90,24 @@ Two paid items are worth it later: GitHub Pro or Team to lock the main branch (f
 
 ## Architecture decision records
 
-Eleven decisions carry the design, and each picks the simpler option unless patient safety demands more. Each row is a short ADR: what we chose, what we turned down, and the cost we accept.
+*(Note: ADRs 01, 02, 03, 04, 05, 06, 10, and 11 below are superseded by [ADR 012: Move to Cloudflare](adr/012-move-to-cloudflare.md)).*
+
+Twelve decisions carry the design, and each picks the simpler option unless patient safety demands more. Each row is a short ADR: what we chose, what we turned down, and the cost we accept.
 
 | ADR | Decision | Rejected alternative | Trade-off we accept |
 | --- | --- | --- | --- |
-| 01 App shape | One React web app talking straight to Supabase; no server of our own | Next.js on Vercel; a Node API server | Business rules live in SQL policies and functions, so the team must learn Row-Level Security well |
-| 02 Hosting | Static files on Cloudflare Pages | Vercel Hobby, which bars commercial use; GitHub Pages, which cannot send security headers | Cloudflare becomes one more service we depend on |
-| 03 Tenancy | One Supabase project per hospital | One shared database with a hospital column on every row | Each extra hospital adds a project ([from $10 a month on Pro](https://supabase.com/pricing)) and its own migration run |
-| 04 Authorization | Row-Level Security with care-team links; admins see counts only; logged emergency access | Permission checks inside screens or API code | Every policy needs automated tests; a careless policy slows queries |
-| 05 Patient sign-in | One-time codes; no self sign-up; front desk links the account after an ID check | Open sign-up where patients claim their own records | Each patient needs one desk step to get started |
-| 06 Staff sign-in | Password plus an authenticator-app code, enforced inside the database | Password only; SMS codes, which Supabase sells as a [$75 a month add-on](https://supabase.com/pricing) | Each staff member installs an authenticator app once |
+| 01 App shape *(Superseded by ADR 012)* | One React web app talking straight to Supabase; no server of our own | Next.js on Vercel; a Node API server | Business rules live in SQL policies and functions, so the team must learn Row-Level Security well |
+| 02 Hosting *(Superseded by ADR 012)* | Static files on Cloudflare Pages | Vercel Hobby, which bars commercial use; GitHub Pages, which cannot send security headers | Cloudflare becomes one more service we depend on |
+| 03 Tenancy *(Superseded by ADR 012)* | One Supabase project per hospital | One shared database with a hospital column on every row | Each extra hospital adds a project ([from $10 a month on Pro](https://supabase.com/pricing)) and its own migration run |
+| 04 Authorization *(Superseded by ADR 012)* | Row-Level Security with care-team links; admins see counts only; logged emergency access | Permission checks inside screens or API code | Every policy needs automated tests; a careless policy slows queries |
+| 05 Patient sign-in *(Superseded by ADR 012)* | One-time codes; no self sign-up; front desk links the account after an ID check | Open sign-up where patients claim their own records | Each patient needs one desk step to get started |
+| 06 Staff sign-in *(Superseded by ADR 012)* | Password plus an authenticator-app code, enforced inside the database | Password only; SMS codes, which Supabase sells as a [$75 a month add-on](https://supabase.com/pricing) | Each staff member installs an authenticator app once |
 | 07 Record integrity | Signed notes are frozen; corrections become addenda; nothing is hard-deleted | Freely editable records | More tables, but it matches medico-legal practice |
 | 08 What changed | A SQL query in V1; AI narration only in V2 | AI summary from day one | Less wow at launch; every line traces to a real record |
 | 09 Data model | Plain tables shaped like FHIR resources | A full FHIR server; or ad-hoc tables | Some mapping work when ABDM or hospital systems connect |
-| 10 Reminders | Web Push plus email; SMS and WhatsApp later | SMS from day one | iPhone users must add the app to their home screen to get push |
-| 11 Backups | Supabase daily backups, our own encrypted dumps every 6 hours, and a nightly file copy to R2 | Supabase daily only, which [excludes uploaded files](https://supabase.com/docs/guides/platform/backups) and can lose a day; Point-in-Time Recovery at about $100 a month | One more scheduled job to watch |
+| 10 Reminders *(Superseded by ADR 012)* | Web Push plus email; SMS and WhatsApp later | SMS from day one | iPhone users must add the app to their home screen to get push |
+| 11 Backups *(Superseded by ADR 012)* | Supabase daily backups, our own encrypted dumps every 6 hours, and a nightly file copy to R2 | Supabase daily only, which [excludes uploaded files](https://supabase.com/docs/guides/platform/backups) and can lose a day; Point-in-Time Recovery at about $100 a month | One more scheduled job to watch |
+| 12 Platform migration | Complete move from Supabase to Cloudflare Workers, Hono, D1, Drizzle ORM, R2, Cron Triggers | Staying on Supabase with cross-origin Pages hosting | Solves cross-origin networking issues, eliminates pausing, single unified edge runtime |
 
 ## Data model
 
@@ -185,7 +197,9 @@ Booking an appointment adds the doctor to that patient's care team for one year 
 - Nobody can edit or delete the log through the API. It is exported nightly with the backups and kept for at least a year (see Compliance).
 - A scheduled check emails the admin about emergency access, repeated failed logins, or one account opening an unusual number of charts in an hour.
 
-### Supabase traps that cause real breaches
+### Supabase traps that cause real breaches *(Superseded by ADR 012)*
+
+*(Historical reference for Supabase deployment. In the Cloudflare architecture under ADR 012 and Safety Rule 4, all routes are protected by a single Worker access layer with default deny, explicit role checks, D1 SQLite triggers for immutable logs, and mandatory access-matrix tests).*
 
 1. A table without Row-Level Security is readable by every logged-in user. CI fails the build if any table lacks it.
 2. Views skip Row-Level Security unless created with `security_invoker = true`.
@@ -230,27 +244,29 @@ One login can hold several profiles, because Indian families often share one pho
 
 The symptom form states that it is not watched around the clock, and shows the casualty number and 112 on the same screen.
 
-### Reminders
+### Reminders *(Superseded by ADR 012)*
 
-1. Every 5 minutes, Supabase Cron calls the `send-reminders` Edge Function.
-2. The function claims due reminders with a row lock, so two runs never send the same one twice.
-3. It sends a push to each registered device, then falls back to email if no push succeeds.
+*(Superseded by ADR 012: Reminders are triggered by Cloudflare Cron Triggers every 5 minutes claiming due reminders with atomic D1 UPDATE ... RETURNING, sending Web Push and falling back to Resend email).*
+
+1. Every 5 minutes, Cloudflare Cron Trigger calls the reminder runner.
+2. The job claims due reminders atomically (`UPDATE ... RETURNING`), so concurrent runs never duplicate dispatches.
+3. It sends Web Push with generic text only, then falls back to Resend email if no push succeeds.
 4. Each result is written back: sent, retry later, or abandoned after 3 failed attempts.
-5. A nightly job creates the next day's medicine reminders from active care plans.
+5. A scheduled job creates the next day's medicine reminders from active care plans.
 
 ## Reliability
 
-The app stays up through three habits: identical environments, small tested releases, and backups restored on a schedule. Static files on Cloudflare almost never fail, so the work goes into the database and the release process.
+The app stays up through three habits: identical environments, small tested releases, and backups restored on a schedule. Static files and APIs on Cloudflare almost never fail, so the work goes into the database and the release process.
 
-### Environments
+### Environments *(Superseded by ADR 012)*
 
-| Environment | Supabase | App hosting | Data |
+*(Superseded by ADR 012: Local development uses wrangler dev with local D1 and R2; Staging and Production deploy through Cloudflare Workers Builds).*
+
+| Environment | Backend & Database | App hosting | Data |
 | --- | --- | --- | --- |
-| Local | Supabase CLI in Docker | Vite dev server | Fake seed data |
-| Staging | Free project in a separate organisation | Cloudflare preview deployment | Fake data only |
-| Production | Pro project, Mumbai | Cloudflare Pages on the hospital's domain | Real patients |
-
-The free staging project [pauses after a week without activity](https://supabase.com/pricing); a resume takes minutes and costs nothing. Real patient data never leaves production, not even for debugging.
+| Local | wrangler dev + local D1 & R2 | Vite dev server / Worker static assets | Fake seed data |
+| Staging | Cloudflare Worker + D1 staging preview | Cloudflare Worker preview deployment | Fake data only |
+| Production | Cloudflare Worker + D1 production | Cloudflare Worker on hospital domain | Real patients |
 
 ### Release process
 
