@@ -15,7 +15,6 @@ import {
   Shield,
 } from 'lucide-react';
 import { apiFetch } from '../../lib/api-client';
-import { ConfigBanner } from '../../components/ConfigBanner';
 import { BuildStamp } from '../../components/BuildStamp';
 
 type Tab = 'patient' | 'staff';
@@ -183,8 +182,6 @@ export function SignInPage(): React.JSX.Element {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F6FB] text-[#0B1533]">
-      <ConfigBanner />
-
       {/* Floating Header */}
       <header className="sticky top-3 z-30 mx-auto w-full max-w-5xl px-4 sm:px-6">
         <nav

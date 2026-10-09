@@ -14,7 +14,6 @@ import {
   MapPin,
 } from 'lucide-react';
 import { OfflineBanner } from '../components/OfflineBanner';
-import { ConfigBanner } from '../components/ConfigBanner';
 import { BuildStamp } from '../components/BuildStamp';
 
 export function RootLayout(): React.JSX.Element {
@@ -27,7 +26,6 @@ export function RootLayout(): React.JSX.Element {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F6FB] text-[#0B1533]">
-      <ConfigBanner />
       <OfflineBanner />
 
       {/* Floating Pill Header matching DoctorCare */}
