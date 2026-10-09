@@ -5,7 +5,6 @@ import { describe, it, expect } from 'vitest';
 describe('Deploy configuration files', () => {
   const root = path.resolve(__dirname, '..');
   const headersPath = path.join(root, 'public', '_headers');
-  const keepalivePath = path.join(root, '.github', 'workflows', 'keepalive.yml');
 
   it('public/_headers exists and enforces strict security headers', () => {
     expect(fs.existsSync(headersPath), 'public/_headers must exist').toBe(true);
@@ -17,16 +16,8 @@ describe('Deploy configuration files', () => {
     expect(content).toContain('Referrer-Policy: no-referrer');
     expect(content).toContain('Permissions-Policy: camera=(self), microphone=(), geolocation=()');
     expect(content).toContain('Cross-Origin-Opener-Policy: same-origin');
+    expect(content).toContain("connect-src 'self'");
     expect(content).not.toContain('sentry.io');
-  });
-
-  it('.github/workflows/keepalive.yml exists and contains scheduled cron job', () => {
-    expect(fs.existsSync(keepalivePath), '.github/workflows/keepalive.yml must exist').toBe(true);
-    const content = fs.readFileSync(keepalivePath, 'utf8');
-    expect(content).toMatch(/schedule:[\s\S]*?- cron:/);
-    expect(content).toContain('SUPABASE_URL');
-    expect(content).toContain('SUPABASE_ANON_KEY');
-    expect(content).toContain('/rest/v1/hospital_settings');
   });
 
   it('vercel.json exists, enforces SPA rewrites and identical security headers', () => {
@@ -61,7 +52,7 @@ describe('Deploy configuration files', () => {
 
     expect(headersMap.get('Content-Security-Policy')).toContain("default-src 'self'");
     expect(headersMap.get('Content-Security-Policy')).toContain('https://challenges.cloudflare.com');
-    expect(headersMap.get('Content-Security-Policy')).toContain('https://*.supabase.co');
+    expect(headersMap.get('Content-Security-Policy')).toContain("connect-src 'self'");
     expect(headersMap.get('Content-Security-Policy')).not.toContain('sentry.io');
     expect(headersMap.get('Strict-Transport-Security')).toBe(
       'max-age=31536000; includeSubDomains'
@@ -75,15 +66,12 @@ describe('Deploy configuration files', () => {
     expect(headersMap.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
   });
 
-  it('docs/DEPLOY.md exists and documents Vercel and Cloudflare deployments', () => {
+  it('docs/DEPLOY.md exists and documents Cloudflare Workers, D1 and R2 deployments', () => {
     const deployDocPath = path.join(root, 'docs', 'DEPLOY.md');
     expect(fs.existsSync(deployDocPath), 'docs/DEPLOY.md must exist').toBe(true);
     const content = fs.readFileSync(deployDocPath, 'utf8');
 
-    expect(content).toContain('Vercel');
     expect(content).toContain('Cloudflare');
-    expect(content).toContain('VITE_SUPABASE_URL');
-    expect(content).toContain('VITE_SUPABASE_PUBLISHABLE_KEY');
     expect(content).not.toContain('SERVICE_ROLE');
   });
 });

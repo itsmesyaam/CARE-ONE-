@@ -6,8 +6,6 @@ interface __BaseEnv_Env {
 	DB: D1Database;
 	ASSETS: Fetcher;
 	APP_ENV: "development";
-	VITE_SUPABASE_URL: string;
-	VITE_SUPABASE_ANON_KEY: string;
 }
 declare namespace Cloudflare {
 	interface Env extends __BaseEnv_Env {}
@@ -17,7 +15,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "APP_ENV" | "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "APP_ENV">> {}
 }
 declare module "*.txt" {
 	const value: string;

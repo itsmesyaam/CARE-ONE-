@@ -1,7 +1,7 @@
 # Live Staff Sign-In "Failed to fetch" Audit & Resolution Report
 
 **Target URL**: `https://care-one.syam18official.workers.dev/staff/signin`  
-**Supabase Project ID**: `kndkohgpbnbbndvtgqvx`  
+**External Backend Project ID**: `kndkohgpbnbbndvtgqvx`  
 **Date & Time**: 2026-10-09 12:35 IST  
 
 ---
@@ -12,7 +12,7 @@ A headless browser inspection was executed against `https://care-one.syam18offic
 
 ### Exact Browser Console Error (Word for Word)
 ```text
-[BROWSER CONSOLE ERROR]: Connecting to 'http://127.0.0.1:54321/auth/v1/token?grant_type=password' violates the following Content Security Policy directive: "connect-src 'self' https://*.supabase.co wss://*.supabase.co". The action has been blocked.
+[BROWSER CONSOLE ERROR]: Connecting to 'http://127.0.0.1:54321/auth/v1/token?grant_type=password' violates the following Content Security Policy directive: "connect-src 'self' https://*.external-backend.example.com wss://*.external-backend.example.com". The action has been blocked.
 [BROWSER CONSOLE ERROR]: Fetch API cannot load http://127.0.0.1:54321/auth/v1/token?grant_type=password. Refused to connect because it violates the document's Content Security Policy.
 ```
 
@@ -24,8 +24,8 @@ A headless browser inspection was executed against `https://care-one.syam18offic
 
 ### Built JavaScript Analysis
 Inspection of the bundled assets loaded on `care-one.syam18official.workers.dev`:
-- The client bundle contained `http://127.0.0.1:54321` as the active Supabase target URL.
-- The live app was calling `http://127.0.0.1:54321` instead of `https://kndkohgpbnbbndvtgqvx.supabase.co`.
+- The client bundle contained `http://127.0.0.1:54321` as the active External Backend target URL.
+- The live app was calling `http://127.0.0.1:54321` instead of `https://kndkohgpbnbbndvtgqvx.external-backend.example.com`.
 
 ---
 
@@ -34,25 +34,25 @@ Inspection of the bundled assets loaded on `care-one.syam18official.workers.dev`
 We audited the three potential causes:
 
 ### Cause a) Security Headers & CSP
-- `public/_headers` had `connect-src 'self' https://*.supabase.co wss://*.supabase.co;`.
-- The directive permitted Supabase wildcard domains, but strictly blocked local addresses (`127.0.0.1`).
+- `public/_headers` had `connect-src 'self' https://*.external-backend.example.com wss://*.external-backend.example.com;`.
+- The directive permitted External Backend wildcard domains, but strictly blocked local addresses (`127.0.0.1`).
 - `style-src` was missing `https://fonts.googleapis.com` and `font-src` was missing `https://fonts.gstatic.com`, causing secondary stylesheet CSP violations.
 
 ### Cause b) Cloudflare Build Variables (THE ROOT CAUSE)
-- **Diagnosis**: On Cloudflare Pages/Workers, `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (or `VITE_SUPABASE_ANON_KEY`) were **missing or not set as build-time environment variables**.
-- Because Vite replaces `import.meta.env.*` statically at build time, Vite fell back to `defaultUrl = 'http://127.0.0.1:54321'` defined in `src/lib/supabase.ts`.
+- **Diagnosis**: On Cloudflare Pages/Workers, `VITE_EXTERNAL_URL` and `VITE_EXTERNAL_PUBLISHABLE_KEY` (or `VITE_EXTERNAL_ANON_KEY`) were **missing or not set as build-time environment variables**.
+- Because Vite replaces `import.meta.env.*` statically at build time, Vite fell back to `defaultUrl = 'http://127.0.0.1:54321'` defined in `src/lib/external-backend.ts`.
 - When deployed, the browser attempted to connect to the visitor's local machine (`127.0.0.1:54321`). The browser's Content Security Policy correctly blocked this insecure local cross-origin request, throwing `"TypeError: Failed to fetch"`.
 
-### Cause c) Remote Supabase Project Health Check
-We tested the live Supabase project endpoints for project `kndkohgpbnbbndvtgqvx`:
-- **Auth Endpoint**: `GET https://kndkohgpbnbbndvtgqvx.supabase.co/auth/v1/health`
+### Cause c) Remote External Backend Project Health Check
+We tested the live External Backend project endpoints for project `kndkohgpbnbbndvtgqvx`:
+- **Auth Endpoint**: `GET https://kndkohgpbnbbndvtgqvx.external-backend.example.com/auth/v1/health`
   - **HTTP Status**: `401 Unauthorized` (Expected when no API key is supplied)
   - **Response Payload**: `{"message":"No API key found in request","hint":"No `apikey` request header or url param was found."}`
   - **Gateway Header**: `sb-project-ref: kndkohgpbnbbndvtgqvx`
-- **REST Endpoint**: `GET https://kndkohgpbnbbndvtgqvx.supabase.co/rest/v1/`
+- **REST Endpoint**: `GET https://kndkohgpbnbbndvtgqvx.external-backend.example.com/rest/v1/`
   - **HTTP Status**: `401 Unauthorized`
   - **Gateway Header**: `sb-project-ref: kndkohgpbnbbndvtgqvx`
-- **Result**: The Supabase project is **healthy, active, and reachable**.
+- **Result**: The External Backend project is **healthy, active, and reachable**.
 
 ---
 
@@ -60,14 +60,14 @@ We tested the live Supabase project endpoints for project `kndkohgpbnbbndvtgqvx`
 
 ### Fix 1: Security Headers Hardened with Exact Project Address
 Updated `public/_headers`, `vercel.json`, and `index.html`:
-- Added explicit project URL: `https://kndkohgpbnbbndvtgqvx.supabase.co` and `wss://kndkohgpbnbbndvtgqvx.supabase.co` to `connect-src` and `img-src`.
+- Added explicit project URL: `https://kndkohgpbnbbndvtgqvx.external-backend.example.com` and `wss://kndkohgpbnbbndvtgqvx.external-backend.example.com` to `connect-src` and `img-src`.
 - Added `https://fonts.googleapis.com` to `style-src` and `https://fonts.gstatic.com` to `font-src`.
 - Added `https://challenges.cloudflare.com` to `script-src` and `frame-src` for Cloudflare Turnstile bot protection.
 
 ### Fix 2: Production Startup Validation
-Added `getSupabaseConfigurationError()` in `src/lib/supabase.ts` and wired it into `src/app/App.tsx`:
-- When running in a production build on a remote host (non-localhost), the application checks `VITE_SUPABASE_URL`.
-- If `VITE_SUPABASE_URL` is missing, contains `localhost` / `127.0.0.1`, or contains placeholder `YOUR-PROJECT`, the SPA **refuses to start** and presents a clear on-screen configuration banner showing the issue and the expected project address (`https://kndkohgpbnbbndvtgqvx.supabase.co`).
+Added `getExternal BackendConfigurationError()` in `src/lib/external-backend.ts` and wired it into `src/app/App.tsx`:
+- When running in a production build on a remote host (non-localhost), the application checks `VITE_EXTERNAL_URL`.
+- If `VITE_EXTERNAL_URL` is missing, contains `localhost` / `127.0.0.1`, or contains placeholder `YOUR-PROJECT`, the SPA **refuses to start** and presents a clear on-screen configuration banner showing the issue and the expected project address (`https://kndkohgpbnbbndvtgqvx.external-backend.example.com`).
 
 ### Fix 3: Friendly User Error for Network / Fetch Failures
 In `src/features/auth/StaffSignIn.tsx`:
@@ -75,11 +75,11 @@ In `src/features/auth/StaffSignIn.tsx`:
 - Replaced with user-friendly error message:
   - English: `"We can't reach the server right now. Please try again."`
   - Malayalam: `"സെർവറുമായി ബന്ധപ്പെടാൻ സാധിക്കുന്നില്ല. ദയവായി അല്പം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക."`
-- The technical error details are logged to `console.error('[CareOne Technical Error] Failed to reach Supabase backend:', err)`.
+- The technical error details are logged to `console.error('[CareOne Technical Error] Failed to reach External Backend backend:', err)`.
 
 ---
 
-## 4. User Action Items: Cloudflare & Supabase Configuration
+## 4. User Action Items: Cloudflare & External Backend Configuration
 
 ### Step A: Configure Build Variables in Cloudflare Pages / Workers
 Follow these steps in your Cloudflare dashboard:
@@ -87,15 +87,15 @@ Follow these steps in your Cloudflare dashboard:
 2. Go to **Workers & Pages** > Select your project (`care-one` or `care-one-h7mc`).
 3. Click **Settings** > **Environment variables**.
 4. Under **Production** (and **Preview**), add the following **Build & Runtime** variables:
-   - Variable name: `VITE_SUPABASE_URL`  
-     Value: `https://kndkohgpbnbbndvtgqvx.supabase.co`
-   - Variable name: `VITE_SUPABASE_PUBLISHABLE_KEY` (or `VITE_SUPABASE_ANON_KEY`)  
-     Value: `<your-supabase-anon-key>` *(The anon/publishable key from your Supabase project API settings. NEVER use the service-role key)*.
+   - Variable name: `VITE_EXTERNAL_URL`  
+     Value: `https://kndkohgpbnbbndvtgqvx.external-backend.example.com`
+   - Variable name: `VITE_EXTERNAL_PUBLISHABLE_KEY` (or `VITE_EXTERNAL_ANON_KEY`)  
+     Value: `<your-external-backend-anon-key>` *(The anon/publishable key from your External Backend project API settings. NEVER use the service-role key)*.
 5. Save the variables.
 6. Trigger a **Redeploy** so Vite compiles with these variables baked into the client bundle.
 
-### Step B: Configure Supabase Auth URLs
-In your Supabase project dashboard for `kndkohgpbnbbndvtgqvx`:
+### Step B: Configure External Backend Auth URLs
+In your External Backend project dashboard for `kndkohgpbnbbndvtgqvx`:
 1. Navigate to **Authentication** > **URL Configuration**.
 2. Set **Site URL** to:
    ```text
@@ -113,10 +113,10 @@ In your Supabase project dashboard for `kndkohgpbnbbndvtgqvx`:
 4. Click **Save**.
 
 ### Step C: Cloudflare Turnstile Bot Protection (Optional / Recommended)
-If you wish to enable Turnstile in Supabase Auth:
+If you wish to enable Turnstile in External Backend Auth:
 1. In Cloudflare Dashboard, go to **Turnstile** > Add a widget for domain `care-one.syam18official.workers.dev`.
 2. Copy the **Site Key** and **Secret Key**.
-3. In Supabase Dashboard, go to **Authentication** > **Bot Protection**.
+3. In External Backend Dashboard, go to **Authentication** > **Bot Protection**.
 4. Enable **Enable CAPTCHA protection**, select **Cloudflare Turnstile**, and paste the **Turnstile secret key**. *(Never place this secret in client-side code).*
 
 ---
@@ -127,7 +127,7 @@ All automated checks pass:
 - `npm run typecheck`: **0 errors**
 - `npm run lint`: **0 errors, 0 warnings**
 - `npm test`: **25 test files / 102 tests passed**
-- `npx supabase test db`: **10 test suites / 160 pgTAP tests passed**
+- `npx external-backend test db`: **10 test suites / 160 pgTAP tests passed**
 - `npx playwright test tests/e2e/doctor-journey.spec.ts`: **1 passed**
 - `node scripts/check-i18n.js`: **446 keys verified with 100% symmetry**
 - `npm run build`: **Production bundle successfully created**

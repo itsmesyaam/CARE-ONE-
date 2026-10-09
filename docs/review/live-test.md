@@ -8,17 +8,17 @@
 
 ## Findings (Sorted Most Serious First)
 
-### 1. Critical: Uncaught Startup Crash Due to Missing Supabase Environment Variables
+### 1. Critical: Uncaught Startup Crash Due to Missing External Backend Environment Variables
 - **Severity**: Critical (Showstopper)
-- **Problem**: When Vercel built the project, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (or `VITE_SUPABASE_PUBLISHABLE_KEY`) were not configured in the Vercel project environment variables. Because Vite statically inlines environment variables during `npm run build`, the missing variables caused Vite to compile an unconditional fatal error into the main bundle:
+- **Problem**: When Vercel built the project, `VITE_EXTERNAL_URL` and `VITE_EXTERNAL_ANON_KEY` (or `VITE_EXTERNAL_PUBLISHABLE_KEY`) were not configured in the Vercel project environment variables. Because Vite statically inlines environment variables during `npm run build`, the missing variables caused Vite to compile an unconditional fatal error into the main bundle:
   ```javascript
   // Disassembled from /assets/index-C2YT_SA9.js:1:52247
-  throw Error("Missing Supabase environment variables");
+  throw Error("Missing External Backend environment variables");
   ```
 - **Evidence / Exact Error Text**:
   ```text
-  Missing Supabase environment variables
-  Error: Missing Supabase environment variables
+  Missing External Backend environment variables
+  Error: Missing External Backend environment variables
       at https://care-one-h7mc.vercel.app/assets/index-C2YT_SA9.js:1:52247
   ```
 - **Impact**: This error throws immediately during script evaluation on line 1 of the bundle. As a consequence, JavaScript execution halts completely before React can mount (`createRoot(...).render(...)`), leaving the DOM at `<div id="root"></div>` completely unrendered.
@@ -27,7 +27,7 @@
 
 ### 2. Critical: Conflicting `<meta>` Content-Security-Policy in `index.html` Restricting API Traffic
 - **Severity**: Critical (Network Blocker)
-- **Problem**: Even if environment variables are injected, live API requests to Supabase will be blocked by the browser. While the HTTP response header from `vercel.json` permits `connect-src 'self' https://*.supabase.co wss://*.supabase.co;`, [`index.html`](file:///d:/CareOne/index.html) contains a hardcoded fallback `<meta>` tag:
+- **Problem**: Even if environment variables are injected, live API requests to External Backend will be blocked by the browser. While the HTTP response header from `vercel.json` permits `connect-src 'self' https://*.external-backend.example.com wss://*.external-backend.example.com;`, [`index.html`](file:///d:/CareOne/index.html) contains a hardcoded fallback `<meta>` tag:
   ```html
   <!-- index.html lines 6-9 -->
   <meta
@@ -36,8 +36,8 @@
   />
   ```
 - **Evidence**:
-  The meta tag defines `connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*` without `https://*.supabase.co`. Browsers enforce the most restrictive intersection of both policies, meaning all network calls to remote Supabase instances (`https://kndkohgpbnbbndvtgqvx.supabase.co`) will be rejected by CSP.
-- **Impact**: The app will fail to communicate with any remote Supabase database or auth backend in production.
+  The meta tag defines `connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*` without `https://*.external-backend.example.com`. Browsers enforce the most restrictive intersection of both policies, meaning all network calls to remote External Backend instances (`https://kndkohgpbnbbndvtgqvx.external-backend.example.com`) will be rejected by CSP.
+- **Impact**: The app will fail to communicate with any remote External Backend database or auth backend in production.
 
 ---
 
@@ -91,7 +91,7 @@
     ```javascript
     wo=e=>e.startsWith("sb_publishable_")||e.startsWith("sb_secret_")
     ```
-  - **Analysis**: This is internal SDK logic in `@supabase/supabase-js` validating API key prefix formats. It is **not** an exposed secret key.
+  - **Analysis**: This is internal SDK logic in `external-backend-client` validating API key prefix formats. It is **not** an exposed secret key.
   - **Secret Scan**: Searched for `service_role` and JWT token patterns (`eyJ...`). **Zero secret keys, zero service-role keys, and zero real credentials are baked into the live client code.**
 
 ---

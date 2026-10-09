@@ -18,18 +18,13 @@ describe('Security: Content Security Policy in index.html', () => {
     expect(policy).not.toContain("'unsafe-eval'");
   });
 
-  it('permits https://*.supabase.co and wss://*.supabase.co in connect-src in index.html', () => {
-    expect(policy).toMatch(/connect-src[^;]*https:\/\/\*\.supabase\.co/);
-    expect(policy).toMatch(/connect-src[^;]*wss:\/\/\*\.supabase\.co/);
+  it('permits connect-src self in index.html', () => {
+    expect(policy).toMatch(/connect-src[^;]*'self'/);
   });
 
-  it('permits https://*.supabase.co in img-src in index.html', () => {
-    expect(policy).toMatch(/img-src[^;]*https:\/\/\*\.supabase\.co/);
-  });
-
-  it('exports isSupabaseConfigured boolean in src/lib/supabase.ts', async () => {
-    const { isSupabaseConfigured, supabase } = await import('../src/lib/supabase');
-    expect(typeof isSupabaseConfigured).toBe('boolean');
-    expect(supabase).toBeDefined();
+  it('permits img-src self data: blob: in index.html', () => {
+    expect(policy).toMatch(/img-src[^;]*'self'/);
+    expect(policy).toMatch(/img-src[^;]*data:/);
+    expect(policy).toMatch(/img-src[^;]*blob:/);
   });
 });

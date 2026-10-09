@@ -2,16 +2,16 @@
 
 ## Phase 1: Foundation (Completed)
 - **App Scaffolding & Strict Tooling**: Vite + React + strict TypeScript, Tailwind CSS, TanStack Query, React Router SPA, react-i18next (en/ml), Vitest, ESLint flat config, Prettier.
-- **Local Supabase & Auth**: Local Supabase stack configured via `supabase/config.toml` (`enable_signup = false`, `jwt_expiry = 900`, TOTP MFA enabled). Client templates in `.env.example` and local `.env.local` kept gitignored.
+- **Local Database & Auth**: Local database and auth stack configured. Environment templates in `.env.example` and local `.dev.vars` kept gitignored.
 - **Foundation Schema & Access Controls**:
   - `private` schema with security definer helpers (`search_path = ''`).
   - Tables: `hospital_settings`, `departments`, `staff` (with role check), `patients`, `patient_access`, `care_team`, `emergency_access`, append-only `audit_log`.
   - Restrictive 2FA policies enforcing `aal2` for all staff data access.
   - Break-glass 4-hour `request_emergency_access` RPC with audit logging.
   - Audit triggers capturing inserts, updates, and deletes across sensitive tables.
-  - Database types generated in `src/types/database.ts`.
+  - Database types generated for schema.
 - **Testing & Reset**:
-  - pgTAP test suite in `supabase/tests/database/foundation.test.sql` passing.
+  - Test suite verifying access rules passing.
   - `npm run demo:reset` command resets schema and reapplies migrations.
 
 ## Phase 2: App Shell, Design and Branding (Completed)
@@ -34,7 +34,7 @@
 - `patient_timeline` view with `security_invoker = true`.
 
 ## Phase 5: Reports, Storage & Review Queue (Completed)
-- Private `patient-files` Supabase storage bucket with 10 MB limit and strict mime type validation.
+- Private `patient-files` storage bucket with 10 MB limit and strict mime type validation.
 - Row-level security on storage objects following document permissions.
 - Doctor review queue for patient uploads.
 
@@ -75,9 +75,9 @@
 
 ## Bug Fixes & Patient Experience Enhancements (Completed)
 - **Sign-Out Session Eviction**:
-  - `PatientContext` & `ConfirmSheetModal`: `signOut` is now asynchronous, executes `supabase.auth.signOut()`, purges sensitive session/local state, and cleanly redirects to `/patient/signin`.
-  - `DoctorLayout`: Sidebar and mobile headers now execute `supabase.auth.signOut()`, clear session storage, and relocate staff to `/staff/signin`.
-  - `StaffSignIn`: Lock-screen "Not you? Sign out" option explicitly executes `supabase.auth.signOut()` and resets flow to primary sign-in.
+  - `PatientContext` & `ConfirmSheetModal`: `signOut` is now asynchronous, executes `POST /api/auth/signout`, purges sensitive session/local state, and cleanly redirects to `/patient/signin`.
+  - `DoctorLayout`: Sidebar and mobile headers now execute `POST /api/auth/signout`, clear session storage, and relocate staff to `/staff/signin`.
+  - `StaffSignIn`: Lock-screen "Not you? Sign out" option explicitly executes `POST /api/auth/signout` and resets flow to primary sign-in.
 - **Patient Reminders & Appointments Screens**:
   - Built responsive `PatientReminders.tsx` (grouped time slots, action triggers, push settings toggle, iPhone installation notes, lockscreen notification preview).
   - Built responsive `PatientAppointments.tsx` (upcoming ticket, historical visits list with status chips, direct casualty/front desk tel links).

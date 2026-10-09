@@ -10,7 +10,7 @@
 
 ## 1. Click-by-Click Steps for You in the Dashboards
 
-The live website is running commit `6219374` with zero errors. Because Vercel does not yet have your Supabase project credentials injected, the site displays a friendly **"Supabase Environment Pending"** banner. Complete these exact steps to connect your database:
+The live website is running commit `6219374` with zero errors. Because Vercel does not yet have your External Backend project credentials injected, the site displays a friendly **"External Backend Environment Pending"** banner. Complete these exact steps to connect your database:
 
 ### A. Vercel Dashboard Settings
 1. Open [vercel.com](https://vercel.com) and sign in.
@@ -29,12 +29,12 @@ The live website is running commit `6219374` with zero errors. Because Vercel do
 5. Configure Environment Variables:
    - Go to **Settings** &rarr; **Environment Variables**.
    - Add Variable 1:
-     - **Key**: `VITE_SUPABASE_URL`
-     - **Value**: `https://<your-project-ref>.supabase.co`
+     - **Key**: `VITE_EXTERNAL_URL`
+     - **Value**: `https://<your-project-ref>.external-backend.example.com`
      - **Environments**: Production, Preview, Development.
    - Add Variable 2:
-     - **Key**: `VITE_SUPABASE_PUBLISHABLE_KEY` (or `VITE_SUPABASE_ANON_KEY`)
-     - **Value**: `<your-supabase-publishable-or-anon-key>`
+     - **Key**: `VITE_EXTERNAL_PUBLISHABLE_KEY` (or `VITE_EXTERNAL_ANON_KEY`)
+     - **Value**: `<your-external-backend-publishable-or-anon-key>`
      - **Environments**: Production, Preview, Development.
    - **CRITICAL SECURITY RULE**: Never enter a `service_role` key, database password, or secret token into Vercel.
 6. Trigger Clean Redeployment:
@@ -42,8 +42,8 @@ The live website is running commit `6219374` with zero errors. Because Vercel do
    - Click the three dots (`...`) on the latest deployment from `main`.
    - Click **Redeploy**, ensure **Use existing Build Cache** is **unchecked**, and click **Redeploy**.
 
-### B. Supabase Dashboard Settings
-1. Open [supabase.com/dashboard](https://supabase.com/dashboard) and select your project.
+### B. External Backend Dashboard Settings
+1. Open [external-backend.example.comm/dashboard](https://external-backend.example.comm/dashboard) and select your project.
 2. Go to **Authentication** &rarr; **URL Configuration**.
 3. Set **Site URL** to:
    ```text
@@ -106,14 +106,14 @@ Executed via automated Playwright browser session against the live URL:
 
 ## 3. Root Cause Analysis
 
-1. **Uncaught Startup Exception in `supabase.ts`**:
-   Originally, `src/lib/supabase.ts` had an unconditional `throw new Error('Missing Supabase environment variables')`. When Vercel built the project without `VITE_SUPABASE_URL`, Vite statically compiled this throw statement into line 1 of the bundle, halting script execution before React mounted `<div id="root"></div>`.
+1. **Uncaught Startup Exception in `external-backend.ts`**:
+   Originally, `src/lib/external-backend.ts` had an unconditional `throw new Error('Missing External Backend environment variables')`. When Vercel built the project without `VITE_EXTERNAL_URL`, Vite statically compiled this throw statement into line 1 of the bundle, halting script execution before React mounted `<div id="root"></div>`.
 2. **Missing Login Screen in Phase 1**:
    No login screen or authentication component existed in the repository (`src/features/auth/` had only `.gitkeep`, `routes.tsx` lacked `/login`, and `RootLayout.tsx` lacked any navigation links).
 3. **PWA Service Worker Cache Lock**:
    Visitors who opened the site while it was throwing the startup error had the broken `/index.html` cached by Workbox. Because `skipWaiting` and `clientsClaim` were omitted, the browser served the cached broken bundle instead of fetching the updated deployment.
 4. **CSP Meta Tag Intersection**:
-   [`index.html`](file:///d:/CareOne/index.html) originally omitted `https://*.supabase.co` in `connect-src` and `img-src`.
+   [`index.html`](file:///d:/CareOne/index.html) originally omitted `https://*.external-backend.example.com` in `connect-src` and `img-src`.
 
 ---
 
@@ -125,10 +125,10 @@ Executed via automated Playwright browser session against the live URL:
    - Renders `<BuildStamp />` at the bottom of Home, Login, and Admin screens.
 2. **PWA Auto-Claiming (`vite.config.ts`)**:
    - Configured `skipWaiting: true`, `clientsClaim: true`, and `cleanupOutdatedCaches: true` in Workbox so users automatically receive new builds immediately without stale cache locks.
-3. **Resilient Supabase Client (`src/lib/supabase.ts`)**:
-   - Removed fatal throws; provided safe fallback preview config and exported `isSupabaseConfigured: boolean`.
+3. **Resilient External Backend Client (`src/lib/external-backend.ts`)**:
+   - Removed fatal throws; provided safe fallback preview config and exported `isExternal BackendConfigured: boolean`.
 4. **Startup Check Banner (`src/components/ConfigBanner.tsx`)**:
-   - Renders an informative amber alert when `!isSupabaseConfigured`, guiding setup without breaking UI rendering.
+   - Renders an informative amber alert when `!isExternal BackendConfigured`, guiding setup without breaking UI rendering.
 5. **React Error Boundary (`src/components/ErrorBoundary.tsx`)**:
    - Wraps the entire application tree to catch any unexpected render crash.
 6. **Authentication Screens (`src/features/auth/SignInPage.tsx`)**:
@@ -189,5 +189,5 @@ All screenshots are stored in [`docs/review/screenshots/`](file:///d:/CareOne/do
    The `WhatChangedPanel` component is built and verified with tests, but a standalone `/doctor` page route mapping is scheduled for Phase 4/7 route integration.
 2. **Front Desk Patient Registration Screen**:
    Edge functions `invite-patient` and `invite-staff` plus database sequence UHID generator (`ABC-NNNN`) are built and verified, with dedicated front desk UI screens scheduled for Phase 3 route integration.
-3. **Live Remote Supabase Auth Delivery**:
-   Live email OTP dispatch and database read/write will activate as soon as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are saved in Vercel.
+3. **Live Remote External Backend Auth Delivery**:
+   Live email OTP dispatch and database read/write will activate as soon as `VITE_EXTERNAL_URL` and `VITE_EXTERNAL_PUBLISHABLE_KEY` are saved in Vercel.

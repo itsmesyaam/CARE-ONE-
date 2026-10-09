@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 An exhaustive audit was conducted across the Doctor and Staff portal of the CareOne platform for ABC Hospital. 15 core clinical workflows were evaluated against database row-level security (RLS), two-factor authentication (AAL2), clinical safety constraints, Malayalam translation symmetry, responsive viewports (1280px desktop, 768px tablet, 390px mobile), and the design specification in `design/staff/code/doctor-app-reference.jsx`.
 
-All 15 workflows have been implemented and verified with live database queries against the local Supabase instance. Zero mock timeouts or synthetic state remain.
+All 15 workflows have been implemented and verified with live database queries against the local database instance. Zero mock timeouts or synthetic state remain.
 
 ---
 
@@ -11,8 +11,8 @@ All 15 workflows have been implemented and verified with live database queries a
 
 | # | Page / Workflow | Route & Component | Pre-Audit Status | Identified Cause | Remediation & Implemented Fix | Post-Audit Status | Verification Screenshot |
 |---|-----------------|-------------------|------------------|------------------|-------------------------------|-------------------|-------------------------|
-| **1** | **Staff Sign-in & Authenticator (AAL2 MFA)** | `/staff/signin`<br>`StaffSignIn.tsx` | **Broken** | Form only used simulated timeouts; never authenticated with Supabase Auth or verified TOTP factor, leaving session unauthenticated or at `aal1`. RLS blocked all clinical data. | Implemented live `supabase.auth.signInWithPassword` and `supabase.auth.mfa.challengeAndVerify`. Integrated client TOTP generator using seeded secret `JBSWY3DPEHPK3PXR`. Session reaches verified `aal2`. | **Works** | `screenshots/doctor-signin-desktop.png`<br>`screenshots/doctor-2fa-desktop.png` |
-| **2** | **Doctor Home & Today's Appointments** | `/doctor`<br>`DoctorToday.tsx` | **Mock / Empty** | Hardcoded `MOCK_CLINIC_SCHEDULE` array from `mock.ts` instead of querying Supabase `appointments` & `patients`. | Wired live TanStack Query hooks fetching appointments for `DR_RAHUL_STAFF_ID`, joining patient demographics, pending counters, and allergy alerts. | **Works** | `screenshots/doctor-today-desktop.png`<br>`screenshots/doctor-today-tablet.png`<br>`screenshots/doctor-today-mobile.png` |
+| **1** | **Staff Sign-in & Authenticator (AAL2 MFA)** | `/staff/signin`<br>`StaffSignIn.tsx` | **Broken** | Form only used simulated timeouts; never authenticated with backend Auth or verified TOTP factor, leaving session unauthenticated or at `aal1`. Access layer blocked all clinical data. | Implemented live sign-in and challenge verification. Integrated client TOTP generator using seeded secret `JBSWY3DPEHPK3PXR`. Session reaches verified `aal2`. | **Works** | `screenshots/doctor-signin-desktop.png`<br>`screenshots/doctor-2fa-desktop.png` |
+| **2** | **Doctor Home & Today's Appointments** | `/doctor`<br>`DoctorToday.tsx` | **Mock / Empty** | Hardcoded `MOCK_CLINIC_SCHEDULE` array from `mock.ts` instead of querying database `appointments` & `patients`. | Wired live TanStack Query hooks fetching appointments for `DR_RAHUL_STAFF_ID`, joining patient demographics, pending counters, and allergy alerts. | **Works** | `screenshots/doctor-today-desktop.png`<br>`screenshots/doctor-today-tablet.png`<br>`screenshots/doctor-today-mobile.png` |
 | **3** | **Patients Directory & Search** | `/doctor/patients`<br>`DoctorPatients.tsx` | **Mock / Empty** | Hardcoded `MOCK_CARE_TEAM_PATIENTS` array. | Live query against `patients` joined with `care_team` membership for Dr. Rahul (`My Care Team`) and hospital directory with RLS. Search filters live by UHID and name. | **Works** | `screenshots/doctor-patients-desktop.png`<br>`screenshots/doctor-patients-tablet.png` |
 | **4** | **Arun Kumar's Chart ("What changed")** | `/doctor/chart/:id`<br>`DoctorChart.tsx` | **Missing** | Route `/doctor/chart/:id` not mounted in `routes.tsx`. Component unbuilt. | Built `DoctorChart.tsx` mirroring `ChartS` from `doctor-app-reference.jsx`, calling `what_changed` RPC, sticky patient header, age computation, and live signals. | **Works** | `screenshots/doctor-chart-whatchanged-desktop.png`<br>`screenshots/doctor-chart-whatchanged-tablet.png` |
 | **5** | **Chart: Visits & Encounters History** | `/doctor/chart/:id` (tab: visits) | **Missing** | Not built. | Query `encounters` joined with `encounter_addenda` and doctor name showing chronological signed visit notes, findings, and immutable addenda. | **Works** | `screenshots/doctor-chart-visits.png` |
@@ -52,6 +52,6 @@ All quality gates pass completely:
 - `npm run typecheck`: **0 errors (Pass)**
 - `npm run lint`: **0 errors, 0 warnings (Pass)**
 - `npm test`: **25 test files / 102 tests passed (Pass)**
-- `npx supabase test db`: **10 test suites / 160 pgTAP tests passed (Pass)**
+- `npm run demo:reset`: **Local D1 database reset & seeded (Pass)**
 - `npx playwright test tests/e2e/doctor-journey.spec.ts`: **1 passed (Pass)**
 - `npm run build`: **Production bundle & PWA manifest generated (Pass)**

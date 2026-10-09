@@ -66,7 +66,7 @@ export default defineConfig({
           if (id.includes('node_modules/recharts')) {
             return 'vendor-charts';
           }
-          if (id.includes('node_modules/@supabase') || id.includes('node_modules/@tanstack')) {
+          if (id.includes('node_modules/@tanstack')) {
             return 'vendor-query';
           }
           if (

@@ -14,7 +14,6 @@ import {
   Stethoscope,
   Shield,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api-client';
 import { ConfigBanner } from '../../components/ConfigBanner';
 import { BuildStamp } from '../../components/BuildStamp';
@@ -58,44 +57,15 @@ export function SignInPage(): React.JSX.Element {
 
     if (!patientEmail) return;
 
-    if (!isSupabaseConfigured) {
-      setOtpSent(true);
-      setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
-      return;
-    }
-
     setPatientLoading(true);
     try {
-      let apiOtpSent = false;
-      try {
-        const res = await apiFetch<{ success: boolean }>('/api/auth/patient/request-otp', {
-          method: 'POST',
-          body: JSON.stringify({ email: patientEmail }),
-        });
-        if (res?.success) {
-          apiOtpSent = true;
-          setOtpSent(true);
-          setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
-          return;
-        }
-      } catch {
-        // Fallback for tests
-      }
-
-      if (!apiOtpSent) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email: patientEmail,
-          options: {
-            shouldCreateUser: false,
-          },
-        });
-
-        if (error) {
-          setPatientError(error.message);
-        } else {
-          setOtpSent(true);
-          setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
-        }
+      const res = await apiFetch<{ success: boolean }>('/api/auth/patient/request-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: patientEmail }),
+      });
+      if (res?.success) {
+        setOtpSent(true);
+        setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
       }
     } catch {
       setPatientError(t('auth.authError'));
@@ -110,43 +80,15 @@ export function SignInPage(): React.JSX.Element {
 
     if (!otpCode) return;
 
-    if (!isSupabaseConfigured) {
-      setPatientSuccess(t('auth.signInSuccess'));
-      setTimeout(() => navigate('/'), 800);
-      return;
-    }
-
     setPatientLoading(true);
     try {
-      let apiVerifySuccess = false;
-      try {
-        const res = await apiFetch<{ success: boolean }>('/api/auth/patient/verify-otp', {
-          method: 'POST',
-          body: JSON.stringify({ email: patientEmail, otp: otpCode }),
-        });
-        if (res?.success) {
-          apiVerifySuccess = true;
-          setPatientSuccess(t('auth.signInSuccess'));
-          setTimeout(() => navigate('/'), 800);
-          return;
-        }
-      } catch {
-        // Fallback for tests
-      }
-
-      if (!apiVerifySuccess) {
-        const { error } = await supabase.auth.verifyOtp({
-          email: patientEmail,
-          token: otpCode,
-          type: 'email',
-        });
-
-        if (error) {
-          setPatientError(t('auth.invalidOtp'));
-        } else {
-          setPatientSuccess(t('auth.signInSuccess'));
-          setTimeout(() => navigate('/'), 800);
-        }
+      const res = await apiFetch<{ success: boolean }>('/api/auth/patient/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: patientEmail, otp: otpCode }),
+      });
+      if (res?.success) {
+        setPatientSuccess(t('auth.signInSuccess'));
+        setTimeout(() => navigate('/'), 800);
       }
     } catch {
       setPatientError(t('auth.invalidOtp'));
@@ -163,12 +105,6 @@ export function SignInPage(): React.JSX.Element {
 
     if (!staffEmail || !staffPassword) return;
 
-    if (!isSupabaseConfigured) {
-      setStaffSuccess(t('auth.signInSuccess'));
-      setTimeout(() => navigate('/admin'), 800);
-      return;
-    }
-
     setStaffLoading(true);
     try {
       let normalizedEmail = staffEmail.trim();
@@ -177,55 +113,16 @@ export function SignInPage(): React.JSX.Element {
       }
       const actualPassword = staffPassword === 'DoctorPass123!' ? 'DemoPassword123!' : (staffPassword === 'AdminPass123!' ? 'DemoPassword123!' : (staffPassword === 'FrontDesk123!' ? 'DemoPassword123!' : staffPassword));
 
-      let apiLoginSuccess = false;
-      try {
-        const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string; role: string }>('/api/auth/staff/login', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: actualPassword,
-          }),
-        });
-        if (res?.requireTotp) {
-          setMfaFactorId(res.staffId);
-          setMfaRequired(true);
-          apiLoginSuccess = true;
-          return;
-        }
-      } catch {
-        // Fallback
-      }
-
-      if (!apiLoginSuccess) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: staffEmail,
-          password: staffPassword,
-        });
-
-        if (error) {
-          setStaffError(error.message || t('auth.authError'));
-          return;
-        }
-
-        // Check if MFA (TOTP) is required
-        const aalResult = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (
-          aalResult.data?.nextLevel === 'aal2' &&
-          aalResult.data?.currentLevel !== 'aal2'
-        ) {
-          const factors = await supabase.auth.mfa.listFactors();
-          const totpFactor = factors.data?.totp?.[0];
-          if (totpFactor) {
-            setMfaFactorId(totpFactor.id);
-            setMfaRequired(true);
-            return;
-          }
-        }
-
-        setStaffSuccess(t('auth.signInSuccess'));
-        if (data.session) {
-          setTimeout(() => navigate('/admin'), 800);
-        }
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string; role: string }>('/api/auth/staff/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: actualPassword,
+        }),
+      });
+      if (res?.requireTotp) {
+        setMfaFactorId(res.staffId);
+        setMfaRequired(true);
       }
     } catch {
       setStaffError(t('auth.authError'));
@@ -242,45 +139,17 @@ export function SignInPage(): React.JSX.Element {
 
     setStaffLoading(true);
     try {
-      let apiTotpSuccess = false;
-      try {
-        const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
-          method: 'POST',
-          body: JSON.stringify({
-            staffId: mfaFactorId,
-            code: totpCode,
-          }),
-        });
-        if (res?.success) {
-          apiTotpSuccess = true;
-          setStaffSuccess(t('auth.signInSuccess'));
-          const target = res.user?.role === 'doctor' ? '/doctor' : (res.user?.role === 'front_desk' ? '/desk' : '/admin');
-          setTimeout(() => navigate(target), 800);
-          return;
-        }
-      } catch {
-        // Fallback
-      }
-
-      if (!apiTotpSuccess) {
-        const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
-        if (challenge.error) {
-          setStaffError(challenge.error.message);
-          return;
-        }
-
-        const verify = await supabase.auth.mfa.verify({
-          factorId: mfaFactorId,
-          challengeId: challenge.data.id,
+      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
+        method: 'POST',
+        body: JSON.stringify({
+          staffId: mfaFactorId,
           code: totpCode,
-        });
-
-        if (verify.error) {
-          setStaffError(t('auth.invalidOtp'));
-        } else {
-          setStaffSuccess(t('auth.signInSuccess'));
-          setTimeout(() => navigate('/admin'), 800);
-        }
+        }),
+      });
+      if (res?.success) {
+        setStaffSuccess(t('auth.signInSuccess'));
+        const target = res.user?.role === 'doctor' ? '/doctor' : (res.user?.role === 'front_desk' ? '/desk' : '/admin');
+        setTimeout(() => navigate(target), 800);
       }
     } catch {
       setStaffError(t('auth.invalidOtp'));

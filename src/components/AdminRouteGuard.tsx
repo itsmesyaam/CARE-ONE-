@@ -1,5 +1,4 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
 import { apiFetch } from '../lib/api-client';
 import { useTranslation } from 'react-i18next';
 
@@ -12,19 +11,16 @@ export function AdminRouteGuard({ children }: { children: ReactNode }): React.JS
     let active = true;
     (async () => {
       try {
-        const res = await apiFetch<{ session: unknown }>('/api/auth/session');
+        const res = await apiFetch<{ authenticated?: boolean; user?: unknown }>('/api/auth/session');
         if (active) {
-          setHasSession(!!res?.session);
+          setHasSession(Boolean(res?.authenticated || res?.user));
           setChecked(true);
         }
       } catch {
-        if (!active) return;
-        supabase.auth.getSession().then(({ data }) => {
-          if (active) {
-            setHasSession(!!data.session);
-            setChecked(true);
-          }
-        });
+        if (active) {
+          setHasSession(false);
+          setChecked(true);
+        }
       }
     })();
     return () => {
