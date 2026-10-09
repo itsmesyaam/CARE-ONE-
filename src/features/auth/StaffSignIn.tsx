@@ -207,6 +207,28 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     void i18n.changeLanguage(next);
   };
 
+  const formatAuthError = (err: unknown): string => {
+    const rawMessage =
+      (err as { message?: string })?.message ||
+      (err instanceof Error ? err.message : String(err));
+
+    if (!rawMessage) return t('staffAuth.signInFailed', 'Sign-in failed. Please try again.');
+
+    if (
+      rawMessage.toLowerCase().includes('failed to fetch') ||
+      rawMessage.toLowerCase().includes('networkerror') ||
+      rawMessage.toLowerCase().includes('refused to connect')
+    ) {
+      console.error('[CareOne Technical Error] Failed to reach Supabase backend:', err);
+      return t(
+        'staffAuth.serverUnreachable',
+        "We can't reach the server right now. Please try again."
+      );
+    }
+
+    return rawMessage;
+  };
+
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || secCheck < 2 || busy) return;
@@ -220,14 +242,14 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         password: actualPassword,
       });
       if (error) {
-        setAuthError(error.message);
+        setAuthError(formatAuthError(error));
         setBusy(false);
         return;
       }
       setBusy(false);
       setStep('twofa');
     } catch (err: unknown) {
-      setAuthError(err instanceof Error ? err.message : 'Sign-in failed');
+      setAuthError(formatAuthError(err));
       setBusy(false);
     }
   };
@@ -260,7 +282,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         }
 
         if (result.error) {
-          setAuthError(result.error.message);
+          setAuthError(formatAuthError(result.error));
           setBusy(false);
           return;
         }
@@ -268,7 +290,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       setBusy(false);
       navigate('/doctor');
     } catch (err: unknown) {
-      setAuthError(err instanceof Error ? err.message : 'Verification failed');
+      setAuthError(formatAuthError(err));
       setBusy(false);
     }
   };

@@ -1,0 +1,313 @@
+{
+  "url": "https://care-one.syam18official.workers.dev/staff/signin",
+  "mainStatus": 200,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cache-control": "public, max-age=0, must-revalidate",
+    "cf-cache-status": "MISS",
+    "cf-ray": "a47b1558a984bd83-HKG",
+    "content-encoding": "zstd",
+    "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+    "content-type": "text/html",
+    "cross-origin-opener-policy": "same-origin",
+    "date": "Fri, 09 Oct 2026 05:46:10 GMT",
+    "etag": "W/\"833665bfd770a16fac8f10f0f5ca5052\"",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+    "referrer-policy": "no-referrer",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=kc6CHnagFJxoGXX37EV%2FzSzgV%2FiCbarC7uIz5SLJYGfAXksSHl%2BmIAtYD9MvqAtramjrS8fXv4O4Ao8JBEtaHcogVen39WEJCCsrTL0jvThvufOFIiqZGTRUcXjQpYNRD8ayclCu9Tk1v%2By0KoMdGQg4G8EEMHw3Pq%2BEKNsHtHXqcw%3D%3D\"}]}",
+    "server": "cloudflare",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY"
+  },
+  "consoleMessages": [
+    {
+      "type": "error",
+      "text": "Loading the stylesheet 'https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@75..125,100..800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap' violates the following Content Security Policy directive: \"style-src 'self' 'unsafe-inline'\". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback. The action has been blocked.",
+      "location": {
+        "url": "https://care-one.syam18official.workers.dev/staff/signin",
+        "line": 15,
+        "column": 0,
+        "lineNumber": 15,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Connecting to 'http://127.0.0.1:54321/auth/v1/token?grant_type=password' violates the following Content Security Policy directive: \"connect-src 'self' https://*.supabase.co wss://*.supabase.co\". The action has been blocked.",
+      "location": {
+        "url": "https://care-one.syam18official.workers.dev/assets/vendor-query-BEOjS5Kb.js",
+        "line": 7,
+        "column": 0,
+        "lineNumber": 7,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Fetch API cannot load http://127.0.0.1:54321/auth/v1/token?grant_type=password. Refused to connect because it violates the document's Content Security Policy.",
+      "location": {
+        "url": "https://care-one.syam18official.workers.dev/assets/vendor-query-BEOjS5Kb.js",
+        "line": 7,
+        "column": 0,
+        "lineNumber": 7,
+        "columnNumber": 0
+      }
+    }
+  ],
+  "pageErrors": [],
+  "networkEvents": [
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/staff/signin",
+      "method": "GET"
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/staff/signin",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "cf-cache-status": "MISS",
+        "cf-ray": "a47b1558a984bd83-HKG",
+        "content-encoding": "zstd",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "content-type": "text/html",
+        "cross-origin-opener-policy": "same-origin",
+        "date": "Fri, 09 Oct 2026 05:46:10 GMT",
+        "etag": "W/\"833665bfd770a16fac8f10f0f5ca5052\"",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "referrer-policy": "no-referrer",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=kc6CHnagFJxoGXX37EV%2FzSzgV%2FiCbarC7uIz5SLJYGfAXksSHl%2BmIAtYD9MvqAtramjrS8fXv4O4Ao8JBEtaHcogVen39WEJCCsrTL0jvThvufOFIiqZGTRUcXjQpYNRD8ayclCu9Tk1v%2By0KoMdGQg4G8EEMHw3Pq%2BEKNsHtHXqcw%3D%3D\"}]}",
+        "server": "cloudflare",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY"
+      }
+    },
+    {
+      "type": "request",
+      "url": "https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@75..125,100..800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+      "method": "GET"
+    },
+    {
+      "type": "failed",
+      "url": "https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@75..125,100..800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+      "method": "GET",
+      "error": "csp"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/index-7jhqWSFd.js",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/rolldown-runtime-hePW80VL.js",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-charts-D4p-EZSv.js",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-react-_hcMD17x.js",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-query-BEOjS5Kb.js",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/assets/index-vpb0V709.css",
+      "method": "GET"
+    },
+    {
+      "type": "request",
+      "url": "https://care-one.syam18official.workers.dev/registerSW.js",
+      "method": "GET"
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/index-vpb0V709.css",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"5bcf3d483594359a551f32e43d824015\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=KrwhP68vLtPLF3KXLeRqQnhQBeFeW5t9%2FwIl9BQAnkMBWUotrgFpPc3%2FkdndSoLfY2qhwzSsOfwTAGLCkyqW8FqawgNxuJymAAK1UyNy7raOtoL8AZE5j2%2FI%2BsjSwooZVsgvBa%2BBeLg94QkrM4PUWxTWznPeJv1Wv0dJzSmO%2Be2eAw%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/css",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a35bd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/rolldown-runtime-hePW80VL.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"eb5e8e7304ce73ddaf8eda39aafb3602\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=xwTd7JpCRG4SoACsdUTuUnhiiQqnjz%2BcWDNuQHOuiUFfOksOv%2BOX0PHIyDRriN18wy9fCBt52k4%2B%2BicZan0CyNL%2FXVmrzT5t9d8FzfMqkZpn1R8EftzlY2vNVcv%2BsLi0VUNp6ILwulB7hHbNDmHxQ161NB16S6a7FpimUxA%2FvBRhIA%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a39bd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-react-_hcMD17x.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"91e12cabc44e1a4275c3b5e463351049\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=yF47o66UEMNezUr503DXUxgXL%2B%2F6eH4kXnURWGrvBpKHHtr%2FeW8thJfWyaW%2F6BZQwrfF82XwxGQbc8FZT%2BfdXVcWQSKKObZK5LP%2FAgPjpR%2B2GheTwB5%2BKgaVVYzNH%2FLuMaLrkgPAda%2Fo1H%2BQS3mXtepfOU2idm1F2P%2Fb1DGo5KWejg%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a3cbd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-query-BEOjS5Kb.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"c2ed5f4f32359edb202aa8e6127a8372\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=ybJ8DxYmz3MrVKpGd2iKS47sYBEebYRsBFUxfckIMjG5EBKlpdgHCZk3QWvOY5%2BKWf5XHAVhbZXzr3gMaGmGtKl5FB77et9grljcJ40rK3DE%2B5iQL%2B9aRa1iIk08Tm5iI614%2BO2KcjNvnuhyiM4pygGi2dh%2FLLY15WOfq1%2BLLZdrxw%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a42bd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/registerSW.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"deea95fdc0d94f1e17d79f957942afc2\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=yW%2BhxTEDelqb8sZaKst9mFyedGWEjdn49gq22rfIHa%2BVv4NFuxpdzApU1%2B0GXC8N5vqQLitKFK28F8llhfjjOwdxoSY4U0mdMfVq%2FwoKWwAwGJL5jDbNlscwdZT2hzJaFPMPmCBK2PJ0CpkWpgfG5CzOOnpcQ%2BSBt4cM3LvFvWyzSQ%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a4cbd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/index-7jhqWSFd.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"5c028fb5d9c4e9a2a5e6da345e91a988\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=%2FCeho4VLZCfxUKadnSsqNrCN79Pw7thYud6opMXdIMEvEohnFsxoWwKR51ADB0eyuMlxwiaOlQoS%2FEmKueu8Gdii8c%2F3wti9i0uSWWisiPvJ0SdbAQFW9JEatoTi3%2BtHyxv35ylDOOOQjv0UPU9JbJ24MIWj4QHUmhiq09xS8ffEAg%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a47bd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "type": "response",
+      "url": "https://care-one.syam18official.workers.dev/assets/vendor-charts-D4p-EZSv.js",
+      "status": 200,
+      "headers": {
+        "content-encoding": "zstd",
+        "cf-cache-status": "MISS",
+        "etag": "W/\"b29815bacb715e49c3a2b032f6904eab\"",
+        "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=8%2Fg8CQd%2BFs%2FNwDLzrQ6KFHQuEDYpi9Z3LgCyJtfWy%2F5QrrDvPKANVP5YD6nVlKwkqKZmmetT4GiJOdQmaSQCA7rJeSmrV%2FQVnkvPx%2FfcQs6DHv4D0hdIjpRCsYg0QUMlRJYxOqNZxwbiC2c7%2FoNyBjFee30%2BK9ui%2BsCQdegv7gMJ3g%3D%3D\"}]}",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Fri, 09 Oct 2026 05:46:11 GMT",
+        "content-type": "text/javascript",
+        "x-frame-options": "DENY",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+        "cross-origin-opener-policy": "same-origin",
+        "referrer-policy": "no-referrer",
+        "cf-ray": "a47b155b5a43bd83-HKG",
+        "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+        "server": "cloudflare"
+      }
+    }
+  ]
+}
