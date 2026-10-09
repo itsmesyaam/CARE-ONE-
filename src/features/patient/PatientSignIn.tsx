@@ -106,7 +106,7 @@ function AuthFrame({
   );
 }
 
-export function WelcomeView({ onStartSignIn }: { onStartSignIn: () => void }) {
+function WelcomeView({ onStartSignIn }: { onStartSignIn: () => void }) {
   const { lang } = usePatient();
   const pv = [
     [Pill, lang === 'ml' ? 'രാത്രിയിലെ മരുന്നുകൾ' : 'Night medicines', '9:00 PM', 'leaf'],
@@ -179,7 +179,7 @@ export function WelcomeView({ onStartSignIn }: { onStartSignIn: () => void }) {
   );
 }
 
-export function SignInForm({
+function SignInForm({
   onBack,
   onSentCode,
 }: {
@@ -315,7 +315,7 @@ export function SignInForm({
   );
 }
 
-export function OtpForm({
+function OtpForm({
   contact,
   onBack,
   onVerifySuccess,
@@ -472,7 +472,7 @@ export function OtpForm({
   );
 }
 
-export function ConsentView({
+function ConsentView({
   onAgree,
   onDecline,
 }: {
@@ -580,7 +580,7 @@ export function ConsentView({
   );
 }
 
-export function WhoView({ onContinue }: { onContinue: () => void }) {
+function WhoView({ onContinue }: { onContinue: () => void }) {
   const { lang, pid, setPid } = usePatient();
 
   return (

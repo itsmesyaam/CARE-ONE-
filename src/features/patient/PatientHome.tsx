@@ -159,7 +159,7 @@ export function Ticket() {
   );
 }
 
-export function Prep() {
+function Prep() {
   const { lang, d, openSheet } = usePatient();
   const items = [
     ...d.tests.map(x => ({
@@ -240,7 +240,7 @@ export function Prep() {
   );
 }
 
-export function Meds() {
+function Meds() {
   const { lang, d, take } = usePatient();
   const allKeys = d.slots.flatMap(s => s.meds.map(m => s.k + '-' + m));
   const takenCount = allKeys.filter(k => d.doses[k]).length;
@@ -354,7 +354,7 @@ export function Meds() {
   );
 }
 
-export function ReadTiles() {
+function ReadTiles() {
   const { lang, d, openSheet, nav, setMetric } = usePatient();
   const METRICS = {
     bp: [HeartPulse, 'mmHg', lang === 'ml' ? 'രക്തസമ്മർദ്ദം' : 'Blood pressure'],
@@ -449,7 +449,7 @@ export function ReadTiles() {
   );
 }
 
-export function RecentReports() {
+function RecentReports() {
   const { lang, d, openSheet, nav } = usePatient();
   const KIND_CONFIG = {
     lab: [FlaskConical, 'leaf'],
@@ -521,7 +521,7 @@ export function RecentReports() {
   );
 }
 
-export function InstallPrompt() {
+function InstallPrompt() {
   const { lang, inst, setInst, toast } = usePatient();
   if (inst) return null;
 
@@ -563,7 +563,7 @@ export function InstallPrompt() {
   );
 }
 
-export function SosBanner() {
+function SosBanner() {
   const { lang } = usePatient();
   return (
     <section className="sos" aria-labelledby="sos-h">

@@ -14,7 +14,7 @@ import {
 import { MOCK_DOCTOR } from '../doctor/mock';
 import { apiFetch } from '../../lib/api-client';
 
-export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
+type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
 interface StaffSignInProps {
   initialStep?: StaffAuthStep;

@@ -15,5 +15,3 @@ export function App(): React.JSX.Element {
     </ErrorBoundary>
   );
 }
-
-export default App;
