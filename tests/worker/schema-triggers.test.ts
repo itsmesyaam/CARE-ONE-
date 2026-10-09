@@ -11,6 +11,11 @@ describe('D1 Database Triggers and Schema Rules', () => {
     const migrationPath = path.resolve(import.meta.dirname, '../../migrations/0001_initial_schema.sql');
     const sql = fs.readFileSync(migrationPath, 'utf-8');
     db.exec(sql);
+
+    const m3Path = path.resolve(import.meta.dirname, '../../migrations/0003_staff_auth_credentials.sql');
+    if (fs.existsSync(m3Path)) {
+      db.exec(fs.readFileSync(m3Path, 'utf-8'));
+    }
   });
 
   describe('audit_log immutability triggers', () => {

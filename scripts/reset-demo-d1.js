@@ -29,4 +29,11 @@ execSync('npx wrangler d1 execute DB --local --file=migrations/0002_seed_demo_da
   shell: true,
 });
 
+// 3. Apply Staff Auth Credentials & Email Migration
+console.log('[Demo Reset] Applying migrations/0003_staff_auth_credentials.sql to local D1...');
+execSync('npx wrangler d1 execute DB --local --file=migrations/0003_staff_auth_credentials.sql', {
+  stdio: 'inherit',
+  shell: true,
+});
+
 console.log('[Demo Reset] Cloudflare D1 and R2 demo reset complete.');
