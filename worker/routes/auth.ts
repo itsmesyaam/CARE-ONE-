@@ -19,7 +19,7 @@ import {
 export const authRoutes = new Hono<{ Bindings: WorkerEnv }>();
 
 // 1. Patient OTP Request
-authRoutes.post('/patient/request-otp', async c => {
+authRoutes.post('/patient/request-otp', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = (body.email || '').trim().toLowerCase();
 
@@ -89,7 +89,7 @@ authRoutes.post('/patient/request-otp', async c => {
 });
 
 // 2. Patient OTP Verification
-authRoutes.post('/patient/verify-otp', async c => {
+authRoutes.post('/patient/verify-otp', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = (body.email || '').trim().toLowerCase();
   const otp = (body.otp || '').trim();
@@ -101,11 +101,15 @@ authRoutes.post('/patient/verify-otp', async c => {
   const db = c.env.DB;
 
   const record = (await db
-    .prepare(
-      'SELECT * FROM email_otps WHERE email = ? ORDER BY created_at DESC LIMIT 1'
-    )
+    .prepare('SELECT * FROM email_otps WHERE email = ? ORDER BY created_at DESC LIMIT 1')
     .bind(email)
-    .first()) as { id: string; email: string; code_hash: string; attempts: number; expires_at: string } | null;
+    .first()) as {
+    id: string;
+    email: string;
+    code_hash: string;
+    attempts: number;
+    expires_at: string;
+  } | null;
 
   if (!record) {
     return c.json({ error: 'No active login request found' }, 400);
@@ -133,10 +137,7 @@ authRoutes.post('/patient/verify-otp', async c => {
       return c.json({ error: 'Too many failed attempts. Request a new OTP.' }, 429);
     }
 
-    return c.json(
-      { error: 'Invalid verification code', attemptsRemaining: 5 - newAttempts },
-      401
-    );
+    return c.json({ error: 'Invalid verification code', attemptsRemaining: 5 - newAttempts }, 401);
   }
 
   // Verified successfully - clean up OTP
@@ -144,7 +145,9 @@ authRoutes.post('/patient/verify-otp', async c => {
 
   // Find or link patient record
   const patient = (await db
-    .prepare('SELECT id, email, full_name FROM patients WHERE email = ? AND deleted_at IS NULL LIMIT 1')
+    .prepare(
+      'SELECT id, email, full_name FROM patients WHERE email = ? AND deleted_at IS NULL LIMIT 1'
+    )
     .bind(email)
     .first()) as { id: string; email: string; full_name: string } | null;
 
@@ -172,7 +175,7 @@ authRoutes.post('/patient/verify-otp', async c => {
 });
 
 // 3. Staff Password Login (AAL1 -> Requires TOTP)
-authRoutes.post('/staff/login', async c => {
+authRoutes.post('/staff/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = (body.email || '').trim().toLowerCase();
   const password = body.password || '';
@@ -224,10 +227,7 @@ authRoutes.post('/staff/login', async c => {
 
   if (!isValidPassword) {
     const attempts = staffRecord.failed_attempts + 1;
-    const lockUntil =
-      attempts >= 5
-        ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
-        : null;
+    const lockUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
 
     await db
       .prepare('UPDATE staff_auth SET failed_attempts = ?, locked_until = ? WHERE staff_id = ?')
@@ -252,7 +252,7 @@ authRoutes.post('/staff/login', async c => {
 });
 
 // 4. Staff TOTP Verification (AAL2 Elevation)
-authRoutes.post('/staff/verify-totp', async c => {
+authRoutes.post('/staff/verify-totp', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const staffId = body.staffId || '';
   const code = (body.code || '').trim();
@@ -314,7 +314,7 @@ authRoutes.post('/staff/verify-totp', async c => {
 });
 
 // 5. Sign Out
-authRoutes.post('/signout', async c => {
+authRoutes.post('/signout', async (c) => {
   const rawToken = getSessionCookie(c);
   if (rawToken) {
     await deleteSession(c.env.DB, rawToken);
@@ -324,7 +324,7 @@ authRoutes.post('/signout', async c => {
 });
 
 // 6. Current Session & Inactivity Verification
-authRoutes.get('/session', async c => {
+authRoutes.get('/session', async (c) => {
   const rawToken = getSessionCookie(c);
   if (!rawToken) {
     return c.json({ authenticated: false, error: 'No active session' }, 401);

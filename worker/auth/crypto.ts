@@ -31,7 +31,7 @@ export async function sha256Hex(data: string): Promise<string> {
   const encoded = new TextEncoder().encode(data);
   const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -40,7 +40,9 @@ export async function sha256Hex(data: string): Promise<string> {
 export function generateRandomToken(bytes = 32): string {
   const array = new Uint8Array(bytes);
   crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -72,7 +74,7 @@ export async function hashPassword(
   );
 
   const hashArray = Array.from(new Uint8Array(derivedBits));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

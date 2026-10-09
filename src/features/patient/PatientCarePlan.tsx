@@ -166,20 +166,12 @@ export function PatientCarePlan(): React.JSX.Element {
             const isToday = idx === 6;
             const progress = weekVals[idx] ?? 0;
             return (
-              <div
-                key={idx}
-                className={`day ${isToday ? 'today' : ''}`}
-              >
+              <div key={idx} className={`day ${isToday ? 'today' : ''}`}>
                 <span className="text-xs text-[var(--ink3)] font-medium">
                   {lang === 'ml' ? dayItem.ml : dayItem.en}
                 </span>
-                <Ring
-                  v={progress}
-                  label={`${dayItem.full}: ${Math.round(progress * 100)}%`}
-                />
-                <span className="text-xs font-semibold text-[var(--ink)]">
-                  {dayItem.date}
-                </span>
+                <Ring v={progress} label={`${dayItem.full}: ${Math.round(progress * 100)}%`} />
+                <span className="text-xs font-semibold text-[var(--ink)]">{dayItem.date}</span>
               </div>
             );
           })}
@@ -191,13 +183,10 @@ export function PatientCarePlan(): React.JSX.Element {
         {/* Left Column: Medicines & Tests */}
         <div>
           {/* Active Medicines */}
-          <PlanGroup
-            title={lang === 'ml' ? 'മരുന്നുകൾ' : 'Medicines'}
-            icon={Pill}
-          >
+          <PlanGroup title={lang === 'ml' ? 'മരുന്നുകൾ' : 'Medicines'} icon={Pill}>
             {d.meds
-              .filter(m => m.on)
-              .map(m => (
+              .filter((m) => m.on)
+              .map((m) => (
                 <div key={m.id} className="row">
                   <div className="flex-1 min-w-0">
                     <b className="block text-sm font-bold text-[var(--ink)]">
@@ -212,13 +201,13 @@ export function PatientCarePlan(): React.JSX.Element {
                             ? m.food === 'afterFood'
                               ? ', ഭക്ഷണത്തിന് ശേഷം'
                               : m.food === 'beforeFood'
-                              ? ', ഭക്ഷണത്തിന് മുമ്പ്'
-                              : ', ഉറങ്ങുന്നതിന് മുമ്പ്'
+                                ? ', ഭക്ഷണത്തിന് മുമ്പ്'
+                                : ', ഉറങ്ങുന്നതിന് മുമ്പ്'
                             : m.food === 'afterFood'
-                            ? ', After food'
-                            : m.food === 'beforeFood'
-                            ? ', Before food'
-                            : ', At bedtime'
+                              ? ', After food'
+                              : m.food === 'beforeFood'
+                                ? ', Before food'
+                                : ', At bedtime'
                           : ''}
                       </span>
                     </span>
@@ -232,11 +221,8 @@ export function PatientCarePlan(): React.JSX.Element {
 
           {/* Tests Due & Uploaded */}
           {d.tests.length > 0 && (
-            <PlanGroup
-              title={lang === 'ml' ? 'പരിശോധനകൾ' : 'Tests'}
-              icon={FlaskConical}
-            >
-              {d.tests.map(test => (
+            <PlanGroup title={lang === 'ml' ? 'പരിശോധനകൾ' : 'Tests'} icon={FlaskConical}>
+              {d.tests.map((test) => (
                 <div key={test.id} className="row">
                   <div className="flex-1 min-w-0">
                     <b className="block text-sm font-bold text-[var(--ink)]">{test.name}</b>
@@ -254,9 +240,7 @@ export function PatientCarePlan(): React.JSX.Element {
                         <span className="tag tag-zari">
                           <Clock size={14} className="flex-none" aria-hidden="true" />
                           <span>
-                            {lang === 'ml'
-                              ? `${test.due}-ന് മുൻപ് ചെയ്യുക`
-                              : `Due on ${test.due}`}
+                            {lang === 'ml' ? `${test.due}-ന് മുൻപ് ചെയ്യുക` : `Due on ${test.due}`}
                           </span>
                         </span>
                       )}
@@ -286,7 +270,7 @@ export function PatientCarePlan(): React.JSX.Element {
             title={lang === 'ml' ? 'രേഖപ്പെടുത്തേണ്ട അളവുകൾ' : 'Readings to log'}
             icon={HeartPulse}
           >
-            {d.logs.map(log => (
+            {d.logs.map((log) => (
               <div key={log.id} className="row items-start">
                 <div className="flex-1 min-w-0">
                   <b className="block text-sm font-bold text-[var(--ink)]">{log.name}</b>
@@ -299,9 +283,7 @@ export function PatientCarePlan(): React.JSX.Element {
                   {log.missed && (
                     <span className="block mt-1.5">
                       <span className="tag tag-lat">
-                        {lang === 'ml'
-                          ? `${log.missed}-ൽ വിട്ടുപോയി`
-                          : `Missed on ${log.missed}`}
+                        {lang === 'ml' ? `${log.missed}-ൽ വിട്ടുപോയി` : `Missed on ${log.missed}`}
                       </span>
                     </span>
                   )}

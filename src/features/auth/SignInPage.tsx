@@ -110,9 +110,21 @@ export function SignInPage(): React.JSX.Element {
       if (normalizedEmail.includes('rahul') || normalizedEmail.includes('doctor')) {
         normalizedEmail = 'doctor@example.com';
       }
-      const actualPassword = staffPassword === 'DoctorPass123!' ? 'DemoPassword123!' : (staffPassword === 'AdminPass123!' ? 'DemoPassword123!' : (staffPassword === 'FrontDesk123!' ? 'DemoPassword123!' : staffPassword));
+      const actualPassword =
+        staffPassword === 'DoctorPass123!'
+          ? 'DemoPassword123!'
+          : staffPassword === 'AdminPass123!'
+            ? 'DemoPassword123!'
+            : staffPassword === 'FrontDesk123!'
+              ? 'DemoPassword123!'
+              : staffPassword;
 
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string; role: string }>('/api/auth/staff/login', {
+      const res = await apiFetch<{
+        success: boolean;
+        requireTotp: boolean;
+        staffId: string;
+        role: string;
+      }>('/api/auth/staff/login', {
         method: 'POST',
         body: JSON.stringify({
           email: normalizedEmail,
@@ -138,16 +150,24 @@ export function SignInPage(): React.JSX.Element {
 
     setStaffLoading(true);
     try {
-      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
-        method: 'POST',
-        body: JSON.stringify({
-          staffId: mfaFactorId,
-          code: totpCode,
-        }),
-      });
+      const res = await apiFetch<{ success: boolean; user?: { role: string } }>(
+        '/api/auth/staff/verify-totp',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            staffId: mfaFactorId,
+            code: totpCode,
+          }),
+        }
+      );
       if (res?.success) {
         setStaffSuccess(t('auth.signInSuccess'));
-        const target = res.user?.role === 'doctor' ? '/doctor' : (res.user?.role === 'front_desk' ? '/desk' : '/admin');
+        const target =
+          res.user?.role === 'doctor'
+            ? '/doctor'
+            : res.user?.role === 'front_desk'
+              ? '/desk'
+              : '/admin';
         setTimeout(() => navigate(target), 800);
       }
     } catch {
@@ -304,7 +324,7 @@ export function SignInPage(): React.JSX.Element {
                         type="email"
                         required
                         value={patientEmail}
-                        onChange={e => setPatientEmail(e.target.value)}
+                        onChange={(e) => setPatientEmail(e.target.value)}
                         placeholder={t('auth.emailPlaceholder')}
                         className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
@@ -322,10 +342,7 @@ export function SignInPage(): React.JSX.Element {
               ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="patient-otp"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
+                    <label htmlFor="patient-otp" className="block text-xs font-bold text-[#0B1533]">
                       {t('auth.otpLabel')}
                     </label>
                     <div className="relative mt-1.5">
@@ -336,7 +353,7 @@ export function SignInPage(): React.JSX.Element {
                         maxLength={6}
                         required
                         value={otpCode}
-                        onChange={e => setOtpCode(e.target.value)}
+                        onChange={(e) => setOtpCode(e.target.value)}
                         placeholder={t('auth.otpPlaceholder')}
                         className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
@@ -394,10 +411,7 @@ export function SignInPage(): React.JSX.Element {
               {!mfaRequired ? (
                 <form onSubmit={handleStaffSignIn} className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="staff-email"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
+                    <label htmlFor="staff-email" className="block text-xs font-bold text-[#0B1533]">
                       {t('auth.emailLabel')}
                     </label>
                     <div className="relative mt-1.5">
@@ -407,7 +421,7 @@ export function SignInPage(): React.JSX.Element {
                         type="email"
                         required
                         value={staffEmail}
-                        onChange={e => setStaffEmail(e.target.value)}
+                        onChange={(e) => setStaffEmail(e.target.value)}
                         placeholder="staff@example.com"
                         className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
@@ -428,7 +442,7 @@ export function SignInPage(): React.JSX.Element {
                         type="password"
                         required
                         value={staffPassword}
-                        onChange={e => setStaffPassword(e.target.value)}
+                        onChange={(e) => setStaffPassword(e.target.value)}
                         placeholder={t('auth.passwordPlaceholder')}
                         className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />
@@ -446,10 +460,7 @@ export function SignInPage(): React.JSX.Element {
               ) : (
                 <form onSubmit={handleVerifyTotp} className="space-y-4">
                   <div>
-                    <label
-                      htmlFor="staff-totp"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
+                    <label htmlFor="staff-totp" className="block text-xs font-bold text-[#0B1533]">
                       {t('auth.totpLabel')}
                     </label>
                     <div className="relative mt-1.5">
@@ -460,7 +471,7 @@ export function SignInPage(): React.JSX.Element {
                         maxLength={6}
                         required
                         value={totpCode}
-                        onChange={e => setTotpCode(e.target.value)}
+                        onChange={(e) => setTotpCode(e.target.value)}
                         placeholder={t('auth.totpPlaceholder')}
                         className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
                       />

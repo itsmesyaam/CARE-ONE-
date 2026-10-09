@@ -50,7 +50,7 @@ const uploadPolicy = declareRoutePolicy('POST', '/api/documents/upload', {
   allowedRoles: ['patient', 'guardian', 'doctor'],
 });
 
-documentsRoutes.post('/upload', requireAccess(uploadPolicy), async c => {
+documentsRoutes.post('/upload', requireAccess(uploadPolicy), async (c) => {
   const user = c.get('user');
   let body: FormData;
   try {
@@ -73,10 +73,7 @@ documentsRoutes.post('/upload', requireAccess(uploadPolicy), async c => {
   }
 
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    return c.json(
-      { error: 'Invalid file type. Only PDF, JPEG, and PNG files are allowed.' },
-      400
-    );
+    return c.json({ error: 'Invalid file type. Only PDF, JPEG, and PNG files are allowed.' }, 400);
   }
 
   if (file.size > MAX_FILE_SIZE) {
@@ -93,7 +90,8 @@ documentsRoutes.post('/upload', requireAccess(uploadPolicy), async c => {
   }
 
   const docId = crypto.randomUUID();
-  const ext = file.type === 'application/pdf' ? '.pdf' : file.type === 'image/png' ? '.png' : '.jpg';
+  const ext =
+    file.type === 'application/pdf' ? '.pdf' : file.type === 'image/png' ? '.png' : '.jpg';
   const storagePath = `${patientId}/${docId}${ext}`;
   const nowIso = new Date().toISOString();
   const source = user.role === 'doctor' ? 'staff' : 'patient';
@@ -132,13 +130,7 @@ documentsRoutes.post('/upload', requireAccess(uploadPolicy), async c => {
       `INSERT INTO audit_log (id, at, actor_id, action, table_name, record_id, patient_id, reason)
        VALUES (?, ?, ?, 'UPLOAD_DOCUMENT', 'documents', ?, ?, 'Document uploaded')`
     )
-    .bind(
-      crypto.randomUUID(),
-      nowIso,
-      user.id,
-      docId,
-      patientId
-    )
+    .bind(crypto.randomUUID(), nowIso, user.id, docId, patientId)
     .run();
 
   return c.json(
@@ -169,7 +161,7 @@ const reviewQueuePolicy = declareRoutePolicy('GET', '/api/documents/review-queue
   requireMfa: true,
 });
 
-documentsRoutes.get('/review-queue', requireAccess(reviewQueuePolicy), async c => {
+documentsRoutes.get('/review-queue', requireAccess(reviewQueuePolicy), async (c) => {
   const user = c.get('user');
   if (!user.staffId) {
     return c.json({ error: 'Doctor staff record required' }, 403);
@@ -215,7 +207,7 @@ documentsRoutes.get('/review-queue', requireAccess(reviewQueuePolicy), async c =
     patient_phone: string;
   }>();
 
-  const reports = (rows.results || []).map(r => ({
+  const reports = (rows.results || []).map((r) => ({
     id: r.id,
     patient_id: r.patient_id,
     storage_path: r.storage_path,
@@ -247,7 +239,7 @@ const reviewDocPolicy = declareRoutePolicy('POST', '/api/documents/:id/review', 
   requireMfa: true,
 });
 
-documentsRoutes.post('/:id/review', requireAccess(reviewDocPolicy), async c => {
+documentsRoutes.post('/:id/review', requireAccess(reviewDocPolicy), async (c) => {
   const user = c.get('user');
   if (!user.staffId) {
     return c.json({ error: 'Doctor staff record required' }, 403);
@@ -298,22 +290,19 @@ const downloadPolicy = declareRoutePolicy('GET', '/api/documents/:id/download', 
   allowedRoles: ['patient', 'guardian', 'doctor'],
 });
 
-documentsRoutes.get('/:id/download', requireAccess(downloadPolicy), async c => {
+documentsRoutes.get('/:id/download', requireAccess(downloadPolicy), async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
   const db = c.env.DB;
 
-  const doc = await db
-    .prepare('SELECT * FROM documents WHERE id = ?')
-    .bind(id)
-    .first<{
-      id: string;
-      patient_id: string;
-      storage_path: string;
-      title: string;
-      mime_type: string;
-      file_size_bytes: number | null;
-    }>();
+  const doc = await db.prepare('SELECT * FROM documents WHERE id = ?').bind(id).first<{
+    id: string;
+    patient_id: string;
+    storage_path: string;
+    title: string;
+    mime_type: string;
+    file_size_bytes: number | null;
+  }>();
 
   if (!doc) {
     return c.json({ error: 'Document not found' }, 404);
@@ -336,13 +325,7 @@ documentsRoutes.get('/:id/download', requireAccess(downloadPolicy), async c => {
       `INSERT INTO audit_log (id, at, actor_id, action, table_name, record_id, patient_id, reason)
        VALUES (?, ?, ?, 'DOWNLOAD_DOCUMENT', 'documents', ?, ?, 'Downloaded document file')`
     )
-    .bind(
-      crypto.randomUUID(),
-      nowIso,
-      user.id,
-      id,
-      doc.patient_id
-    )
+    .bind(crypto.randomUUID(), nowIso, user.id, id, doc.patient_id)
     .run();
 
   const sanitizedTitle = doc.title.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -363,7 +346,7 @@ const listPatientDocsPolicy = declareRoutePolicy('GET', '/api/documents/patient/
   allowedRoles: ['patient', 'guardian', 'doctor'],
 });
 
-documentsRoutes.get('/patient/:patientId', requireAccess(listPatientDocsPolicy), async c => {
+documentsRoutes.get('/patient/:patientId', requireAccess(listPatientDocsPolicy), async (c) => {
   const user = c.get('user');
   const patientId = c.req.param('patientId');
   const db = c.env.DB;
@@ -388,7 +371,7 @@ const getDocPolicy = declareRoutePolicy('GET', '/api/documents/:id', {
   allowedRoles: ['patient', 'guardian', 'doctor'],
 });
 
-documentsRoutes.get('/:id', requireAccess(getDocPolicy), async c => {
+documentsRoutes.get('/:id', requireAccess(getDocPolicy), async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
   const db = c.env.DB;

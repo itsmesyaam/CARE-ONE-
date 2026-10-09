@@ -2,14 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  FileText,
-  BadgeCheck,
-  Check,
-  Info,
-  CheckCircle2,
-  FlaskConical,
-} from 'lucide-react';
+import { FileText, BadgeCheck, Check, Info, CheckCircle2, FlaskConical } from 'lucide-react';
 import { apiFetch } from '../../lib/api-client';
 
 interface PendingReport {
@@ -93,7 +86,9 @@ export function DoctorReview(): React.JSX.Element {
     queryKey: ['doctor', 'review', 'symptoms'],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ symptoms: PendingSymptom[] }>('/api/doctor/symptoms/review-queue');
+        const res = await apiFetch<{ symptoms: PendingSymptom[] }>(
+          '/api/doctor/symptoms/review-queue'
+        );
         return res.symptoms || [];
       } catch {
         return [];
@@ -103,10 +98,16 @@ export function DoctorReview(): React.JSX.Element {
 
   const waitingReports = allReports.filter((r) => r.review_status === 'pending');
   const todayDateStr = new Date().toISOString().split('T')[0] || '';
-  const reviewedToday = allReports.filter((r) => r.review_status === 'reviewed' && Boolean(r.reviewed_at && r.reviewed_at.startsWith(todayDateStr)));
+  const reviewedToday = allReports.filter(
+    (r) =>
+      r.review_status === 'reviewed' &&
+      Boolean(r.reviewed_at && r.reviewed_at.startsWith(todayDateStr))
+  );
 
   const waitingSymptoms = allSymptoms.filter((s) => !s.reviewed_at);
-  const seenToday = allSymptoms.filter((s) => Boolean(s.reviewed_at && s.reviewed_at.startsWith(todayDateStr)));
+  const seenToday = allSymptoms.filter((s) =>
+    Boolean(s.reviewed_at && s.reviewed_at.startsWith(todayDateStr))
+  );
 
   const handleSaveReportReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,9 +173,7 @@ export function DoctorReview(): React.JSX.Element {
         <h1 className="disp h1 text-2xl lg:text-3xl font-bold text-[var(--ink)]">
           {t('doctorReview.title')}
         </h1>
-        <p className="text-sm text-[var(--ink2)] mt-1 max-w-xl">
-          {t('doctorReview.subtitle')}
-        </p>
+        <p className="text-sm text-[var(--ink2)] mt-1 max-w-xl">{t('doctorReview.subtitle')}</p>
 
         {/* Tab Segments */}
         <div className="flex gap-2 mt-5">
@@ -190,7 +189,9 @@ export function DoctorReview(): React.JSX.Element {
             <span>{t('doctorReview.reportsTab')}</span>
             <span
               className={`pill-n text-xs px-2 py-0.2 rounded-full font-bold ${
-                activeTab === 'reports' ? 'bg-white/30 text-white' : 'bg-[var(--mist)] text-[var(--ink)]'
+                activeTab === 'reports'
+                  ? 'bg-white/30 text-white'
+                  : 'bg-[var(--mist)] text-[var(--ink)]'
               }`}
             >
               {waitingReports.length}
@@ -208,7 +209,9 @@ export function DoctorReview(): React.JSX.Element {
             <span>{t('doctorReview.symptomsTab')}</span>
             <span
               className={`pill-n text-xs px-2 py-0.2 rounded-full font-bold ${
-                activeTab === 'symptoms' ? 'bg-white/30 text-white' : 'bg-[var(--mist)] text-[var(--ink)]'
+                activeTab === 'symptoms'
+                  ? 'bg-white/30 text-white'
+                  : 'bg-[var(--mist)] text-[var(--ink)]'
               }`}
             >
               {waitingSymptoms.length}
@@ -241,9 +244,12 @@ export function DoctorReview(): React.JSX.Element {
                         <FlaskConical size={20} />
                       </span>
                       <div>
-                        <b className="block text-base font-bold text-[var(--ink)]">{report.title}</b>
+                        <b className="block text-base font-bold text-[var(--ink)]">
+                          {report.title}
+                        </b>
                         <span className="block text-xs text-[var(--ink3)] mt-0.5">
-                          {report.patients?.full_name || 'Patient'} &bull; {report.patients?.uhid || ''}
+                          {report.patients?.full_name || 'Patient'} &bull;{' '}
+                          {report.patients?.uhid || ''}
                         </span>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-[#FFF6E5] text-[#A67814]">
@@ -273,7 +279,8 @@ export function DoctorReview(): React.JSX.Element {
             </h2>
             {reviewedToday.length === 0 ? (
               <p className="text-xs text-[var(--ink3)] bg-white p-4 rounded-xl border border-[var(--line)]">
-                Reports you mark reviewed show here. The patient sees "Reviewed by Dr. Rahul Menon" and any next steps.
+                Reports you mark reviewed show here. The patient sees "Reviewed by Dr. Rahul Menon"
+                and any next steps.
               </p>
             ) : (
               <div className="space-y-2">
@@ -303,7 +310,8 @@ export function DoctorReview(): React.JSX.Element {
             <div className="p-3.5 rounded-xl bg-[var(--mist)] text-xs text-[var(--ink2)] flex items-start gap-2 mb-4">
               <Info size={16} className="text-[var(--ink3)] flex-none mt-0.5" />
               <span>
-                Patients are told this is not watched around the clock, and to call 112 or casualty in an emergency.
+                Patients are told this is not watched around the clock, and to call 112 or casualty
+                in an emergency.
               </span>
             </div>
 
@@ -341,7 +349,11 @@ export function DoctorReview(): React.JSX.Element {
                     </p>
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-[var(--line)]">
                       <span className="text-xs text-[var(--ink3)]">
-                        Reported {new Date(sym.reported_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                        Reported{' '}
+                        {new Date(sym.reported_at).toLocaleDateString([], {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
                       </span>
                       <div className="flex gap-2">
                         <button
@@ -385,8 +397,12 @@ export function DoctorReview(): React.JSX.Element {
                     className="p-3.5 rounded-xl bg-white border border-[var(--line)] flex items-center justify-between cursor-pointer hover:border-[var(--leaf)] transition-colors"
                   >
                     <div>
-                      <b className="block text-sm font-bold text-[var(--ink)]">{s.patients?.full_name}</b>
-                      <span className="text-xs text-[var(--ink3)] truncate block max-w-xs">{s.description}</span>
+                      <b className="block text-sm font-bold text-[var(--ink)]">
+                        {s.patients?.full_name}
+                      </b>
+                      <span className="text-xs text-[var(--ink3)] truncate block max-w-xs">
+                        {s.description}
+                      </span>
                     </div>
                     <Check size={18} className="text-[var(--leaf)]" />
                   </div>
@@ -399,13 +415,18 @@ export function DoctorReview(): React.JSX.Element {
 
       {/* REPORT REVIEW MODAL */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="staff-theme w-full max-w-lg rounded-[24px] bg-white p-6 shadow-2xl border border-[var(--line)]">
             <h2 className="text-xl font-bold text-[var(--ink)]">
               {t('doctorReview.reviewTitle', { title: selectedReport.title })}
             </h2>
             <p className="text-xs text-[var(--ink3)] mt-1">
-              Patient: {selectedReport.patients?.full_name} &bull; Uploaded {selectedReport.report_date}
+              Patient: {selectedReport.patients?.full_name} &bull; Uploaded{' '}
+              {selectedReport.report_date}
             </p>
 
             <form onSubmit={handleSaveReportReview} className="mt-5 space-y-4">
@@ -463,14 +484,20 @@ export function DoctorReview(): React.JSX.Element {
 
       {/* SYMPTOM SEEN MODAL */}
       {selectedSymptom && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="staff-theme w-full max-w-lg rounded-[24px] bg-white p-6 shadow-2xl border border-[var(--line)]">
             <h2 className="text-xl font-bold text-[var(--ink)]">Mark symptom as seen</h2>
             <div className="p-3.5 rounded-xl bg-[var(--mist)] mt-3">
               <span className="text-xs font-semibold text-[var(--ink3)] block">
                 {selectedSymptom.patients?.full_name} reported:
               </span>
-              <p className="text-sm font-medium text-[var(--ink)] mt-0.5">{selectedSymptom.description}</p>
+              <p className="text-sm font-medium text-[var(--ink)] mt-0.5">
+                {selectedSymptom.description}
+              </p>
             </div>
 
             <form onSubmit={handleSaveSymptomSeen} className="mt-5 space-y-4">
@@ -484,9 +511,15 @@ export function DoctorReview(): React.JSX.Element {
                   className="w-full rounded-xl border border-[var(--line)] p-3 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--leaf)]"
                 >
                   <option value="Called the patient">Called the patient</option>
-                  <option value="Asked the desk to book an earlier visit">Asked the desk to book an earlier visit</option>
-                  <option value="Told the patient to come to casualty">Told the patient to come to casualty</option>
-                  <option value="Will discuss at the next visit">Will discuss at the next visit</option>
+                  <option value="Asked the desk to book an earlier visit">
+                    Asked the desk to book an earlier visit
+                  </option>
+                  <option value="Told the patient to come to casualty">
+                    Told the patient to come to casualty
+                  </option>
+                  <option value="Will discuss at the next visit">
+                    Will discuss at the next visit
+                  </option>
                 </select>
               </div>
 

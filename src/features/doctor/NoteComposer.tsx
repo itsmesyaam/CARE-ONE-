@@ -84,8 +84,12 @@ export function NoteComposer({
   // Step 3: Care plan state
   const [followUpWeeks, setFollowUpWeeks] = useState('4');
   const [testsDue, setTestsDue] = useState(['HbA1c', 'Lipid Profile']);
-  const [dietNote, setDietNote] = useState('Limit rice to 1 cup per meal. Avoid processed sugar. 30 mins brisk walking daily.');
-  const [selectedDietGuide, setSelectedDietGuide] = useState('e1111111-1111-1111-1111-111111111111');
+  const [dietNote, setDietNote] = useState(
+    'Limit rice to 1 cup per meal. Avoid processed sugar. 30 mins brisk walking daily.'
+  );
+  const [selectedDietGuide, setSelectedDietGuide] = useState(
+    'e1111111-1111-1111-1111-111111111111'
+  );
 
   // Step 4: Sign state
   const [signAck, setSignAck] = useState(false);
@@ -119,7 +123,9 @@ export function NoteComposer({
 
   const checkDuplicate = (drug: string): boolean => {
     const low = drug.toLowerCase();
-    return activeMeds.some((m) => m.drug.toLowerCase().includes(low) || low.includes(m.drug.toLowerCase()));
+    return activeMeds.some(
+      (m) => m.drug.toLowerCase().includes(low) || low.includes(m.drug.toLowerCase())
+    );
   };
 
   const handleAddPrescription = () => {
@@ -143,12 +149,11 @@ export function NoteComposer({
     setErrorMsg(null);
 
     try {
-      const dxSummary = diagnoses
-        .filter((d) => d.active)
-        .map((d) => d.name);
+      const dxSummary = diagnoses.filter((d) => d.active).map((d) => d.name);
 
       const clinicalNotesText = `Vitals: BP ${vitals.sys}/${vitals.dia} mmHg, Pulse ${vitals.pulse}/min, Weight ${vitals.wt} kg.\n\nFindings: ${findings}\n\nPlan: ${
-        customPlan || 'Continue oral anti-diabetic and antihypertensive therapy with strict dietary adherence.'
+        customPlan ||
+        'Continue oral anti-diabetic and antihypertensive therapy with strict dietary adherence.'
       }`;
 
       await apiFetch(`/api/doctor/patients/${patientId}/consultation`, {
@@ -179,7 +184,9 @@ export function NoteComposer({
       setBusy(false);
       onSigned();
     } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message || (err instanceof Error ? err.message : 'Error signing note');
+      const msg =
+        (err as { message?: string })?.message ||
+        (err instanceof Error ? err.message : 'Error signing note');
       setErrorMsg(msg);
       setBusy(false);
     }
@@ -190,7 +197,12 @@ export function NoteComposer({
 
   return (
     <div className="staff-theme">
-      <aside className="composer" role="dialog" aria-modal="true" aria-label="Consultation Note Composer">
+      <aside
+        className="composer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Consultation Note Composer"
+      >
         <div className="zari-band" />
 
         {/* Composer Header */}
@@ -390,9 +402,14 @@ export function NoteComposer({
                 </h3>
                 <div className="flex flex-col gap-2">
                   {activeMeds.map((m) => (
-                    <div key={m.id} className="p-3 bg-white rounded-xl border border-[var(--line)] flex items-center justify-between">
+                    <div
+                      key={m.id}
+                      className="p-3 bg-white rounded-xl border border-[var(--line)] flex items-center justify-between"
+                    >
                       <div>
-                        <b className="block text-sm text-[var(--ink)]">{m.drug} {m.dose}</b>
+                        <b className="block text-sm text-[var(--ink)]">
+                          {m.drug} {m.dose}
+                        </b>
                         <span className="text-xs text-[var(--ink3)]">{m.instructions}</span>
                       </div>
                       <span className="tag tag-leaf">Active</span>
@@ -482,18 +499,26 @@ export function NoteComposer({
                   <div className="flex gap-2 text-xs font-bold">
                     <button
                       type="button"
-                      onClick={() => setTimingInput({ ...timingInput, morning: !timingInput.morning })}
+                      onClick={() =>
+                        setTimingInput({ ...timingInput, morning: !timingInput.morning })
+                      }
                       className={`px-2.5 py-1 rounded-lg border ${
-                        timingInput.morning ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]' : 'bg-white text-[var(--ink2)]'
+                        timingInput.morning
+                          ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]'
+                          : 'bg-white text-[var(--ink2)]'
                       }`}
                     >
                       Morning
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTimingInput({ ...timingInput, afternoon: !timingInput.afternoon })}
+                      onClick={() =>
+                        setTimingInput({ ...timingInput, afternoon: !timingInput.afternoon })
+                      }
                       className={`px-2.5 py-1 rounded-lg border ${
-                        timingInput.afternoon ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]' : 'bg-white text-[var(--ink2)]'
+                        timingInput.afternoon
+                          ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]'
+                          : 'bg-white text-[var(--ink2)]'
                       }`}
                     >
                       Noon
@@ -502,7 +527,9 @@ export function NoteComposer({
                       type="button"
                       onClick={() => setTimingInput({ ...timingInput, night: !timingInput.night })}
                       className={`px-2.5 py-1 rounded-lg border ${
-                        timingInput.night ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]' : 'bg-white text-[var(--ink2)]'
+                        timingInput.night
+                          ? 'bg-[var(--leaf)] text-white border-[var(--leaf)]'
+                          : 'bg-white text-[var(--ink2)]'
                       }`}
                     >
                       Night
@@ -537,12 +564,16 @@ export function NoteComposer({
                             {rx.name} {rx.dose}
                           </b>
                           <span className="text-xs text-[var(--ink2)]">
-                            {rx.timing.morning ? '1' : '0'}-{rx.timing.afternoon ? '1' : '0'}-{rx.timing.night ? '1' : '0'} • {rx.food === 'after_food' ? 'After food' : 'Before food'}
+                            {rx.timing.morning ? '1' : '0'}-{rx.timing.afternoon ? '1' : '0'}-
+                            {rx.timing.night ? '1' : '0'} •{' '}
+                            {rx.food === 'after_food' ? 'After food' : 'Before food'}
                           </span>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setPrescriptions(prescriptions.filter((_, j) => j !== idx))}
+                          onClick={() =>
+                            setPrescriptions(prescriptions.filter((_, j) => j !== idx))
+                          }
                           className="text-rose-500 p-1 hover:bg-rose-50 rounded-lg"
                         >
                           <Trash2 size={16} />
@@ -590,7 +621,13 @@ export function NoteComposer({
                   {t('doctorComposer.testsBeforeNext')}
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {['HbA1c', 'Lipid Profile', 'Fasting Blood Sugar', 'Echocardiogram (2D Echo)', 'Serum Creatinine'].map((tName) => {
+                  {[
+                    'HbA1c',
+                    'Lipid Profile',
+                    'Fasting Blood Sugar',
+                    'Echocardiogram (2D Echo)',
+                    'Serum Creatinine',
+                  ].map((tName) => {
                     const isSelected = testsDue.includes(tName);
                     return (
                       <button
@@ -628,9 +665,15 @@ export function NoteComposer({
                   onChange={(e) => setSelectedDietGuide(e.target.value)}
                   className="w-full h-10 px-3 bg-white rounded-xl border border-amber-300 text-sm font-semibold text-amber-950 mb-3"
                 >
-                  <option value="e1111111-1111-1111-1111-111111111111">Diabetes Diet Guidance (Kerala)</option>
-                  <option value="e2222222-2222-2222-2222-222222222222">Low-Salt Blood Pressure Diet</option>
-                  <option value="e3333333-3333-3333-3333-333333333333">Heart-Healthy Dietary Guide</option>
+                  <option value="e1111111-1111-1111-1111-111111111111">
+                    Diabetes Diet Guidance (Kerala)
+                  </option>
+                  <option value="e2222222-2222-2222-2222-222222222222">
+                    Low-Salt Blood Pressure Diet
+                  </option>
+                  <option value="e3333333-3333-3333-3333-333333333333">
+                    Heart-Healthy Dietary Guide
+                  </option>
                 </select>
 
                 <label className="block text-xs font-bold text-amber-900 mb-1">
@@ -655,14 +698,18 @@ export function NoteComposer({
                 </h3>
                 <div className="text-xs text-[var(--ink2)] leading-relaxed space-y-1.5">
                   <p>
-                    <b className="text-[var(--ink)]">Vitals:</b> BP {vitals.sys}/{vitals.dia} mmHg, Pulse {vitals.pulse}/min, Weight {vitals.wt} kg
+                    <b className="text-[var(--ink)]">Vitals:</b> BP {vitals.sys}/{vitals.dia} mmHg,
+                    Pulse {vitals.pulse}/min, Weight {vitals.wt} kg
                   </p>
                   <p>
                     <b className="text-[var(--ink)]">Reason:</b> {reason}
                   </p>
                   <p>
                     <b className="text-[var(--ink)]">Diagnoses:</b>{' '}
-                    {diagnoses.filter((d) => d.active).map((d) => d.name).join(', ')}
+                    {diagnoses
+                      .filter((d) => d.active)
+                      .map((d) => d.name)
+                      .join(', ')}
                   </p>
                   {prescriptions.length > 0 && (
                     <p>
@@ -684,7 +731,9 @@ export function NoteComposer({
                   </div>
                   <div>
                     <b className="block text-sm text-[var(--ink)]">Dr. Rahul Menon</b>
-                    <span className="text-xs text-[var(--ink3)]">KMC Reg: 48291 • General Medicine</span>
+                    <span className="text-xs text-[var(--ink3)]">
+                      KMC Reg: 48291 • General Medicine
+                    </span>
                   </div>
                 </div>
 
@@ -707,19 +756,11 @@ export function NoteComposer({
         {/* Composer Footer Navigation */}
         <div className="cmp-foot">
           {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep(step - 1)}
-              className="btn btn-sec btn-sm"
-            >
+            <button type="button" onClick={() => setStep(step - 1)} className="btn btn-sec btn-sm">
               <ChevronLeft size={16} /> {t('doctorComposer.back')}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-ghost btn-sm text-rose-600"
-            >
+            <button type="button" onClick={onClose} className="btn btn-ghost btn-sm text-rose-600">
               {t('doctorComposer.discard')}
             </button>
           )}
@@ -727,11 +768,7 @@ export function NoteComposer({
           <div className="flex-1" />
 
           {step < 3 ? (
-            <button
-              type="button"
-              onClick={() => setStep(step + 1)}
-              className="btn btn-pri btn-sm"
-            >
+            <button type="button" onClick={() => setStep(step + 1)} className="btn btn-pri btn-sm">
               {t('doctorComposer.next', { step: stepsList[step + 1] })} <ChevronRight size={16} />
             </button>
           ) : (

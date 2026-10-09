@@ -54,7 +54,7 @@ export async function optimizePhotoForUpload(
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
-          blob => {
+          (blob) => {
             if (!blob) {
               reject(new Error('Failed to re-encode image canvas to blob'));
               return;

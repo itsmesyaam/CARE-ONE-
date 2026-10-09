@@ -32,7 +32,7 @@ function NumField({ id, label, v, set, unit, big, step, placeholder }: NumFieldP
           step={step || '1'}
           value={v}
           placeholder={placeholder}
-          onChange={e => set(e.target.value)}
+          onChange={(e) => set(e.target.value)}
           className={big ? 'num-big' : ''}
         />
         <span className="text-[var(--ink3)] text-sm font-semibold flex-none ml-2">{unit}</span>
@@ -69,8 +69,8 @@ export function ReadingSheetModal({ onClose, k0 }: ReadingSheetModalProps): Reac
     k === 'bp'
       ? !isNaN(n1) && !isNaN(n2) && n1 >= 60 && n1 <= 260 && n2 >= 30 && n2 <= 160 && n1 > n2
       : k === 'sugar'
-      ? !isNaN(n1) && n1 >= 20 && n1 <= 600
-      : !isNaN(n1) && n1 >= 2 && n1 <= 300;
+        ? !isNaN(n1) && n1 >= 20 && n1 <= 600
+        : !isNaN(n1) && n1 >= 2 && n1 <= 300;
 
   const filled = k === 'bp' ? a.trim() !== '' && b.trim() !== '' : a.trim() !== '';
   const v: number | [number, number] = k === 'bp' ? [n1, n2] : n1;
@@ -127,19 +127,18 @@ export function ReadingSheetModal({ onClose, k0 }: ReadingSheetModalProps): Reac
           <h2 className="disp text-xl lg:text-2xl font-bold text-[var(--ink)]">
             {lang === 'ml' ? 'റീഡിംഗ് രേഖപ്പെടുത്തുക' : 'Log a reading'}
           </h2>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         {/* Metric Selector (Seg) */}
-        <div className="seg" role="radiogroup" aria-label={lang === 'ml' ? 'റീഡിംഗ് തരം' : 'Reading type'}>
-          {metricOptions.map(opt => {
+        <div
+          className="seg"
+          role="radiogroup"
+          aria-label={lang === 'ml' ? 'റീഡിംഗ് തരം' : 'Reading type'}
+        >
+          {metricOptions.map((opt) => {
             const Icon = opt.icon;
             const isSelected = k === opt.id;
             return (
@@ -220,9 +219,7 @@ export function ReadingSheetModal({ onClose, k0 }: ReadingSheetModalProps): Reac
               big
               placeholder="110"
             />
-            <p className="lbl mt-5">
-              {lang === 'ml' ? 'എപ്പോൾ എടുത്തു?' : 'When was it taken?'}
-            </p>
+            <p className="lbl mt-5">{lang === 'ml' ? 'എപ്പോൾ എടുത്തു?' : 'When was it taken?'}</p>
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -262,9 +259,7 @@ export function ReadingSheetModal({ onClose, k0 }: ReadingSheetModalProps): Reac
         )}
 
         {/* Timing Selector */}
-        <p className="lbl mt-6">
-          {lang === 'ml' ? 'എപ്പോൾ' : 'When'}
-        </p>
+        <p className="lbl mt-6">{lang === 'ml' ? 'എപ്പോൾ' : 'When'}</p>
         <div className="seg" role="radiogroup" aria-label={lang === 'ml' ? 'എപ്പോൾ' : 'When'}>
           {(
             [
@@ -291,7 +286,7 @@ export function ReadingSheetModal({ onClose, k0 }: ReadingSheetModalProps): Reac
             <input
               type="time"
               value={tm}
-              onChange={e => setTm(e.target.value)}
+              onChange={(e) => setTm(e.target.value)}
               aria-label={lang === 'ml' ? 'സമയം' : 'Time taken'}
             />
           </div>

@@ -6,11 +6,7 @@
 
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
-import {
-  type AccessVariables,
-  declareRoutePolicy,
-  requireAccess,
-} from '../middleware/access';
+import { type AccessVariables, declareRoutePolicy, requireAccess } from '../middleware/access';
 
 export const adminRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -23,11 +19,9 @@ const getSettingsPolicy = declareRoutePolicy('GET', '/api/admin/settings', {
   requireMfa: true,
 });
 
-adminRoutes.get('/settings', requireAccess(getSettingsPolicy), async c => {
+adminRoutes.get('/settings', requireAccess(getSettingsPolicy), async (c) => {
   const db = c.env.DB;
-  const settings = await db
-    .prepare('SELECT * FROM hospital_settings LIMIT 1')
-    .first();
+  const settings = await db.prepare('SELECT * FROM hospital_settings LIMIT 1').first();
   return c.json({ settings });
 });
 
@@ -36,7 +30,7 @@ const putSettingsPolicy = declareRoutePolicy('PUT', '/api/admin/settings', {
   requireMfa: true,
 });
 
-adminRoutes.put('/settings', requireAccess(putSettingsPolicy), async c => {
+adminRoutes.put('/settings', requireAccess(putSettingsPolicy), async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     hospitalName?: string;
     primaryColor?: string;
@@ -66,9 +60,7 @@ adminRoutes.put('/settings', requireAccess(putSettingsPolicy), async c => {
     )
     .run();
 
-  const settings = await db
-    .prepare('SELECT * FROM hospital_settings LIMIT 1')
-    .first();
+  const settings = await db.prepare('SELECT * FROM hospital_settings LIMIT 1').first();
 
   return c.json({ success: true, settings });
 });
@@ -79,11 +71,11 @@ const getDepartmentsPolicy = declareRoutePolicy('GET', '/api/admin/departments',
   requireMfa: true,
 });
 
-adminRoutes.get('/departments', requireAccess(getDepartmentsPolicy), async c => {
+adminRoutes.get('/departments', requireAccess(getDepartmentsPolicy), async (c) => {
   const db = c.env.DB;
-  const results = (await db
-    .prepare('SELECT * FROM departments ORDER BY name ASC')
-    .all()) as { results: unknown[] };
+  const results = (await db.prepare('SELECT * FROM departments ORDER BY name ASC').all()) as {
+    results: unknown[];
+  };
   return c.json({ departments: results.results });
 });
 
@@ -92,7 +84,7 @@ const postDepartmentsPolicy = declareRoutePolicy('POST', '/api/admin/departments
   requireMfa: true,
 });
 
-adminRoutes.post('/departments', requireAccess(postDepartmentsPolicy), async c => {
+adminRoutes.post('/departments', requireAccess(postDepartmentsPolicy), async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     name?: string;
     code?: string;
@@ -111,10 +103,7 @@ adminRoutes.post('/departments', requireAccess(postDepartmentsPolicy), async c =
     .bind(deptId, body.name.trim(), body.code.trim().toUpperCase(), nowIso)
     .run();
 
-  const record = await db
-    .prepare('SELECT * FROM departments WHERE id = ?')
-    .bind(deptId)
-    .first();
+  const record = await db.prepare('SELECT * FROM departments WHERE id = ?').bind(deptId).first();
 
   return c.json({ success: true, department: record });
 });
@@ -124,7 +113,7 @@ const putDepartmentsPolicy = declareRoutePolicy('PUT', '/api/admin/departments/:
   requireMfa: true,
 });
 
-adminRoutes.put('/departments/:id', requireAccess(putDepartmentsPolicy), async c => {
+adminRoutes.put('/departments/:id', requireAccess(putDepartmentsPolicy), async (c) => {
   const id = c.req.param('id');
   const body = (await c.req.json().catch(() => ({}))) as {
     name?: string;
@@ -150,7 +139,7 @@ const archiveDeptPolicy = declareRoutePolicy('PATCH', '/api/admin/departments/:i
   requireMfa: true,
 });
 
-adminRoutes.patch('/departments/:id/archive', requireAccess(archiveDeptPolicy), async c => {
+adminRoutes.patch('/departments/:id/archive', requireAccess(archiveDeptPolicy), async (c) => {
   const id = c.req.param('id');
   const db = c.env.DB;
 
@@ -179,7 +168,7 @@ const getStaffPolicy = declareRoutePolicy('GET', '/api/admin/staff', {
   requireMfa: true,
 });
 
-adminRoutes.get('/staff', requireAccess(getStaffPolicy), async c => {
+adminRoutes.get('/staff', requireAccess(getStaffPolicy), async (c) => {
   const db = c.env.DB;
   const results = (await db
     .prepare(
@@ -200,7 +189,7 @@ const toggleStaffPolicy = declareRoutePolicy('PATCH', '/api/admin/staff/:id/acti
   requireMfa: true,
 });
 
-adminRoutes.patch('/staff/:id/active', requireAccess(toggleStaffPolicy), async c => {
+adminRoutes.patch('/staff/:id/active', requireAccess(toggleStaffPolicy), async (c) => {
   const id = c.req.param('id');
   const db = c.env.DB;
 
@@ -238,7 +227,7 @@ const inviteStaffPolicy = declareRoutePolicy('POST', '/api/admin/staff/invite', 
   requireMfa: true,
 });
 
-adminRoutes.post('/staff/invite', requireAccess(inviteStaffPolicy), async c => {
+adminRoutes.post('/staff/invite', requireAccess(inviteStaffPolicy), async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     fullName?: string;
     role?: string;
@@ -283,12 +272,12 @@ const getDashboardCountsPolicy = declareRoutePolicy('GET', '/api/admin/dashboard
   requireMfa: true,
 });
 
-adminRoutes.get('/dashboard-counts', requireAccess(getDashboardCountsPolicy), async c => {
+adminRoutes.get('/dashboard-counts', requireAccess(getDashboardCountsPolicy), async (c) => {
   const db = c.env.DB;
   const todayStr = new Date().toISOString().split('T')[0]!;
 
   const apptsToday = (await db
-    .prepare("SELECT COUNT(*) as count FROM appointments WHERE appointment_date LIKE ?")
+    .prepare('SELECT COUNT(*) as count FROM appointments WHERE appointment_date LIKE ?')
     .bind(`${todayStr}%`)
     .first()) as { count: number } | null;
 
@@ -297,7 +286,7 @@ adminRoutes.get('/dashboard-counts', requireAccess(getDashboardCountsPolicy), as
     .first()) as { count: number } | null;
 
   const totalPatients = (await db
-    .prepare("SELECT COUNT(*) as count FROM patients WHERE deleted_at IS NULL")
+    .prepare('SELECT COUNT(*) as count FROM patients WHERE deleted_at IS NULL')
     .first()) as { count: number } | null;
 
   const activeCarePlans = (await db
@@ -309,7 +298,9 @@ adminRoutes.get('/dashboard-counts', requireAccess(getDashboardCountsPolicy), as
     .first()) as { count: number } | null;
 
   const dueFollowUps = (await db
-    .prepare("SELECT COUNT(*) as count FROM care_plan_items WHERE kind = 'follow_up' AND status = 'pending'")
+    .prepare(
+      "SELECT COUNT(*) as count FROM care_plan_items WHERE kind = 'follow_up' AND status = 'pending'"
+    )
     .first()) as { count: number } | null;
 
   return c.json({
@@ -330,7 +321,7 @@ const getAuditLogsPolicy = declareRoutePolicy('GET', '/api/admin/audit-logs', {
   requireMfa: true,
 });
 
-adminRoutes.get('/audit-logs', requireAccess(getAuditLogsPolicy), async c => {
+adminRoutes.get('/audit-logs', requireAccess(getAuditLogsPolicy), async (c) => {
   const db = c.env.DB;
 
   // Notice: old_row and new_row are strictly omitted

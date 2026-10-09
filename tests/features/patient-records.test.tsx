@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PatientProvider } from '../../src/features/patient/PatientContext';
-import { PatientRecords, ReportSheetModal, UploadSheetModal } from '../../src/features/patient/PatientRecords';
+import {
+  PatientRecords,
+  ReportSheetModal,
+  UploadSheetModal,
+} from '../../src/features/patient/PatientRecords';
 
 describe('Patient Feature: Records and Reports Screen', () => {
   it('renders Records screen with tabs, search input, filter chips, and reports list', () => {
@@ -69,7 +73,9 @@ describe('Patient Feature: Records and Reports Screen', () => {
 
     // Switch to Readings
     fireEvent.click(screen.getByRole('tab', { name: /Readings/i }));
-    expect(screen.getByRole('heading', { level: 2, name: /Blood pressure readings/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Blood pressure readings/i })
+    ).toBeInTheDocument();
 
     // Switch to Medicines
     fireEvent.click(screen.getByRole('tab', { name: /Medicines/i }));
@@ -82,7 +88,9 @@ describe('Patient Feature: Records and Reports Screen', () => {
 
     // Switch to Health summary
     fireEvent.click(screen.getByRole('tab', { name: /Health summary/i }));
-    expect(screen.getByRole('heading', { level: 2, name: /Active conditions/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Active conditions/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: /Allergies/i })).toBeInTheDocument();
   });
 
@@ -91,13 +99,20 @@ describe('Patient Feature: Records and Reports Screen', () => {
     render(
       <MemoryRouter>
         <PatientProvider initialStep="app">
-          <ReportSheetModal id="r2" onClose={() => { closed = true; }} />
+          <ReportSheetModal
+            id="r2"
+            onClose={() => {
+              closed = true;
+            }}
+          />
         </PatientProvider>
       </MemoryRouter>
     );
 
     expect(screen.getByRole('dialog', { name: 'HbA1c and fasting glucose' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: /Key values from report/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: /Key values from report/i })
+    ).toBeInTheDocument();
     expect(screen.getByText('7.4')).toBeInTheDocument();
     expect(screen.getByText(/Dr. Rahul Nair/i)).toBeInTheDocument();
 
@@ -123,7 +138,9 @@ describe('Patient Feature: Records and Reports Screen', () => {
     });
     Object.defineProperty(oversizedFile, 'size', { value: 11 * 1024 * 1024 });
 
-    const fileInput = document.querySelector('input[type="file"][accept*="pdf"]') as HTMLInputElement;
+    const fileInput = document.querySelector(
+      'input[type="file"][accept*="pdf"]'
+    ) as HTMLInputElement;
     expect(fileInput).toBeInTheDocument();
 
     fireEvent.change(fileInput, { target: { files: [oversizedFile] } });

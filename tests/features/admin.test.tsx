@@ -147,7 +147,9 @@ describe('Admin Feature: Department Management & Staff Directory', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const signOutSpy = vi.spyOn(apiClient, 'apiFetch').mockResolvedValue({ success: true } as never);
+    const signOutSpy = vi
+      .spyOn(apiClient, 'apiFetch')
+      .mockResolvedValue({ success: true } as never);
 
     render(
       <QueryClientProvider client={queryClient}>

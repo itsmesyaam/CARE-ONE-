@@ -39,10 +39,10 @@ describe('Patient Feature: Care Plan Screen', () => {
     expect(screen.getByText('Blood pressure')).toBeInTheDocument();
 
     // Doctor instructions
-    expect(screen.getByRole('heading', { level: 2, name: /Doctor instructions/i })).toBeInTheDocument();
     expect(
-      screen.getByText(/Walk for 30 minutes, 5 days a week/i)
+      screen.getByRole('heading', { level: 2, name: /Doctor instructions/i })
     ).toBeInTheDocument();
+    expect(screen.getByText(/Walk for 30 minutes, 5 days a week/i)).toBeInTheDocument();
 
     // Follow-up visit
     expect(screen.getByRole('heading', { level: 2, name: /Follow-up visit/i })).toBeInTheDocument();

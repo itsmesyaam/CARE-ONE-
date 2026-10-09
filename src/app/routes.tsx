@@ -22,7 +22,7 @@ import { DoctorReview } from '../features/doctor/DoctorReview';
 import { DoctorAccount } from '../features/doctor/DoctorAccount';
 
 const AdminDashboard = lazy(() =>
-  import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
+  import('../features/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
 );
 
 export const router = createBrowserRouter([

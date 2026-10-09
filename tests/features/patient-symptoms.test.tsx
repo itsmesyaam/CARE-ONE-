@@ -16,13 +16,18 @@ describe('Patient Feature: Screen 4 - Report a Symptom Sheet Modal', () => {
     );
 
     // Title and Close button
-    expect(screen.getByRole('dialog', { name: /Tell us a symptom|Report a symptom/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: /Tell us a symptom|Report a symptom/i })
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(/Close/i)).toBeInTheDocument();
 
     // Emergency SOS callout and direct call links
     expect(screen.getByText(/This form isn't watched around the clock/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Call 112/i })).toHaveAttribute('href', 'tel:112');
-    expect(screen.getByRole('link', { name: /Call ABC casualty/i })).toHaveAttribute('href', 'tel:04840000112');
+    expect(screen.getByRole('link', { name: /Call ABC casualty/i })).toHaveAttribute(
+      'href',
+      'tel:04840000112'
+    );
 
     // Symptom chips
     expect(screen.getByText(/What are you feeling\?/i)).toBeInTheDocument();

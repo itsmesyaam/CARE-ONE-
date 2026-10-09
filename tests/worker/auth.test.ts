@@ -16,16 +16,25 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
   // Apply migrations
-  const m1 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'), 'utf8');
+  const m1 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'),
+    'utf8'
+  );
   sqlite.exec(m1);
 
   if (fs.existsSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'))) {
-    const m2 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'), 'utf8');
+    const m2 = fs.readFileSync(
+      path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'),
+      'utf8'
+    );
     sqlite.exec(m2);
   }
 
   if (fs.existsSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'))) {
-    const m3 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'), 'utf8');
+    const m3 = fs.readFileSync(
+      path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'),
+      'utf8'
+    );
     sqlite.exec(m3);
   }
 
@@ -39,26 +48,26 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
@@ -97,20 +106,28 @@ describe('Native Authentication & Session Routes', () => {
 
     // 3 rapid requests should succeed
     for (let i = 0; i < 3; i++) {
-      const res = await app.request('http://localhost/api/auth/patient/request-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'arun@example.com' }),
-      }, mockEnv);
+      const res = await app.request(
+        'http://localhost/api/auth/patient/request-otp',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'arun@example.com' }),
+        },
+        mockEnv
+      );
       expect(res.status).toBe(200);
     }
 
     // 4th request must be rate-limited (429)
-    const res = await app.request('http://localhost/api/auth/patient/request-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'arun@example.com' }),
-    }, mockEnv);
+    const res = await app.request(
+      'http://localhost/api/auth/patient/request-otp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'arun@example.com' }),
+      },
+      mockEnv
+    );
     expect(res.status).toBe(429);
     const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/rate limit|too many/i);
@@ -120,29 +137,41 @@ describe('Native Authentication & Session Routes', () => {
     const app = createApp();
 
     // 1. Request OTP
-    const reqRes = await app.request('http://localhost/api/auth/patient/request-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'arun@example.com' }),
-    }, mockEnv);
+    const reqRes = await app.request(
+      'http://localhost/api/auth/patient/request-otp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'arun@example.com' }),
+      },
+      mockEnv
+    );
     expect(reqRes.status).toBe(200);
 
     // 2. Fail 5 times
     for (let i = 0; i < 5; i++) {
-      const failRes = await app.request('http://localhost/api/auth/patient/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'arun@example.com', otp: '999999' }),
-      }, mockEnv);
+      const failRes = await app.request(
+        'http://localhost/api/auth/patient/verify-otp',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'arun@example.com', otp: '999999' }),
+        },
+        mockEnv
+      );
       expect(failRes.status).toBe(i === 4 ? 429 : 401);
     }
 
     // 6th attempt should be firmly rejected as locked out
-    const finalRes = await app.request('http://localhost/api/auth/patient/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'arun@example.com', otp: '999999' }),
-    }, mockEnv);
+    const finalRes = await app.request(
+      'http://localhost/api/auth/patient/verify-otp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'arun@example.com', otp: '999999' }),
+      },
+      mockEnv
+    );
     expect(finalRes.status).toBe(429);
   });
 
@@ -150,19 +179,27 @@ describe('Native Authentication & Session Routes', () => {
     const app = createApp();
 
     // In test environment, request-otp returns demoOtp or dispatches
-    const reqRes = await app.request('http://localhost/api/auth/patient/request-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'arun@example.com' }),
-    }, mockEnv);
+    const reqRes = await app.request(
+      'http://localhost/api/auth/patient/request-otp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'arun@example.com' }),
+      },
+      mockEnv
+    );
     const reqData = (await reqRes.json()) as { demoOtp?: string };
     const otp = reqData.demoOtp || '123456';
 
-    const verifyRes = await app.request('http://localhost/api/auth/patient/verify-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'arun@example.com', otp }),
-    }, mockEnv);
+    const verifyRes = await app.request(
+      'http://localhost/api/auth/patient/verify-otp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'arun@example.com', otp }),
+      },
+      mockEnv
+    );
 
     expect(verifyRes.status).toBe(200);
     const setCookie = verifyRes.headers.get('Set-Cookie');
@@ -176,19 +213,27 @@ describe('Native Authentication & Session Routes', () => {
     const app = createApp();
 
     // 1. Invalid password fails
-    const badRes = await app.request('http://localhost/api/auth/staff/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'doctor@example.com', password: 'WrongPassword' }),
-    }, mockEnv);
+    const badRes = await app.request(
+      'http://localhost/api/auth/staff/login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'doctor@example.com', password: 'WrongPassword' }),
+      },
+      mockEnv
+    );
     expect(badRes.status).toBe(401);
 
     // 2. Correct password returns requireTotp: true
-    const loginRes = await app.request('http://localhost/api/auth/staff/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'doctor@example.com', password: 'DemoPassword123!' }),
-    }, mockEnv);
+    const loginRes = await app.request(
+      'http://localhost/api/auth/staff/login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'doctor@example.com', password: 'DemoPassword123!' }),
+      },
+      mockEnv
+    );
     expect(loginRes.status).toBe(200);
     const loginData = (await loginRes.json()) as {
       requireTotp: boolean;
@@ -199,20 +244,28 @@ describe('Native Authentication & Session Routes', () => {
     expect(loginData.staffId).toBeDefined();
 
     // 3. Invalid TOTP code fails
-    const badTotpRes = await app.request('http://localhost/api/auth/staff/verify-totp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId: loginData.staffId, code: '000000' }),
-    }, mockEnv);
+    const badTotpRes = await app.request(
+      'http://localhost/api/auth/staff/verify-totp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: loginData.staffId, code: '000000' }),
+      },
+      mockEnv
+    );
     expect(badTotpRes.status).toBe(401);
 
     // 4. Valid TOTP generates AAL2 session cookie
     const validCode = await generateTotp('JBSWY3DPEHPK3PXR'); // Secret for Dr. Rahul
-    const totpRes = await app.request('http://localhost/api/auth/staff/verify-totp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId: loginData.staffId, code: validCode }),
-    }, mockEnv);
+    const totpRes = await app.request(
+      'http://localhost/api/auth/staff/verify-totp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: loginData.staffId, code: validCode }),
+      },
+      mockEnv
+    );
     expect(totpRes.status).toBe(200);
     const totpData = (await totpRes.json()) as {
       user: { role: string; aal: string };
@@ -229,21 +282,29 @@ describe('Native Authentication & Session Routes', () => {
 
     // Login doctor
     const code = await generateTotp('JBSWY3DPEHPK3PXR');
-    const totpRes = await app.request('http://localhost/api/auth/staff/verify-totp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId: 'b0000000-0000-0000-0000-000000000003', code }),
-    }, mockEnv);
+    const totpRes = await app.request(
+      'http://localhost/api/auth/staff/verify-totp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: 'b0000000-0000-0000-0000-000000000003', code }),
+      },
+      mockEnv
+    );
 
     const cookieHeader = totpRes.headers.get('Set-Cookie')!;
     const match = cookieHeader.match(/careone_session=([^;]+)/);
     const token = match![1];
 
     // Check session immediate: succeeds
-    const s1 = await app.request('http://localhost/api/auth/session', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const s1 = await app.request(
+      'http://localhost/api/auth/session',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
     expect(s1.status).toBe(200);
 
     // Artificially age last_active_at in D1 to 11 minutes ago
@@ -251,10 +312,14 @@ describe('Native Authentication & Session Routes', () => {
     await mockEnv.DB.prepare('UPDATE sessions SET last_active_at = ?').bind(pastTime).run();
 
     // Check session again: must be 401 Idle Timeout
-    const s2 = await app.request('http://localhost/api/auth/session', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const s2 = await app.request(
+      'http://localhost/api/auth/session',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
     expect(s2.status).toBe(401);
     const body = (await s2.json()) as { error: string };
     expect(body.error).toMatch(/idle|inactiv/i);
@@ -264,27 +329,39 @@ describe('Native Authentication & Session Routes', () => {
     const app = createApp();
 
     const code = await generateTotp('JBSWY3DPEHPK3PXR');
-    const totpRes = await app.request('http://localhost/api/auth/staff/verify-totp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId: 'b0000000-0000-0000-0000-000000000003', code }),
-    }, mockEnv);
+    const totpRes = await app.request(
+      'http://localhost/api/auth/staff/verify-totp',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId: 'b0000000-0000-0000-0000-000000000003', code }),
+      },
+      mockEnv
+    );
     const cookieHeader = totpRes.headers.get('Set-Cookie')!;
     const match = cookieHeader.match(/careone_session=([^;]+)/);
     const token = match![1];
 
     // Sign out
-    const outRes = await app.request('http://localhost/api/auth/signout', {
-      method: 'POST',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const outRes = await app.request(
+      'http://localhost/api/auth/signout',
+      {
+        method: 'POST',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
     expect(outRes.status).toBe(200);
 
     // Subsequent session check fails
-    const checkRes = await app.request('http://localhost/api/auth/session', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const checkRes = await app.request(
+      'http://localhost/api/auth/session',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
     expect(checkRes.status).toBe(401);
   });
 });

@@ -6,26 +6,26 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "care-one-d1",
       "database_id": "local-care-one-d1",
-      "migrations_dir": "migrations"
-    }
+      "migrations_dir": "migrations",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "BUCKET",
-      "bucket_name": "care-one-documents"
-    }
+      "bucket_name": "care-one-documents",
+    },
   ],
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": ["*/5 * * * *"],
   },
   "vars": {
-    "APP_ENV": "development"
-  }
+    "APP_ENV": "development",
+  },
 }

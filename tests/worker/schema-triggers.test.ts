@@ -8,11 +8,17 @@ describe('D1 Database Triggers and Schema Rules', () => {
 
   beforeEach(() => {
     db = new DatabaseSync(':memory:');
-    const migrationPath = path.resolve(import.meta.dirname, '../../migrations/0001_initial_schema.sql');
+    const migrationPath = path.resolve(
+      import.meta.dirname,
+      '../../migrations/0001_initial_schema.sql'
+    );
     const sql = fs.readFileSync(migrationPath, 'utf-8');
     db.exec(sql);
 
-    const m3Path = path.resolve(import.meta.dirname, '../../migrations/0003_staff_auth_credentials.sql');
+    const m3Path = path.resolve(
+      import.meta.dirname,
+      '../../migrations/0003_staff_auth_credentials.sql'
+    );
     if (fs.existsSync(m3Path)) {
       db.exec(fs.readFileSync(m3Path, 'utf-8'));
     }
@@ -60,7 +66,9 @@ describe('D1 Database Triggers and Schema Rules', () => {
       `);
 
       db.exec("UPDATE encounters SET subjective = 'Updated draft note' WHERE id = 'enc-1';");
-      const row = db.prepare("SELECT subjective FROM encounters WHERE id = 'enc-1'").get() as { subjective: string };
+      const row = db.prepare("SELECT subjective FROM encounters WHERE id = 'enc-1'").get() as {
+        subjective: string;
+      };
       expect(row.subjective).toBe('Updated draft note');
     });
 
@@ -73,7 +81,9 @@ describe('D1 Database Triggers and Schema Rules', () => {
       `);
 
       expect(() => {
-        db.exec("UPDATE encounters SET subjective = 'Tampered signed note' WHERE id = 'enc-signed';");
+        db.exec(
+          "UPDATE encounters SET subjective = 'Tampered signed note' WHERE id = 'enc-signed';"
+        );
       }).toThrow(/frozen/i);
     });
 
@@ -104,10 +114,14 @@ describe('D1 Database Triggers and Schema Rules', () => {
         VALUES ('appt-1', 'pat-appt', 'staff-doc', '2026-10-15T10:00:00Z', '2026-10-15T10:30:00Z', 'scheduled');
       `);
 
-      const careTeamRow = db.prepare(`
+      const careTeamRow = db
+        .prepare(
+          `
         SELECT patient_id, staff_id, active FROM care_team
         WHERE patient_id = 'pat-appt' AND staff_id = 'staff-doc'
-      `).get() as { patient_id: string; staff_id: string; active: number };
+      `
+        )
+        .get() as { patient_id: string; staff_id: string; active: number };
 
       expect(careTeamRow).toBeDefined();
       expect(careTeamRow.patient_id).toBe('pat-appt');
@@ -124,7 +138,9 @@ describe('D1 Database Triggers and Schema Rules', () => {
       `);
 
       db.exec("UPDATE diet_guides SET title_en = 'Updated Draft' WHERE id = 'dg-draft';");
-      const row = db.prepare("SELECT title_en FROM diet_guides WHERE id = 'dg-draft'").get() as { title_en: string };
+      const row = db.prepare("SELECT title_en FROM diet_guides WHERE id = 'dg-draft'").get() as {
+        title_en: string;
+      };
       expect(row.title_en).toBe('Updated Draft');
     });
 

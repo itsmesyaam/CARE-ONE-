@@ -14,11 +14,20 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
-  const m1 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'), 'utf8');
+  const m1 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'),
+    'utf8'
+  );
   sqlite.exec(m1);
-  const m2 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'), 'utf8');
+  const m2 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'),
+    'utf8'
+  );
   sqlite.exec(m2);
-  const m3 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'), 'utf8');
+  const m3 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'),
+    'utf8'
+  );
   sqlite.exec(m3);
 
   const d1 = {
@@ -31,26 +40,26 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
@@ -178,9 +187,13 @@ describe('Private R2 Documents & Storage API', () => {
 
   it('rejects unauthenticated document access (401)', async () => {
     const app = createApp();
-    const res = await app.request('http://localhost/api/documents/review-queue', {
-      method: 'GET',
-    }, mockEnv);
+    const res = await app.request(
+      'http://localhost/api/documents/review-queue',
+      {
+        method: 'GET',
+      },
+      mockEnv
+    );
     expect(res.status).toBe(401);
   });
 
@@ -197,16 +210,23 @@ describe('Private R2 Documents & Storage API', () => {
     const badMimeForm = new FormData();
     badMimeForm.append('patientId', PATIENT_A);
     badMimeForm.append('title', 'Dangerous Script');
-    badMimeForm.append('file', new File(['<script>alert(1)</script>'], 'hack.html', { type: 'text/html' }));
+    badMimeForm.append(
+      'file',
+      new File(['<script>alert(1)</script>'], 'hack.html', { type: 'text/html' })
+    );
 
-    const badMimeRes = await app.request('http://localhost/api/documents/upload', {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
+    const badMimeRes = await app.request(
+      'http://localhost/api/documents/upload',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
+        },
+        body: badMimeForm,
       },
-      body: badMimeForm,
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(badMimeRes.status).toBe(400);
     const badMimeBody = (await badMimeRes.json()) as { error: string };
@@ -219,14 +239,18 @@ describe('Private R2 Documents & Storage API', () => {
     largeForm.append('title', 'Huge Scan');
     largeForm.append('file', new File([largeData], 'huge.pdf', { type: 'application/pdf' }));
 
-    const largeRes = await app.request('http://localhost/api/documents/upload', {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
+    const largeRes = await app.request(
+      'http://localhost/api/documents/upload',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
+        },
+        body: largeForm,
       },
-      body: largeForm,
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(largeRes.status).toBe(400);
     const largeBody = (await largeRes.json()) as { error: string };
@@ -247,14 +271,18 @@ describe('Private R2 Documents & Storage API', () => {
     form.append('title', 'Hijacked Report');
     form.append('file', new File(['%PDF-1.4 test'], 'report.pdf', { type: 'application/pdf' }));
 
-    const res = await app.request('http://localhost/api/documents/upload', {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
+    const res = await app.request(
+      'http://localhost/api/documents/upload',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
+        },
+        body: form,
       },
-      body: form,
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
   });
@@ -276,14 +304,18 @@ describe('Private R2 Documents & Storage API', () => {
     form.append('reportDate', '2026-10-09');
     form.append('file', new File([fileContent], 'blood_test.pdf', { type: 'application/pdf' }));
 
-    const res = await app.request('http://localhost/api/documents/upload', {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
+    const res = await app.request(
+      'http://localhost/api/documents/upload',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
+        },
+        body: form,
       },
-      body: form,
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(res.status).toBe(201);
     const data = (await res.json()) as {
@@ -325,16 +357,24 @@ describe('Private R2 Documents & Storage API', () => {
     });
 
     // Seed doc: 'dc000000-0000-0000-0000-000000000001' belonging to Arun Kumar
-    const deskRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${deskToken}` },
-    }, mockEnv);
+    const deskRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${deskToken}` },
+      },
+      mockEnv
+    );
     expect(deskRes.status).toBe(403);
 
-    const adminRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${adminToken}` },
-    }, mockEnv);
+    const adminRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${adminToken}` },
+      },
+      mockEnv
+    );
     expect(adminRes.status).toBe(403);
   });
 
@@ -356,21 +396,29 @@ describe('Private R2 Documents & Storage API', () => {
     );
 
     // 1. Fetch Review Queue
-    const queueRes = await app.request('http://localhost/api/documents/review-queue', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${doctorToken}` },
-    }, mockEnv);
+    const queueRes = await app.request(
+      'http://localhost/api/documents/review-queue',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${doctorToken}` },
+      },
+      mockEnv
+    );
 
     expect(queueRes.status).toBe(200);
     const queue = (await queueRes.json()) as { reports: Array<{ id: string; title: string }> };
     expect(queue.reports.length).toBeGreaterThan(0);
-    expect(queue.reports.some(r => r.id === 'dc000000-0000-0000-0000-000000000001')).toBe(true);
+    expect(queue.reports.some((r) => r.id === 'dc000000-0000-0000-0000-000000000001')).toBe(true);
 
     // 2. Download Document
-    const downloadRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${doctorToken}` },
-    }, mockEnv);
+    const downloadRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${doctorToken}` },
+      },
+      mockEnv
+    );
 
     expect(downloadRes.status).toBe(200);
     expect(downloadRes.headers.get('Content-Type')).toBe('application/pdf');
@@ -379,16 +427,23 @@ describe('Private R2 Documents & Storage API', () => {
     expect(pdfData).toContain('Lab Report Metabolic Panel');
 
     // 3. Mark Reviewed
-    const reviewRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/review', {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        Origin: 'http://localhost',
+    const reviewRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/review',
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          Origin: 'http://localhost',
+        },
       },
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(reviewRes.status).toBe(200);
-    const reviewData = (await reviewRes.json()) as { success: boolean; document: { review_status: string } };
+    const reviewData = (await reviewRes.json()) as {
+      success: boolean;
+      document: { review_status: string };
+    };
     expect(reviewData.success).toBe(true);
     expect(reviewData.document.review_status).toBe('reviewed');
   });
@@ -409,10 +464,14 @@ describe('Private R2 Documents & Storage API', () => {
     );
 
     // 1. Without emergency access -> 403
-    const deniedRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${otherDoctorToken}` },
-    }, mockEnv);
+    const deniedRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${otherDoctorToken}` },
+      },
+      mockEnv
+    );
     expect(deniedRes.status).toBe(403);
 
     // 2. Grant Emergency Access (expires in 4 hours)
@@ -433,10 +492,14 @@ describe('Private R2 Documents & Storage API', () => {
       .run();
 
     // 3. With emergency access -> 200
-    const allowedRes = await app.request('http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download', {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${otherDoctorToken}` },
-    }, mockEnv);
+    const allowedRes = await app.request(
+      'http://localhost/api/documents/dc000000-0000-0000-0000-000000000001/download',
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${otherDoctorToken}` },
+      },
+      mockEnv
+    );
     expect(allowedRes.status).toBe(200);
   });
 });

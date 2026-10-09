@@ -30,7 +30,10 @@ describe('Worker Health & Skeleton API', () => {
   it('default export routes /api requests properly', async () => {
     const req = new Request('http://localhost/api/health');
     const fakeEnv = {} as unknown as WorkerEnv;
-    const fakeCtx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() } as unknown as ExecutionContext;
+    const fakeCtx = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as unknown as ExecutionContext;
     const res = await worker.fetch(req, fakeEnv, fakeCtx);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string; service: string };

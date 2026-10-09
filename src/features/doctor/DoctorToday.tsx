@@ -132,7 +132,9 @@ export function DoctorToday(): React.JSX.Element {
 
   const live = appointments.filter((a) => a.status !== 'cancelled');
   const nextAppt =
-    live.find((a) => a.patient?.uhid === 'ABC-1001' && (a.status === 'booked' || a.status === 'arrived')) ||
+    live.find(
+      (a) => a.patient?.uhid === 'ABC-1001' && (a.status === 'booked' || a.status === 'arrived')
+    ) ||
     live.find((a) => a.status === 'booked' || a.status === 'arrived') ||
     live[0] ||
     null;
@@ -142,15 +144,12 @@ export function DoctorToday(): React.JSX.Element {
     navigate(`/doctor/chart/${patientId}`);
   };
 
-
   return (
     <div className="staff-theme w-full">
       {/* Clinic Header & Kerala Greeting */}
       <div className="pt-2 pb-7 lg:pt-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-semibold text-sm text-[var(--ink3)]">
-            {t('doctorToday.dateLine')}
-          </p>
+          <p className="font-semibold text-sm text-[var(--ink3)]">{t('doctorToday.dateLine')}</p>
         </div>
 
         <h1 className="disp greet kin mt-1 text-[var(--ink)] whitespace-pre-line">
@@ -182,7 +181,8 @@ export function DoctorToday(): React.JSX.Element {
                   </p>
                   <p className="tk-name text-white">{nextAppt.patient.full_name}</p>
                   <p className="text-sm text-white/85 mt-0.5">
-                    {calculateAge(nextAppt.patient.dob)} yrs, {nextAppt.patient.gender}, {nextAppt.patient.uhid}
+                    {calculateAge(nextAppt.patient.dob)} yrs, {nextAppt.patient.gender},{' '}
+                    {nextAppt.patient.uhid}
                   </p>
                   <p className="mt-3 font-medium text-white/95 text-base">
                     {nextAppt.notes || 'Routine consultation and chronic disease review'}
@@ -192,12 +192,10 @@ export function DoctorToday(): React.JSX.Element {
                   {nextAppt.patient.uhid === 'ABC-1001' && (
                     <div className="flex flex-wrap gap-2 mt-3.5">
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-xs">
-                        <FileText size={13} />
-                        1 report
+                        <FileText size={13} />1 report
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-xs">
-                        <Activity size={13} />
-                        5 readings
+                        <Activity size={13} />5 readings
                       </span>
                     </div>
                   )}
@@ -208,7 +206,9 @@ export function DoctorToday(): React.JSX.Element {
                       <AlertTriangle size={16} className="flex-none" />
                       <span>
                         {t('doctorToday.allergicTo', {
-                          allergies: arunAllergies.map((a) => a.substance.toLowerCase()).join(' and '),
+                          allergies: arunAllergies
+                            .map((a) => a.substance.toLowerCase())
+                            .join(' and '),
                         })}
                       </span>
                     </div>
@@ -398,9 +398,7 @@ export function DoctorToday(): React.JSX.Element {
               <Clock size={20} />
             </span>
             <div className="flex-1 min-w-0">
-              <h3 className="h3 text-[var(--ink)] font-bold">
-                Arun Kumar's follow-up is overdue
-              </h3>
+              <h3 className="h3 text-[var(--ink)] font-bold">Arun Kumar's follow-up is overdue</h3>
               <p className="text-sm text-[var(--ink2)] mt-1">
                 Fasting blood sugar & lipid follow-up was due 3 days ago.
               </p>

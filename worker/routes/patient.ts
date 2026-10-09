@@ -5,11 +5,7 @@
 
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
-import {
-  type AccessVariables,
-  declareRoutePolicy,
-  requireAccess,
-} from '../middleware/access';
+import { type AccessVariables, declareRoutePolicy, requireAccess } from '../middleware/access';
 
 export const patientRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -21,12 +17,14 @@ const profilePolicy = declareRoutePolicy('GET', '/api/patient/profile', {
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.get('/profile', requireAccess(profilePolicy), async c => {
+patientRoutes.get('/profile', requireAccess(profilePolicy), async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
 
   const patient = await db
-    .prepare('SELECT id, uhid, mrn, full_name, dob, gender, blood_group, phone, email, created_at FROM patients WHERE id = ?')
+    .prepare(
+      'SELECT id, uhid, mrn, full_name, dob, gender, blood_group, phone, email, created_at FROM patients WHERE id = ?'
+    )
     .bind(user.patientId)
     .first();
 
@@ -42,7 +40,7 @@ const appointmentsPolicy = declareRoutePolicy('GET', '/api/patient/appointments'
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.get('/appointments', requireAccess(appointmentsPolicy), async c => {
+patientRoutes.get('/appointments', requireAccess(appointmentsPolicy), async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
 
@@ -66,7 +64,7 @@ const carePlansPolicy = declareRoutePolicy('GET', '/api/patient/care-plans', {
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.get('/care-plans', requireAccess(carePlansPolicy), async c => {
+patientRoutes.get('/care-plans', requireAccess(carePlansPolicy), async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
 
@@ -103,7 +101,7 @@ const readingsGetPolicy = declareRoutePolicy('GET', '/api/patient/readings', {
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.get('/readings', requireAccess(readingsGetPolicy), async c => {
+patientRoutes.get('/readings', requireAccess(readingsGetPolicy), async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
 
@@ -124,7 +122,7 @@ const readingsPostPolicy = declareRoutePolicy('POST', '/api/patient/readings', {
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.post('/readings', requireAccess(readingsPostPolicy), async c => {
+patientRoutes.post('/readings', requireAccess(readingsPostPolicy), async (c) => {
   const user = c.get('user');
   const body = (await c.req.json().catch(() => ({}))) as {
     kind?: string;
@@ -174,7 +172,7 @@ const symptomsPostPolicy = declareRoutePolicy('POST', '/api/patient/symptoms', {
   allowedRoles: ['patient', 'guardian'],
 });
 
-patientRoutes.post('/symptoms', requireAccess(symptomsPostPolicy), async c => {
+patientRoutes.post('/symptoms', requireAccess(symptomsPostPolicy), async (c) => {
   const user = c.get('user');
   const body = (await c.req.json().catch(() => ({}))) as {
     description?: string;

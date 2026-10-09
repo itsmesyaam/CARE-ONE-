@@ -13,49 +13,56 @@ function renderWithClient(ui: React.ReactElement) {
     },
   });
 
-  queryClient.setQueryData(['doctor', 'patients', 'all'], [
-    {
-      id: 'p-1',
-      full_name: 'Arun Kumar',
-      dob: '1978-01-01',
-      gender: 'male',
-      blood_group: 'B+',
-      phone: '9847000001',
-      uhid: 'ABC-1001',
-      created_at: '2026-01-01',
-    },
-    {
-      id: 'p-2',
-      full_name: 'Faisal Rahman',
-      dob: '1974-01-01',
-      gender: 'male',
-      blood_group: 'AB+',
-      phone: '9847000005',
-      uhid: 'ABC-1005',
-      created_at: '2026-01-01',
-    },
-    {
-      id: 'p-99',
-      full_name: 'Harikrishnan Nair',
-      dob: '1965-01-01',
-      gender: 'male',
-      blood_group: 'A+',
-      phone: '9847000099',
-      uhid: 'ABC-1099',
-      created_at: '2026-01-01',
-    },
-  ]);
+  queryClient.setQueryData(
+    ['doctor', 'patients', 'all'],
+    [
+      {
+        id: 'p-1',
+        full_name: 'Arun Kumar',
+        dob: '1978-01-01',
+        gender: 'male',
+        blood_group: 'B+',
+        phone: '9847000001',
+        uhid: 'ABC-1001',
+        created_at: '2026-01-01',
+      },
+      {
+        id: 'p-2',
+        full_name: 'Faisal Rahman',
+        dob: '1974-01-01',
+        gender: 'male',
+        blood_group: 'AB+',
+        phone: '9847000005',
+        uhid: 'ABC-1005',
+        created_at: '2026-01-01',
+      },
+      {
+        id: 'p-99',
+        full_name: 'Harikrishnan Nair',
+        dob: '1965-01-01',
+        gender: 'male',
+        blood_group: 'A+',
+        phone: '9847000099',
+        uhid: 'ABC-1099',
+        created_at: '2026-01-01',
+      },
+    ]
+  );
 
-  queryClient.setQueryData(['doctor', 'patients', 'care_team'], [
-    { patient_id: 'p-1', expires_at: '2027-01-01' },
-    { patient_id: 'p-2', expires_at: '2027-01-01' },
-  ]);
+  queryClient.setQueryData(
+    ['doctor', 'patients', 'care_team'],
+    [
+      { patient_id: 'p-1', expires_at: '2027-01-01' },
+      { patient_id: 'p-2', expires_at: '2027-01-01' },
+    ]
+  );
 
   queryClient.setQueryData(['doctor', 'patients', 'emergency_access'], []);
 
-  queryClient.setQueryData(['doctor', 'patients', 'conditions'], [
-    { patient_id: 'p-1', name: 'Type 2 Diabetes Mellitus', status: 'active' },
-  ]);
+  queryClient.setQueryData(
+    ['doctor', 'patients', 'conditions'],
+    [{ patient_id: 'p-1', name: 'Type 2 Diabetes Mellitus', status: 'active' }]
+  );
 
   queryClient.setQueryData(['doctor', 'patients', 'pending_docs'], []);
   queryClient.setQueryData(['doctor', 'patients', 'pending_symptoms'], []);
@@ -74,7 +81,9 @@ describe('Doctor Portal Feature: DoctorPatients Directory & Emergency Access', (
     renderWithClient(<DoctorPatients />);
 
     expect(screen.getByRole('heading', { level: 1, name: /Patients/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Search by name, phone or hospital number/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Search by name, phone or hospital number/i)
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^All/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Needs review/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Overdue/i })).toBeInTheDocument();
@@ -111,6 +120,8 @@ describe('Doctor Portal Feature: DoctorPatients Directory & Emergency Access', (
     expect(emergencyBtn).toBeInTheDocument();
 
     fireEvent.click(emergencyBtn);
-    expect(screen.getByRole('heading', { level: 2, name: /Emergency access/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Emergency access/i })
+    ).toBeInTheDocument();
   });
 });

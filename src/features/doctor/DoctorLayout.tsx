@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-  CalendarDays,
-  Users,
-  Inbox,
-  User,
-  Lock,
-  LogOut,
-  Timer,
-  Languages,
-} from 'lucide-react';
+import { CalendarDays, Users, Inbox, User, Lock, LogOut, Timer, Languages } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
@@ -69,10 +60,10 @@ export function DoctorLayout(): React.JSX.Element {
   const currentTab = location.pathname.includes('/patients')
     ? 'patients'
     : location.pathname.includes('/review')
-    ? 'review'
-    : location.pathname.includes('/account')
-    ? 'account'
-    : 'today';
+      ? 'review'
+      : location.pathname.includes('/account')
+        ? 'account'
+        : 'today';
 
   // 10-Minute Idle Timeout Tracker
   useEffect(() => {
@@ -147,9 +138,7 @@ export function DoctorLayout(): React.JSX.Element {
           className="idle cursor-pointer"
         >
           <Timer size={20} className="flex-none animate-pulse" />
-          <span>
-            {t('staffAuth.idleWarn', { seconds: idleSecondsRemaining })}
-          </span>
+          <span>{t('staffAuth.idleWarn', { seconds: idleSecondsRemaining })}</span>
         </div>
       )}
 
@@ -190,9 +179,7 @@ export function DoctorLayout(): React.JSX.Element {
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>
-                  {item.count && item.count > 0 ? (
-                    <span className="dn-n">{item.count}</span>
-                  ) : null}
+                  {item.count && item.count > 0 ? <span className="dn-n">{item.count}</span> : null}
                 </button>
               );
             })}

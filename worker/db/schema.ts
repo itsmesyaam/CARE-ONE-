@@ -56,7 +56,9 @@ export const patients = sqliteTable('patients', {
 // 5. Patient Access
 export const patientAccess = sqliteTable('patient_access', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   userId: text('user_id').notNull(),
   relationship: text('relationship', { enum: ['self', 'guardian', 'caregiver'] }).notNull(),
   createdAt: text('created_at').notNull(),
@@ -66,7 +68,9 @@ export const patientAccess = sqliteTable('patient_access', {
 // 6. Consents
 export const consents = sqliteTable('consents', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   userId: text('user_id').notNull(),
   consentType: text('consent_type').notNull().default('general'),
   version: text('version').notNull().default('1.0'),
@@ -77,8 +81,12 @@ export const consents = sqliteTable('consents', {
 // 7. Care Team
 export const careTeam = sqliteTable('care_team', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  staffId: text('staff_id').notNull().references(() => staff.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  staffId: text('staff_id')
+    .notNull()
+    .references(() => staff.id),
   reason: text('reason').default('appointment'),
   active: integer('active').notNull().default(1),
   expiresAt: text('expires_at'),
@@ -89,8 +97,12 @@ export const careTeam = sqliteTable('care_team', {
 // 8. Emergency Access
 export const emergencyAccess = sqliteTable('emergency_access', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  staffId: text('staff_id').notNull().references(() => staff.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  staffId: text('staff_id')
+    .notNull()
+    .references(() => staff.id),
   reason: text('reason').notNull(),
   expiresAt: text('expires_at').notNull(),
   createdAt: text('created_at').notNull(),
@@ -99,8 +111,12 @@ export const emergencyAccess = sqliteTable('emergency_access', {
 // 9. Appointments
 export const appointments = sqliteTable('appointments', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  doctorId: text('doctor_id').notNull().references(() => staff.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  doctorId: text('doctor_id')
+    .notNull()
+    .references(() => staff.id),
   departmentId: text('department_id').references(() => departments.id),
   appointmentDate: text('appointment_date'),
   startTime: text('start_time'),
@@ -114,11 +130,19 @@ export const appointments = sqliteTable('appointments', {
 // 10. Encounters
 export const encounters = sqliteTable('encounters', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  doctorId: text('doctor_id').notNull().references(() => staff.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  doctorId: text('doctor_id')
+    .notNull()
+    .references(() => staff.id),
   departmentId: text('department_id').references(() => departments.id),
-  status: text('status', { enum: ['draft', 'signed'] }).notNull().default('draft'),
-  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] }).notNull().default('normal'),
+  status: text('status', { enum: ['draft', 'signed'] })
+    .notNull()
+    .default('draft'),
+  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] })
+    .notNull()
+    .default('normal'),
   chiefComplaint: text('chief_complaint'),
   clinicalNotes: text('clinical_notes'),
   subjective: text('subjective'),
@@ -134,9 +158,15 @@ export const encounters = sqliteTable('encounters', {
 // 11. Encounter Addenda
 export const encounterAddenda = sqliteTable('encounter_addenda', {
   id: text('id').primaryKey(),
-  encounterId: text('encounter_id').notNull().references(() => encounters.id),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  doctorId: text('doctor_id').notNull().references(() => staff.id),
+  encounterId: text('encounter_id')
+    .notNull()
+    .references(() => encounters.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  doctorId: text('doctor_id')
+    .notNull()
+    .references(() => staff.id),
   reason: text('reason').notNull(),
   notes: text('notes').notNull(),
   createdAt: text('created_at').notNull(),
@@ -145,12 +175,18 @@ export const encounterAddenda = sqliteTable('encounter_addenda', {
 // 12. Conditions
 export const conditions = sqliteTable('conditions', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   doctorId: text('doctor_id').references(() => staff.id),
   departmentId: text('department_id').references(() => departments.id),
   name: text('name').notNull(),
-  status: text('status', { enum: ['active', 'resolved'] }).notNull().default('active'),
-  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] }).notNull().default('normal'),
+  status: text('status', { enum: ['active', 'resolved'] })
+    .notNull()
+    .default('active'),
+  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] })
+    .notNull()
+    .default('normal'),
   diagnosedDate: text('diagnosed_date'),
   notes: text('notes'),
   createdAt: text('created_at').notNull(),
@@ -160,10 +196,14 @@ export const conditions = sqliteTable('conditions', {
 // 13. Allergies
 export const allergies = sqliteTable('allergies', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   substance: text('substance').notNull(),
   reaction: text('reaction'),
-  severity: text('severity', { enum: ['mild', 'moderate', 'severe'] }).notNull().default('moderate'),
+  severity: text('severity', { enum: ['mild', 'moderate', 'severe'] })
+    .notNull()
+    .default('moderate'),
   recordedBy: text('recorded_by').references(() => staff.id),
   createdAt: text('created_at').notNull(),
 });
@@ -171,18 +211,26 @@ export const allergies = sqliteTable('allergies', {
 // 14. Medications
 export const medications = sqliteTable('medications', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
-  doctorId: text('doctor_id').notNull().references(() => staff.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
+  doctorId: text('doctor_id')
+    .notNull()
+    .references(() => staff.id),
   departmentId: text('department_id').references(() => departments.id),
   drug: text('drug').notNull(),
   dose: text('dose').notNull(),
   timing: text('timing').notNull().default('{"morning":true,"afternoon":false,"night":true}'),
   durationDays: integer('duration_days'),
   instructions: text('instructions'),
-  status: text('status', { enum: ['active', 'stopped', 'completed'] }).notNull().default('active'),
+  status: text('status', { enum: ['active', 'stopped', 'completed'] })
+    .notNull()
+    .default('active'),
   stoppedReason: text('stopped_reason'),
   stoppedAt: text('stopped_at'),
-  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] }).notNull().default('normal'),
+  sensitivity: text('sensitivity', { enum: ['normal', 'restricted'] })
+    .notNull()
+    .default('normal'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
@@ -190,11 +238,15 @@ export const medications = sqliteTable('medications', {
 // 15. Observations
 export const observations = sqliteTable('observations', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   kind: text('kind').notNull(),
   valueText: text('value_text').notNull(),
   unit: text('unit'),
-  source: text('source', { enum: ['clinic', 'patient'] }).notNull().default('clinic'),
+  source: text('source', { enum: ['clinic', 'patient'] })
+    .notNull()
+    .default('clinic'),
   outOfRange: integer('out_of_range').notNull().default(0),
   measuredAt: text('measured_at').notNull(),
   recordedBy: text('recorded_by').references(() => staff.id),
@@ -204,13 +256,21 @@ export const observations = sqliteTable('observations', {
 // 16. Documents
 export const documents = sqliteTable('documents', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   storagePath: text('storage_path').notNull().unique(),
-  type: text('type', { enum: ['lab', 'imaging', 'prescription', 'other'] }).notNull().default('lab'),
+  type: text('type', { enum: ['lab', 'imaging', 'prescription', 'other'] })
+    .notNull()
+    .default('lab'),
   title: text('title').notNull(),
   reportDate: text('report_date').notNull(),
-  source: text('source', { enum: ['patient', 'staff'] }).notNull().default('patient'),
-  reviewStatus: text('review_status', { enum: ['pending', 'reviewed'] }).notNull().default('pending'),
+  source: text('source', { enum: ['patient', 'staff'] })
+    .notNull()
+    .default('patient'),
+  reviewStatus: text('review_status', { enum: ['pending', 'reviewed'] })
+    .notNull()
+    .default('pending'),
   reviewedBy: text('reviewed_by').references(() => staff.id),
   reviewedAt: text('reviewed_at'),
   fileSizeBytes: integer('file_size_bytes'),
@@ -233,7 +293,9 @@ export const dietGuides = sqliteTable('diet_guides', {
   tipsEn: text('tips_en').notNull(),
   tipsMl: text('tips_ml').notNull(),
   conditionTags: text('condition_tags').notNull().default('[]'),
-  status: text('status', { enum: ['draft', 'approved'] }).notNull().default('draft'),
+  status: text('status', { enum: ['draft', 'approved'] })
+    .notNull()
+    .default('draft'),
   approvedBy: text('approved_by').references(() => staff.id),
   approvedAt: text('approved_at'),
   version: integer('version').notNull().default(1),
@@ -245,10 +307,16 @@ export const dietGuides = sqliteTable('diet_guides', {
 // 18. Care Plans
 export const carePlans = sqliteTable('care_plans', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   encounterId: text('encounter_id').references(() => encounters.id),
-  doctorId: text('doctor_id').notNull().references(() => staff.id),
-  status: text('status', { enum: ['active', 'completed', 'cancelled'] }).notNull().default('active'),
+  doctorId: text('doctor_id')
+    .notNull()
+    .references(() => staff.id),
+  status: text('status', { enum: ['active', 'completed', 'cancelled'] })
+    .notNull()
+    .default('active'),
   title: text('title'),
   notes: text('notes'),
   reviewDate: text('review_date'),
@@ -259,15 +327,21 @@ export const carePlans = sqliteTable('care_plans', {
 // 19. Care Plan Items
 export const carePlanItems = sqliteTable('care_plan_items', {
   id: text('id').primaryKey(),
-  carePlanId: text('care_plan_id').notNull().references(() => carePlans.id),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  carePlanId: text('care_plan_id')
+    .notNull()
+    .references(() => carePlans.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   kind: text('kind').notNull(),
   detail: text('detail').notNull(),
   timing: text('timing'),
   dueDate: text('due_date'),
   dietGuideId: text('diet_guide_id').references(() => dietGuides.id),
   doctorNote: text('doctor_note'),
-  status: text('status', { enum: ['pending', 'completed', 'cancelled'] }).notNull().default('pending'),
+  status: text('status', { enum: ['pending', 'completed', 'cancelled'] })
+    .notNull()
+    .default('pending'),
   completedAt: text('completed_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -276,12 +350,16 @@ export const carePlanItems = sqliteTable('care_plan_items', {
 // 20. Reminders
 export const reminders = sqliteTable('reminders', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   carePlanItemId: text('care_plan_item_id').references(() => carePlanItems.id),
   appointmentId: text('appointment_id').references(() => appointments.id),
   title: text('title').notNull(),
   scheduledFor: text('scheduled_for').notNull(),
-  channel: text('channel', { enum: ['push', 'email'] }).notNull().default('push'),
+  channel: text('channel', { enum: ['push', 'email'] })
+    .notNull()
+    .default('push'),
   status: text('status').notNull().default('pending'),
   attempts: integer('attempts').notNull().default(0),
   lastAttemptAt: text('last_attempt_at'),
@@ -305,9 +383,13 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
 // 22. Symptom Reports
 export const symptomReports = sqliteTable('symptom_reports', {
   id: text('id').primaryKey(),
-  patientId: text('patient_id').notNull().references(() => patients.id),
+  patientId: text('patient_id')
+    .notNull()
+    .references(() => patients.id),
   description: text('description').notNull(),
-  severity: text('severity', { enum: ['mild', 'moderate', 'severe'] }).notNull().default('moderate'),
+  severity: text('severity', { enum: ['mild', 'moderate', 'severe'] })
+    .notNull()
+    .default('moderate'),
   reportedAt: text('reported_at').notNull(),
   reviewedBy: text('reviewed_by').references(() => staff.id),
   reviewedAt: text('reviewed_at'),
@@ -355,7 +437,9 @@ export const emailOtps = sqliteTable('email_otps', {
 
 // 26. Staff Auth
 export const staffAuth = sqliteTable('staff_auth', {
-  staffId: text('staff_id').primaryKey().references(() => staff.id),
+  staffId: text('staff_id')
+    .primaryKey()
+    .references(() => staff.id),
   passwordHash: text('password_hash').notNull(),
   passwordSalt: text('password_salt').notNull(),
   totpSecret: text('totp_secret').notNull(),

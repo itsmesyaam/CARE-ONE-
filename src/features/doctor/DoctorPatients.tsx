@@ -71,7 +71,9 @@ export function DoctorPatients(): React.JSX.Element {
     queryKey: ['doctor', 'patients', 'care_team'],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ careTeam: Array<{ patient_id: string; expires_at: string | null }> }>('/api/doctor/care-team');
+        const res = await apiFetch<{
+          careTeam: Array<{ patient_id: string; expires_at: string | null }>;
+        }>('/api/doctor/care-team');
         return res.careTeam || [];
       } catch {
         return [];
@@ -84,7 +86,9 @@ export function DoctorPatients(): React.JSX.Element {
     queryKey: ['doctor', 'patients', 'emergency_access'],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ emergencyAccess: Array<{ patient_id: string; expires_at: string; reason: string }> }>('/api/doctor/emergency-access');
+        const res = await apiFetch<{
+          emergencyAccess: Array<{ patient_id: string; expires_at: string; reason: string }>;
+        }>('/api/doctor/emergency-access');
         return res.emergencyAccess || [];
       } catch {
         return [];
@@ -92,29 +96,29 @@ export function DoctorPatients(): React.JSX.Element {
     },
   });
 
-interface DbCondition {
-  patient_id: string;
-  name: string;
-  status: string;
-}
+  interface DbCondition {
+    patient_id: string;
+    name: string;
+    status: string;
+  }
 
-interface DbPendingDoc {
-  patient_id: string;
-}
+  interface DbPendingDoc {
+    patient_id: string;
+  }
 
-interface DbPendingSymptom {
-  patient_id: string;
-}
+  interface DbPendingSymptom {
+    patient_id: string;
+  }
 
-interface DbEncounter {
-  patient_id: string;
-  signed_at: string | null;
-}
+  interface DbEncounter {
+    patient_id: string;
+    signed_at: string | null;
+  }
 
-interface DbAppointment {
-  patient_id: string;
-  appointment_date: string;
-}
+  interface DbAppointment {
+    patient_id: string;
+    appointment_date: string;
+  }
 
   // 4. Fetch Conditions
   const { data: conditions = [] } = useQuery<DbCondition[]>({
@@ -158,12 +162,13 @@ interface DbAppointment {
     p.uhid.toLowerCase().includes(qq) ||
     (qd.length >= 4 && p.phone.replace(/\D/g, '').includes(qd));
 
-
   // Build directory items for care team patients
   const careTeamPatients = patients
     .filter((p) => (carePatientIds.has(p.id) || emergencyPatientMap.has(p.id)) && matchPatient(p))
     .map((p) => {
-      const conds = conditions.filter((c) => c.patient_id === p.id && c.status === 'active').map((c) => c.name);
+      const conds = conditions
+        .filter((c) => c.patient_id === p.id && c.status === 'active')
+        .map((c) => c.name);
       const repCount = pendingDocs.filter((d) => d.patient_id === p.id).length;
       const sxCount = pendingSymptoms.filter((s) => s.patient_id === p.id).length;
 
@@ -183,8 +188,15 @@ interface DbAppointment {
         conditions: conds,
         repCount,
         sxCount,
-        lastVisit: lastEnc?.signed_at ? new Date(lastEnc.signed_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'New patient',
-        nextVisit: nextAppt ? new Date(nextAppt.appointment_date).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'None booked',
+        lastVisit: lastEnc?.signed_at
+          ? new Date(lastEnc.signed_at).toLocaleDateString([], { day: 'numeric', month: 'short' })
+          : 'New patient',
+        nextVisit: nextAppt
+          ? new Date(nextAppt.appointment_date).toLocaleDateString([], {
+              day: 'numeric',
+              month: 'short',
+            })
+          : 'None booked',
         isEmergency: emergencyPatientMap.has(p.id),
       };
     })
@@ -202,7 +214,9 @@ interface DbAppointment {
   const others =
     qq.length >= 3
       ? patients
-          .filter((p) => !carePatientIds.has(p.id) && !emergencyPatientMap.has(p.id) && matchPatient(p))
+          .filter(
+            (p) => !carePatientIds.has(p.id) && !emergencyPatientMap.has(p.id) && matchPatient(p)
+          )
           .map((p) => ({
             id: p.id,
             name: p.full_name,
@@ -252,9 +266,7 @@ interface DbAppointment {
         <h1 className="disp h1 text-2xl lg:text-3xl font-bold text-[var(--ink)]">
           {t('doctorPatients.title')}
         </h1>
-        <p className="mt-1 text-sm text-[var(--ink2)]">
-          {t('doctorPatients.subtitle')}
-        </p>
+        <p className="mt-1 text-sm text-[var(--ink2)]">{t('doctorPatients.subtitle')}</p>
       </div>
 
       {/* Search Bar */}
@@ -347,9 +359,7 @@ interface DbAppointment {
                       {initials}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <b className="block text-base text-[var(--ink)] truncate">
-                        {patient.name}
-                      </b>
+                      <b className="block text-base text-[var(--ink)] truncate">{patient.name}</b>
                       <span className="block text-sm text-[var(--ink3)] truncate">
                         {patient.age} yrs, {patient.gender}, {patient.mrn}
                       </span>
@@ -403,9 +413,7 @@ interface DbAppointment {
           <h2 className="text-lg font-bold text-[var(--ink)]">
             {t('doctorPatients.noPatientsMatch')}
           </h2>
-          <p className="text-sm text-[var(--ink2)] mt-1">
-            {t('doctorPatients.noPatientsBody')}
-          </p>
+          <p className="text-sm text-[var(--ink2)] mt-1">{t('doctorPatients.noPatientsBody')}</p>
         </div>
       ) : (
         <p className="text-[var(--ink2)] mt-6 text-sm font-medium">
@@ -448,9 +456,7 @@ interface DbAppointment {
                       {initials}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <b className="block text-base text-[var(--ink)] truncate">
-                        {patient.name}
-                      </b>
+                      <b className="block text-base text-[var(--ink)] truncate">{patient.name}</b>
                       <span className="block text-sm text-[var(--ink3)] truncate">
                         {patient.mrn}, {patient.phone}
                       </span>

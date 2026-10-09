@@ -28,7 +28,7 @@ import { ConfirmSheetModal } from './ConfirmSheetModal';
 function TopBar({ onOpenWho }: { onOpenWho: () => void }) {
   const { lang, p, d, setTab } = usePatient();
   const navigate = useNavigate();
-  const notifCount = d.rem.filter(r => r.w !== 'earlier').length;
+  const notifCount = d.rem.filter((r) => r.w !== 'earlier').length;
 
   return (
     <header className="topbar lg:hidden">
@@ -53,8 +53,8 @@ function TopBar({ onOpenWho }: { onOpenWho: () => void }) {
                 ? 'നിങ്ങൾ'
                 : 'You'
               : lang === 'ml'
-              ? 'നിങ്ങൾ രക്ഷിതാവ്'
-              : "You're the guardian"}
+                ? 'നിങ്ങൾ രക്ഷിതാവ്'
+                : "You're the guardian"}
           </span>
         </span>
         <ChevronDown size={18} className="ink3" />
@@ -69,13 +69,13 @@ function TopBar({ onOpenWho }: { onOpenWho: () => void }) {
             setTab('reminders');
             navigate('/patient/reminders');
           }}
-          aria-label={lang === 'ml' ? `ഓർമ്മപ്പെടുത്തലുകൾ, ${notifCount}` : `Reminders, ${notifCount}`}
+          aria-label={
+            lang === 'ml' ? `ഓർമ്മപ്പെടുത്തലുകൾ, ${notifCount}` : `Reminders, ${notifCount}`
+          }
         >
           <Bell size={22} className="text-[var(--ink)]" />
           {notifCount > 0 && (
-            <span
-              className="absolute top-1 right-1 min-w-[19px] h-[19px] px-1 rounded-full bg-[var(--lat)] text-white text-[11px] font-bold grid place-items-center border-2 border-[var(--paper)]"
-            >
+            <span className="absolute top-1 right-1 min-w-[19px] h-[19px] px-1 rounded-full bg-[var(--lat)] text-white text-[11px] font-bold grid place-items-center border-2 border-[var(--paper)]">
               {notifCount}
             </span>
           )}
@@ -94,7 +94,11 @@ function SideNav({ onOpenWho }: { onOpenWho: () => void }) {
     { key: 'plan', icon: ClipboardList, label: lang === 'ml' ? 'പദ്ധതി' : 'Care plan' },
     { key: 'records', icon: FileText, label: lang === 'ml' ? 'രേഖകൾ' : 'Records' },
     { key: 'reminders', icon: Bell, label: lang === 'ml' ? 'ഓർമ്മപ്പെടുത്തലുകൾ' : 'Reminders' },
-    { key: 'appts', icon: CalendarDays, label: lang === 'ml' ? 'അപ്പോയിന്റ്മെന്റുകൾ' : 'Appointments' },
+    {
+      key: 'appts',
+      icon: CalendarDays,
+      label: lang === 'ml' ? 'അപ്പോയിന്റ്മെന്റുകൾ' : 'Appointments',
+    },
     { key: 'me', icon: User, label: lang === 'ml' ? 'പ്രൊഫൈൽ' : 'Profile' },
   ];
 
@@ -135,15 +139,15 @@ function SideNav({ onOpenWho }: { onOpenWho: () => void }) {
                 ? 'നിങ്ങൾ'
                 : 'You'
               : lang === 'ml'
-              ? 'നിങ്ങൾ രക്ഷിതാവ്'
-              : "You're the guardian"}
+                ? 'നിങ്ങൾ രക്ഷിതാവ്'
+                : "You're the guardian"}
           </span>
         </span>
         <ChevronDown size={18} className="ink3" />
       </button>
 
       <nav className="flex flex-col gap-1" aria-label="Main">
-        {navItems.map(item => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = tab === item.key;
           return (
@@ -207,7 +211,7 @@ function BottomNav() {
 
   return (
     <nav className="bnav lg:hidden" aria-label="Mobile Navigation">
-      {items.map(item => {
+      {items.map((item) => {
         if (!item) {
           return (
             <button
@@ -266,12 +270,7 @@ function WhoSheetModal({ onClose }: { onClose: () => void }) {
           <h2 className="disp text-xl font-bold text-[var(--ink)]">
             {lang === 'ml' ? 'ആരുടെ രേഖകൾ?' : 'Whose records?'}
           </h2>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -309,8 +308,8 @@ function WhoSheetModal({ onClose }: { onClose: () => void }) {
                       ? 'നിങ്ങൾ'
                       : 'You'
                     : lang === 'ml'
-                    ? 'നിങ്ങളുടെ കുട്ടി'
-                    : "Your child, you're the guardian"}
+                      ? 'നിങ്ങളുടെ കുട്ടി'
+                      : "Your child, you're the guardian"}
                 </span>
               </span>
               <span className="radio" />
@@ -343,14 +342,20 @@ function AddSheetModal({ onClose }: { onClose: () => void }) {
       key: 'upload',
       icon: FileUp,
       title: lang === 'ml' ? 'റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുക' : 'Upload a report',
-      sub: lang === 'ml' ? 'ലാബ് ഫലം, കുറിപ്പ് അല്ലെങ്കിൽ ഡിസ്ചാർജ്' : 'Lab test, prescription or discharge summary',
+      sub:
+        lang === 'ml'
+          ? 'ലാബ് ഫലം, കുറിപ്പ് അല്ലെങ്കിൽ ഡിസ്ചാർജ്'
+          : 'Lab test, prescription or discharge summary',
       tone: 'leaf',
     },
     {
       key: 'reading',
       icon: HeartPulse,
       title: lang === 'ml' ? 'റീഡിംഗ് രേഖപ്പെടുത്തുക' : 'Log a reading',
-      sub: lang === 'ml' ? 'ബ്ലഡ് പ്രഷർ, ഷുഗർ അല്ലെങ്കിൽ ഭാരം' : 'Blood pressure, blood sugar or weight',
+      sub:
+        lang === 'ml'
+          ? 'ബ്ലഡ് പ്രഷർ, ഷുഗർ അല്ലെങ്കിൽ ഭാരം'
+          : 'Blood pressure, blood sugar or weight',
       tone: 'leaf',
     },
     {
@@ -375,18 +380,13 @@ function AddSheetModal({ onClose }: { onClose: () => void }) {
           <h2 className="disp text-xl font-bold text-[var(--ink)]">
             {lang === 'ml' ? 'രേഖയിൽ ചേർക്കുക' : 'Add to record'}
           </h2>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          {options.map(opt => {
+          {options.map((opt) => {
             const Icon = opt.icon;
             return (
               <button
@@ -465,18 +465,16 @@ export function PatientLayout(): React.JSX.Element {
       {whoOpen && <WhoSheetModal onClose={() => setWhoOpen(false)} />}
       {sheet?.type === 'add' && <AddSheetModal onClose={closeSheet} />}
       {sheet?.type === 'upload' && <UploadSheetModal test={sheet.test} onClose={closeSheet} />}
-      {sheet?.type === 'report' && sheet.id && <ReportSheetModal id={sheet.id} onClose={closeSheet} />}
+      {sheet?.type === 'report' && sheet.id && (
+        <ReportSheetModal id={sheet.id} onClose={closeSheet} />
+      )}
       {sheet?.type === 'reading' && <ReadingSheetModal k0={sheet.k} onClose={closeSheet} />}
       {sheet?.type === 'symptom' && <SymptomSheetModal onClose={closeSheet} />}
       {sheet?.type === 'confirm' && <ConfirmSheetModal k={sheet.k} onClose={closeSheet} />}
 
       {/* Global Toast */}
       {toastMsg && (
-        <div
-          className="toast"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="toast" role="status" aria-live="polite">
           <Check size={18} className="flex-none text-[var(--leaf)]" />
           <span>{toastMsg}</span>
         </div>

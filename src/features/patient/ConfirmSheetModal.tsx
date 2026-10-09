@@ -43,8 +43,8 @@ export function ConfirmSheetModal({ k, onClose }: ConfirmSheetModalProps) {
           ? 'സമ്മതം പിൻവലിച്ചു. നിങ്ങൾ സൈൻ ഔട്ട് ആയി.'
           : "Consent withdrawn. You've been signed out."
         : lang === 'ml'
-        ? 'സൈൻ ഔട്ട് ചെയ്തു. നിങ്ങളുടെ രേഖകൾ ഈ ഉപകരണത്തിൽ നിന്ന് നീക്കം ചെയ്തു.'
-        : 'Signed out. Your records were cleared from this device.'
+          ? 'സൈൻ ഔട്ട് ചെയ്തു. നിങ്ങളുടെ രേഖകൾ ഈ ഉപകരണത്തിൽ നിന്ന് നീക്കം ചെയ്തു.'
+          : 'Signed out. Your records were cleared from this device.'
     );
   };
 
@@ -68,12 +68,7 @@ export function ConfirmSheetModal({ k, onClose }: ConfirmSheetModalProps) {
             )}
             <h2 className="disp text-xl font-bold text-[var(--ink)]">{title}</h2>
           </div>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -81,11 +76,7 @@ export function ConfirmSheetModal({ k, onClose }: ConfirmSheetModalProps) {
         <p className="text-sm text-[var(--ink2)] leading-relaxed mt-2">{body}</p>
 
         <div className="grid grid-cols-2 gap-3 mt-6">
-          <button
-            type="button"
-            className="btn-p btn-sec press"
-            onClick={onClose}
-          >
+          <button type="button" className="btn-p btn-sec press" onClick={onClose}>
             {t('patientProfile.cancel')}
           </button>
           <button

@@ -161,10 +161,13 @@ export function DoctorChart(): React.JSX.Element {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<'changes' | 'visits' | 'readings' | 'reports' | 'meds' | 'plan'>('changes');
+  const [activeTab, setActiveTab] = useState<
+    'changes' | 'visits' | 'readings' | 'reports' | 'meds' | 'plan'
+  >('changes');
   const [selectedReadingKind, setSelectedReadingKind] = useState<string>('Blood Pressure');
   const [composerOpen, setComposerOpen] = useState(false);
-  const [selectedEncounterForAddendum, setSelectedEncounterForAddendum] = useState<EncounterRecord | null>(null);
+  const [selectedEncounterForAddendum, setSelectedEncounterForAddendum] =
+    useState<EncounterRecord | null>(null);
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
   const [expandedEncounterId, setExpandedEncounterId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -176,7 +179,9 @@ export function DoctorChart(): React.JSX.Element {
   const [docReviewSubmitting, setDocReviewSubmitting] = useState(false);
 
   // Symptom Sheet State
-  const [symptomSheetItem, setSymptomSheetItem] = useState<{ id: string; text: string } | null>(null);
+  const [symptomSheetItem, setSymptomSheetItem] = useState<{ id: string; text: string } | null>(
+    null
+  );
   const [symptomAction, setSymptomAction] = useState('Called the patient');
   const [symptomNote, setSymptomNote] = useState('');
   const [symptomSubmitting, setSymptomSubmitting] = useState(false);
@@ -196,7 +201,9 @@ export function DoctorChart(): React.JSX.Element {
     queryFn: async () => {
       if (!patientId) return null;
       try {
-        const res = await apiFetch<{ patient: PatientRecord }>(`/api/doctor/patients/${patientId}/chart`);
+        const res = await apiFetch<{ patient: PatientRecord }>(
+          `/api/doctor/patients/${patientId}/chart`
+        );
         return res.patient || null;
       } catch {
         return null;
@@ -211,7 +218,9 @@ export function DoctorChart(): React.JSX.Element {
     queryFn: async () => {
       if (!patientId) return null;
       try {
-        const res = await apiFetch<{ careTeam: Array<{ patient_id: string }> }>('/api/doctor/care-team');
+        const res = await apiFetch<{ careTeam: Array<{ patient_id: string }> }>(
+          '/api/doctor/care-team'
+        );
         return (res.careTeam || []).find((c) => c.patient_id === patientId) || null;
       } catch {
         return null;
@@ -226,7 +235,14 @@ export function DoctorChart(): React.JSX.Element {
     queryFn: async () => {
       if (!patientId) return null;
       try {
-        const res = await apiFetch<{ emergencyAccess: Array<{ id: string; patient_id: string; reason: string; expires_at: string }> }>('/api/doctor/emergency-access');
+        const res = await apiFetch<{
+          emergencyAccess: Array<{
+            id: string;
+            patient_id: string;
+            reason: string;
+            expires_at: string;
+          }>;
+        }>('/api/doctor/emergency-access');
         return (res.emergencyAccess || []).find((ea) => ea.patient_id === patientId) || null;
       } catch {
         return null;
@@ -428,7 +444,8 @@ export function DoctorChart(): React.JSX.Element {
           <div>
             <h2 className="text-lg font-bold text-[var(--ink)]">Not in your care team</h2>
             <p className="text-sm text-[var(--ink2)] mt-1.5 leading-relaxed">
-              You can see contact details only. If you need this clinical record to treat the patient now, use emergency break-glass access.
+              You can see contact details only. If you need this clinical record to treat the
+              patient now, use emergency break-glass access.
             </p>
             <button
               type="button"
@@ -468,8 +485,10 @@ export function DoctorChart(): React.JSX.Element {
 
   // Filter observations by selected kind
   const filteredObservations = observations.filter((o) => {
-    if (selectedReadingKind === 'Blood Pressure') return o.kind.toLowerCase().includes('pressure') || o.kind === 'BP';
-    if (selectedReadingKind === 'Fasting Sugar') return o.kind.toLowerCase().includes('sugar') || o.kind.toLowerCase().includes('glucose');
+    if (selectedReadingKind === 'Blood Pressure')
+      return o.kind.toLowerCase().includes('pressure') || o.kind === 'BP';
+    if (selectedReadingKind === 'Fasting Sugar')
+      return o.kind.toLowerCase().includes('sugar') || o.kind.toLowerCase().includes('glucose');
     if (selectedReadingKind === 'HbA1c') return o.kind.toLowerCase().includes('hba1c');
     if (selectedReadingKind === 'Weight') return o.kind.toLowerCase().includes('weight');
     return true;
@@ -490,15 +509,23 @@ export function DoctorChart(): React.JSX.Element {
 
       {/* Emergency Active Banner */}
       {activeEmergency && (
-        <div className="ebanner mb-6 p-4 rounded-2xl bg-[#FFF5F2] border border-[#F5B9AB] flex items-center justify-between gap-4" role="alert">
+        <div
+          className="ebanner mb-6 p-4 rounded-2xl bg-[#FFF5F2] border border-[#F5B9AB] flex items-center justify-between gap-4"
+          role="alert"
+        >
           <div className="flex items-center gap-3">
             <ShieldAlert size={24} className="text-[var(--lat)] flex-none" />
             <div className="text-sm">
               <b className="block text-[var(--lat)] font-bold">
-                Emergency access active until {new Date(activeEmergency.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Emergency access active until{' '}
+                {new Date(activeEmergency.expires_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </b>
               <span className="text-[var(--ink2)]">
-                Reason: {activeEmergency.reason}. Access is logged and audited by hospital administration.
+                Reason: {activeEmergency.reason}. Access is logged and audited by hospital
+                administration.
               </span>
             </div>
           </div>
@@ -548,7 +575,10 @@ export function DoctorChart(): React.JSX.Element {
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 {activeConditionsList.map((cond) => (
-                  <span key={cond.id} className="cond text-xs px-2.5 py-1 rounded-md bg-[var(--mist)] text-[var(--ink)] font-medium">
+                  <span
+                    key={cond.id}
+                    className="cond text-xs px-2.5 py-1 rounded-md bg-[var(--mist)] text-[var(--ink)] font-medium"
+                  >
                     {cond.name}
                   </span>
                 ))}
@@ -583,7 +613,10 @@ export function DoctorChart(): React.JSX.Element {
 
         {/* Allergy Warning Alert */}
         {allergies.length > 0 && (
-          <div className="mt-5 p-3 rounded-xl bg-[#FFF8EB] border border-[#F3D27A] flex items-center gap-2.5 text-sm font-semibold text-[#8C6D1F]" role="alert">
+          <div
+            className="mt-5 p-3 rounded-xl bg-[#FFF8EB] border border-[#F3D27A] flex items-center gap-2.5 text-sm font-semibold text-[#8C6D1F]"
+            role="alert"
+          >
             <AlertTriangle size={18} className="text-[#C9A43B] flex-none" />
             <span>
               Allergic to {allergies.map((a) => `${a.substance} (${a.reaction})`).join(', ')}
@@ -600,14 +633,22 @@ export function DoctorChart(): React.JSX.Element {
       </div>
 
       {/* 6 Tabs Navigation */}
-      <div className="hscroll flex gap-2 mt-6 overflow-x-auto pb-1" role="tablist" aria-label="Chart sections">
+      <div
+        className="hscroll flex gap-2 mt-6 overflow-x-auto pb-1"
+        role="tablist"
+        aria-label="Chart sections"
+      >
         {[
           { key: 'changes', label: t('doctorChart.tabChanges'), badge: whatChangedItems.length },
           { key: 'visits', label: t('doctorChart.tabVisits'), count: encounters.length },
           { key: 'readings', label: t('doctorChart.tabReadings'), count: observations.length },
           { key: 'reports', label: t('doctorChart.tabReports'), count: documents.length },
           { key: 'meds', label: t('doctorChart.tabMeds'), count: activeMedicationsList.length },
-          { key: 'plan', label: t('doctorChart.tabPlan'), count: activeCarePlan?.care_plan_items?.length || 0 },
+          {
+            key: 'plan',
+            label: t('doctorChart.tabPlan'),
+            count: activeCarePlan?.care_plan_items?.length || 0,
+          },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -618,13 +659,21 @@ export function DoctorChart(): React.JSX.Element {
                 ? 'bg-[var(--leaf)] text-white shadow-xs'
                 : 'bg-white text-[var(--ink2)] border border-[var(--line)] hover:bg-[var(--mist)]'
             }`}
-            onClick={() => setActiveTab(tab.key as 'changes' | 'visits' | 'readings' | 'reports' | 'meds' | 'plan')}
+            onClick={() =>
+              setActiveTab(
+                tab.key as 'changes' | 'visits' | 'readings' | 'reports' | 'meds' | 'plan'
+              )
+            }
           >
             <span>{tab.label}</span>
             {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`pill-n text-xs px-1.5 py-0.2 rounded-full font-bold ${
-                activeTab === tab.key ? 'bg-white/30 text-white' : 'bg-[var(--mist)] text-[var(--ink)]'
-              }`}>
+              <span
+                className={`pill-n text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTab === tab.key
+                    ? 'bg-white/30 text-white'
+                    : 'bg-[var(--mist)] text-[var(--ink)]'
+                }`}
+              >
                 {tab.badge}
               </span>
             )}
@@ -645,8 +694,12 @@ export function DoctorChart(): React.JSX.Element {
               {whatChangedItems.length === 0 ? (
                 <div className="p-8 text-center bg-white rounded-2xl border border-[var(--line)] text-[var(--ink3)]">
                   <BadgeCheck size={32} className="mx-auto text-[var(--leaf)] mb-2" />
-                  <p className="font-semibold text-base text-[var(--ink)]">Nothing new since last visit</p>
-                  <p className="text-sm mt-1">No pending reports, out-of-range readings, or reported symptoms.</p>
+                  <p className="font-semibold text-base text-[var(--ink)]">
+                    Nothing new since last visit
+                  </p>
+                  <p className="text-sm mt-1">
+                    No pending reports, out-of-range readings, or reported symptoms.
+                  </p>
                 </div>
               ) : (
                 <ol className="flex flex-col gap-3">
@@ -659,10 +712,10 @@ export function DoctorChart(): React.JSX.Element {
                     const Icon = isReport
                       ? FileText
                       : isReading
-                      ? Activity
-                      : isSymptom
-                      ? MessageSquare
-                      : Clock;
+                        ? Activity
+                        : isSymptom
+                          ? MessageSquare
+                          : Clock;
 
                     const dateFormatted = new Date(item.happened_at).toLocaleDateString([], {
                       day: 'numeric',
@@ -677,11 +730,13 @@ export function DoctorChart(): React.JSX.Element {
                         <span className="text-xs font-bold text-[var(--ink3)] w-14 flex-none pt-0.5">
                           {dateFormatted}
                         </span>
-                        <span className={`p-2 rounded-xl flex-none ${
-                          isReading || isMissed
-                            ? 'bg-[#FFF2EE] text-[var(--lat)]'
-                            : 'bg-[var(--leaft)] text-[var(--leaf)]'
-                        }`}>
+                        <span
+                          className={`p-2 rounded-xl flex-none ${
+                            isReading || isMissed
+                              ? 'bg-[#FFF2EE] text-[var(--lat)]'
+                              : 'bg-[var(--leaft)] text-[var(--leaf)]'
+                          }`}
+                        >
                           <Icon size={18} />
                         </span>
                         <div className="flex-1 min-w-0">
@@ -704,12 +759,16 @@ export function DoctorChart(): React.JSX.Element {
                             <button
                               type="button"
                               onClick={() => {
-                                const foundDoc: DocumentRecord = documents.find((d) => d.id === item.ref_id) || {
+                                const foundDoc: DocumentRecord = documents.find(
+                                  (d) => d.id === item.ref_id
+                                ) || {
                                   id: item.ref_id,
                                   title: item.summary.replace('New report: ', ''),
                                   type: 'lab',
                                   storage_path: '',
-                                  report_date: item.happened_at ? item.happened_at.split('T')[0] || '' : '',
+                                  report_date: item.happened_at
+                                    ? item.happened_at.split('T')[0] || ''
+                                    : '',
                                   source: 'patient',
                                   review_status: 'pending',
                                   reviewed_at: null,
@@ -781,7 +840,11 @@ export function DoctorChart(): React.JSX.Element {
                     {t('doctorChart.keepingToPlan')}
                   </h3>
                   <p className="text-xs text-[var(--ink3)] mb-4">
-                    Active plan from {new Date(activeCarePlan.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    Active plan from{' '}
+                    {new Date(activeCarePlan.created_at).toLocaleDateString([], {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </p>
                   <div className="space-y-3">
                     <div>
@@ -790,7 +853,10 @@ export function DoctorChart(): React.JSX.Element {
                         <span>85%</span>
                       </div>
                       <div className="w-full bg-[var(--line)] rounded-full h-2 overflow-hidden">
-                        <div className="bg-[var(--leaf)] h-full rounded-full" style={{ width: '85%' }} />
+                        <div
+                          className="bg-[var(--leaf)] h-full rounded-full"
+                          style={{ width: '85%' }}
+                        />
                       </div>
                     </div>
                     <div>
@@ -799,7 +865,10 @@ export function DoctorChart(): React.JSX.Element {
                         <span>5 of 7</span>
                       </div>
                       <div className="w-full bg-[var(--line)] rounded-full h-2 overflow-hidden">
-                        <div className="bg-[var(--leaf)] h-full rounded-full" style={{ width: '71%' }} />
+                        <div
+                          className="bg-[var(--leaf)] h-full rounded-full"
+                          style={{ width: '71%' }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -813,7 +882,9 @@ export function DoctorChart(): React.JSX.Element {
         {activeTab === 'visits' && (
           <div className="max-w-3xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-[var(--ink)]">{t('doctorChart.tabs.visits')}</h2>
+              <h2 className="text-lg font-bold text-[var(--ink)]">
+                {t('doctorChart.tabs.visits')}
+              </h2>
               {!todaysSignedEncounter && (
                 <button
                   type="button"
@@ -834,7 +905,9 @@ export function DoctorChart(): React.JSX.Element {
             {encounters.length === 0 ? (
               <div className="p-8 text-center bg-white rounded-2xl border border-[var(--line)] text-[var(--ink3)]">
                 <p className="font-semibold text-base text-[var(--ink)]">No visits recorded yet</p>
-                <p className="text-sm mt-1">Today's note will become the first consultation entry.</p>
+                <p className="text-sm mt-1">
+                  Today's note will become the first consultation entry.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -863,7 +936,8 @@ export function DoctorChart(): React.JSX.Element {
                           <div>
                             <b className="block text-base text-[var(--ink)] font-bold">{dateStr}</b>
                             <span className="block text-xs text-[var(--ink3)] mt-0.5">
-                              {enc.staff?.full_name || 'Dr. Rahul Menon'} &bull; {enc.departments?.name || 'General Medicine'}
+                              {enc.staff?.full_name || 'Dr. Rahul Menon'} &bull;{' '}
+                              {enc.departments?.name || 'General Medicine'}
                             </span>
                             <span className="block text-sm text-[var(--ink2)] mt-1 font-medium">
                               {enc.chief_complaint || 'General follow-up consultation'}
@@ -883,7 +957,9 @@ export function DoctorChart(): React.JSX.Element {
                               <span className="text-xs font-bold text-[var(--ink3)] uppercase tracking-wider block">
                                 Diagnosis
                               </span>
-                              <p className="font-semibold text-[var(--ink)] mt-0.5">{enc.diagnosis}</p>
+                              <p className="font-semibold text-[var(--ink)] mt-0.5">
+                                {enc.diagnosis}
+                              </p>
                             </div>
                           )}
 
@@ -892,7 +968,9 @@ export function DoctorChart(): React.JSX.Element {
                               <span className="text-xs font-bold text-[var(--ink3)] uppercase tracking-wider block">
                                 Findings & Notes
                               </span>
-                              <p className="text-[var(--ink2)] mt-0.5 leading-relaxed">{enc.clinical_notes}</p>
+                              <p className="text-[var(--ink2)] mt-0.5 leading-relaxed">
+                                {enc.clinical_notes}
+                              </p>
                             </div>
                           )}
 
@@ -903,10 +981,15 @@ export function DoctorChart(): React.JSX.Element {
                                 Corrections & Addenda
                               </span>
                               {enc.encounter_addenda.map((addendum) => (
-                                <div key={addendum.id} className="p-3 rounded-xl bg-[#FFF9F5] border border-[#F5D5C6]">
+                                <div
+                                  key={addendum.id}
+                                  className="p-3 rounded-xl bg-[#FFF9F5] border border-[#F5D5C6]"
+                                >
                                   <div className="flex items-center justify-between text-xs font-semibold text-[var(--ink2)]">
                                     <span>Correction ({addendum.reason})</span>
-                                    <span>{new Date(addendum.created_at).toLocaleDateString()}</span>
+                                    <span>
+                                      {new Date(addendum.created_at).toLocaleDateString()}
+                                    </span>
                                   </div>
                                   <p className="text-sm text-[var(--ink)] mt-1">{addendum.notes}</p>
                                 </div>
@@ -945,7 +1028,9 @@ export function DoctorChart(): React.JSX.Element {
                   key={metric}
                   type="button"
                   className={`chip press px-3.5 py-1.5 rounded-full text-sm font-semibold ${
-                    selectedReadingKind === metric ? 'on bg-[var(--leaf)] text-white' : 'bg-white text-[var(--ink2)] border border-[var(--line)]'
+                    selectedReadingKind === metric
+                      ? 'on bg-[var(--leaf)] text-white'
+                      : 'bg-white text-[var(--ink2)] border border-[var(--line)]'
                   }`}
                   onClick={() => setSelectedReadingKind(metric)}
                 >
@@ -970,7 +1055,9 @@ export function DoctorChart(): React.JSX.Element {
                     </b>
                     <span className="text-xs text-[var(--ink3)] block mt-1">
                       {filteredObservations[0]
-                        ? `Recorded ${new Date(filteredObservations[0].measured_at).toLocaleDateString([], {
+                        ? `Recorded ${new Date(
+                            filteredObservations[0].measured_at
+                          ).toLocaleDateString([], {
                             day: 'numeric',
                             month: 'short',
                           })} (${filteredObservations[0].source === 'clinic' ? t('doctorChart.hospital') : t('doctorChart.patientReported')})`
@@ -994,7 +1081,13 @@ export function DoctorChart(): React.JSX.Element {
 
                 {/* Target Guideline Notice */}
                 <p className="text-xs text-[var(--ink3)] mt-4 pt-3 border-t border-[var(--line)]">
-                  Clinical Target: {selectedReadingKind === 'Blood Pressure' ? '< 130/80 mmHg' : selectedReadingKind === 'HbA1c' ? '< 7.0 %' : 'In prescribed clinical band'}.
+                  Clinical Target:{' '}
+                  {selectedReadingKind === 'Blood Pressure'
+                    ? '< 130/80 mmHg'
+                    : selectedReadingKind === 'HbA1c'
+                      ? '< 7.0 %'
+                      : 'In prescribed clinical band'}
+                  .
                 </p>
               </div>
 
@@ -1012,7 +1105,10 @@ export function DoctorChart(): React.JSX.Element {
                             {obs.value_text} {obs.unit}
                           </b>
                           <span className="text-xs text-[var(--ink3)]">
-                            {new Date(obs.measured_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                            {new Date(obs.measured_at).toLocaleDateString([], {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
                           </span>
                         </div>
                         <span
@@ -1022,7 +1118,9 @@ export function DoctorChart(): React.JSX.Element {
                               : 'bg-[var(--mist)] text-[var(--ink2)]'
                           }`}
                         >
-                          {obs.source === 'clinic' ? t('doctorChart.hospital') : t('doctorChart.patientReported')}
+                          {obs.source === 'clinic'
+                            ? t('doctorChart.hospital')
+                            : t('doctorChart.patientReported')}
                         </span>
                       </div>
                     ))}
@@ -1041,7 +1139,9 @@ export function DoctorChart(): React.JSX.Element {
             {documents.length === 0 ? (
               <div className="p-8 text-center bg-white rounded-2xl border border-[var(--line)] text-[var(--ink3)]">
                 <FileText size={32} className="mx-auto text-[var(--ink3)] mb-2" />
-                <p className="font-semibold text-base text-[var(--ink)]">{t('doctorChart.noReports')}</p>
+                <p className="font-semibold text-base text-[var(--ink)]">
+                  {t('doctorChart.noReports')}
+                </p>
                 <p className="text-sm mt-1">Lab reports and uploads from patient appear here.</p>
               </div>
             ) : (
@@ -1055,9 +1155,13 @@ export function DoctorChart(): React.JSX.Element {
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            isPending ? 'bg-[#FFF6E5] text-[#A67814]' : 'bg-[var(--leaft)] text-[var(--leaf)]'
-                          }`}>
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                              isPending
+                                ? 'bg-[#FFF6E5] text-[#A67814]'
+                                : 'bg-[var(--leaft)] text-[var(--leaf)]'
+                            }`}
+                          >
                             {isPending ? t('doctorChart.waitingReview') : t('doctorChart.reviewed')}
                           </span>
                           <span className="text-xs text-[var(--ink3)]">{doc.report_date}</span>
@@ -1098,7 +1202,9 @@ export function DoctorChart(): React.JSX.Element {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[var(--ink)]">{t('doctorChart.tabs.meds')}</h2>
-              <span className="text-xs text-[var(--ink3)]">{t('doctorChart.changeStopPrescribe')}</span>
+              <span className="text-xs text-[var(--ink3)]">
+                {t('doctorChart.changeStopPrescribe')}
+              </span>
             </div>
 
             <div>
@@ -1124,10 +1230,21 @@ export function DoctorChart(): React.JSX.Element {
                           {med.dose}
                         </span>
                         <div className="flex items-center gap-2 mt-3">
-                          <span className={`w-2.5 h-2.5 rounded-full ${morning ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`} title="Morning" />
-                          <span className={`w-2.5 h-2.5 rounded-full ${afternoon ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`} title="Afternoon" />
-                          <span className={`w-2.5 h-2.5 rounded-full ${night ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`} title="Night" />
-                          <span className="text-xs text-[var(--ink2)] ml-2">{med.instructions}</span>
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full ${morning ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`}
+                            title="Morning"
+                          />
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full ${afternoon ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`}
+                            title="Afternoon"
+                          />
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full ${night ? 'bg-[var(--leaf)]' : 'bg-[var(--line)]'}`}
+                            title="Night"
+                          />
+                          <span className="text-xs text-[var(--ink2)] ml-2">
+                            {med.instructions}
+                          </span>
                         </div>
                       </div>
                     );
@@ -1143,9 +1260,17 @@ export function DoctorChart(): React.JSX.Element {
                 </h3>
                 <div className="space-y-2">
                   {stoppedMedicationsList.map((med) => (
-                    <div key={med.id} className="p-3 rounded-xl bg-[var(--mist)] text-sm text-[var(--ink2)] flex items-center justify-between">
-                      <span className="font-semibold">{med.drug} {med.dose}</span>
-                      <span className="text-xs text-[var(--ink3)]">Stopped {med.stopped_at ? new Date(med.stopped_at).toLocaleDateString() : ''}</span>
+                    <div
+                      key={med.id}
+                      className="p-3 rounded-xl bg-[var(--mist)] text-sm text-[var(--ink2)] flex items-center justify-between"
+                    >
+                      <span className="font-semibold">
+                        {med.drug} {med.dose}
+                      </span>
+                      <span className="text-xs text-[var(--ink3)]">
+                        Stopped{' '}
+                        {med.stopped_at ? new Date(med.stopped_at).toLocaleDateString() : ''}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1162,12 +1287,16 @@ export function DoctorChart(): React.JSX.Element {
             {!activeCarePlan ? (
               <div className="p-8 text-center bg-white rounded-2xl border border-[var(--line)] text-[var(--ink3)]">
                 <p className="font-semibold text-base text-[var(--ink)]">No active care plan</p>
-                <p className="text-sm mt-1">A care plan can be generated during consultation note signing.</p>
+                <p className="text-sm mt-1">
+                  A care plan can be generated during consultation note signing.
+                </p>
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Diet Guidance Card */}
-                {activeCarePlan.care_plan_items?.some((item) => item.kind === 'diet' && item.diet_guides) && (
+                {activeCarePlan.care_plan_items?.some(
+                  (item) => item.kind === 'diet' && item.diet_guides
+                ) && (
                   <div className="bg-white rounded-2xl border-2 border-[var(--leaf)] p-5 shadow-xs">
                     {activeCarePlan.care_plan_items
                       .filter((item) => item.kind === 'diet' && item.diet_guides)
@@ -1187,7 +1316,9 @@ export function DoctorChart(): React.JSX.Element {
                                 <span className="text-xs font-bold uppercase tracking-wider text-[var(--leaf)] block">
                                   {t('doctorChart.dietAdvice')}
                                 </span>
-                                <h3 className="text-xl font-bold text-[var(--ink)] mt-0.5">{title}</h3>
+                                <h3 className="text-xl font-bold text-[var(--ink)] mt-0.5">
+                                  {title}
+                                </h3>
                               </div>
                               <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-[#FFF8EB] border border-[#F3D27A] text-[#8C6D1F]">
                                 {t('doctorChart.dietDemoBadge')}
@@ -1206,15 +1337,21 @@ export function DoctorChart(): React.JSX.Element {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                               <div className="p-3.5 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0]">
-                                <b className="text-[#166534] block mb-1">{t('doctorChart.eatMore')}</b>
+                                <b className="text-[#166534] block mb-1">
+                                  {t('doctorChart.eatMore')}
+                                </b>
                                 <p className="text-[#14532D] text-xs leading-relaxed">{eatMore}</p>
                               </div>
                               <div className="p-3.5 rounded-xl bg-[#FEFCE8] border border-[#FEF08A]">
-                                <b className="text-[#854D0E] block mb-1">{t('doctorChart.eatLess')}</b>
+                                <b className="text-[#854D0E] block mb-1">
+                                  {t('doctorChart.eatLess')}
+                                </b>
                                 <p className="text-[#713F12] text-xs leading-relaxed">{eatLess}</p>
                               </div>
                               <div className="p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA]">
-                                <b className="text-[#991B1B] block mb-1">{t('doctorChart.avoid')}</b>
+                                <b className="text-[#991B1B] block mb-1">
+                                  {t('doctorChart.avoid')}
+                                </b>
                                 <p className="text-[#7F1D1D] text-xs leading-relaxed">{avoid}</p>
                               </div>
                               <div className="p-3.5 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE]">
@@ -1235,7 +1372,10 @@ export function DoctorChart(): React.JSX.Element {
                     {activeCarePlan.care_plan_items
                       ?.filter((i) => i.kind !== 'diet')
                       .map((item) => (
-                        <div key={item.id} className="p-3 rounded-xl bg-[var(--paper)] border border-[var(--line)] flex items-start gap-3">
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-[var(--paper)] border border-[var(--line)] flex items-start gap-3"
+                        >
                           <span className="p-1.5 rounded-lg bg-[var(--leaft)] text-[var(--leaf)] flex-none mt-0.5">
                             <Check size={16} />
                           </span>
@@ -1285,7 +1425,9 @@ export function DoctorChart(): React.JSX.Element {
         <AddendumModal
           encounterId={selectedEncounterForAddendum.id}
           patientId={patient.id}
-          encounterDate={new Date(selectedEncounterForAddendum.signed_at || selectedEncounterForAddendum.created_at).toLocaleDateString()}
+          encounterDate={new Date(
+            selectedEncounterForAddendum.signed_at || selectedEncounterForAddendum.created_at
+          ).toLocaleDateString()}
           doctorName={selectedEncounterForAddendum.staff?.full_name || 'Dr. Rahul Menon'}
           onClose={() => setSelectedEncounterForAddendum(null)}
           onSaved={async () => {
@@ -1298,7 +1440,11 @@ export function DoctorChart(): React.JSX.Element {
 
       {/* MODAL 3: Review Report Sheet */}
       {reviewSheetDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="staff-theme w-full max-w-lg rounded-[24px] bg-white p-6 shadow-2xl border border-[var(--line)]">
             <h2 className="text-xl font-bold text-[var(--ink)]">
               {t('doctorReview.reviewTitle', { title: reviewSheetDoc.title })}
@@ -1362,12 +1508,20 @@ export function DoctorChart(): React.JSX.Element {
 
       {/* MODAL 4: Mark Symptom Seen Sheet */}
       {symptomSheetItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="staff-theme w-full max-w-lg rounded-[24px] bg-white p-6 shadow-2xl border border-[var(--line)]">
             <h2 className="text-xl font-bold text-[var(--ink)]">Mark symptom as seen</h2>
             <div className="p-3.5 rounded-xl bg-[var(--mist)] mt-3">
-              <span className="text-xs font-semibold text-[var(--ink3)] block">Patient Reported:</span>
-              <p className="text-sm font-medium text-[var(--ink)] mt-0.5">{symptomSheetItem.text}</p>
+              <span className="text-xs font-semibold text-[var(--ink3)] block">
+                Patient Reported:
+              </span>
+              <p className="text-sm font-medium text-[var(--ink)] mt-0.5">
+                {symptomSheetItem.text}
+              </p>
             </div>
 
             <form onSubmit={handleSymptomSeen} className="mt-5 space-y-4">
@@ -1381,9 +1535,15 @@ export function DoctorChart(): React.JSX.Element {
                   className="w-full rounded-xl border border-[var(--line)] p-3 text-sm text-[var(--ink)] bg-white focus:outline-none focus:border-[var(--leaf)]"
                 >
                   <option value="Called the patient">Called the patient</option>
-                  <option value="Asked the desk to book an earlier visit">Asked the desk to book an earlier visit</option>
-                  <option value="Told the patient to come to casualty">Told the patient to come to casualty</option>
-                  <option value="Will discuss at the next visit">Will discuss at the next visit</option>
+                  <option value="Asked the desk to book an earlier visit">
+                    Asked the desk to book an earlier visit
+                  </option>
+                  <option value="Told the patient to come to casualty">
+                    Told the patient to come to casualty
+                  </option>
+                  <option value="Will discuss at the next visit">
+                    Will discuss at the next visit
+                  </option>
                 </select>
               </div>
 

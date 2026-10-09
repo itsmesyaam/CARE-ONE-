@@ -247,7 +247,11 @@ export function AdminDashboard(): React.JSX.Element {
             title={t('common.signOut', 'Sign Out')}
           >
             <LogOut className="h-4 w-4" />
-            <span>{isSigningOut ? t('common.signingOut', 'Signing out...') : t('common.signOut', 'Sign Out')}</span>
+            <span>
+              {isSigningOut
+                ? t('common.signingOut', 'Signing out...')
+                : t('common.signOut', 'Sign Out')}
+            </span>
           </button>
         </div>
       </div>

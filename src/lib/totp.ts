@@ -57,11 +57,7 @@ export async function generateTotp(secret: string, step = 30): Promise<string> {
   const b3 = hmac[offset + 3] ?? 0;
 
   const code =
-    (((b0 & 0x7f) << 24) |
-      ((b1 & 0xff) << 16) |
-      ((b2 & 0xff) << 8) |
-      (b3 & 0xff)) %
-    1000000;
+    (((b0 & 0x7f) << 24) | ((b1 & 0xff) << 16) | ((b2 & 0xff) << 8) | (b3 & 0xff)) % 1000000;
 
   return code.toString().padStart(6, '0');
 }

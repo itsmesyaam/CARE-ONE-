@@ -74,7 +74,9 @@ describe('Patient Reminders & Appointments Feature', () => {
     expect(screen.getAllByText(/Completed/i).length).toBeGreaterThan(0);
 
     // Call desk link
-    const telLinks = screen.getAllByRole('link').filter(l => l.getAttribute('href') === 'tel:04840001234');
+    const telLinks = screen
+      .getAllByRole('link')
+      .filter((l) => l.getAttribute('href') === 'tel:04840001234');
     expect(telLinks.length).toBeGreaterThan(0);
   });
 
@@ -105,7 +107,9 @@ describe('Patient Reminders & Appointments Feature', () => {
   });
 
   it('signs out user completely by calling /api/auth/signout and clearing session', async () => {
-    const signOutSpy = vi.spyOn(apiClient, 'apiFetch').mockResolvedValue({ success: true } as never);
+    const signOutSpy = vi
+      .spyOn(apiClient, 'apiFetch')
+      .mockResolvedValue({ success: true } as never);
 
     render(
       <MemoryRouter initialEntries={['/patient/profile']}>
@@ -124,16 +128,19 @@ describe('Patient Reminders & Appointments Feature', () => {
     fireEvent.click(signOutBtn);
 
     // Confirm inside modal
-    const confirmBtn = screen.getAllByRole('button', { name: /Sign out/i }).find(
-      btn => btn.closest('[role="dialog"]') !== null
-    );
+    const confirmBtn = screen
+      .getAllByRole('button', { name: /Sign out/i })
+      .find((btn) => btn.closest('[role="dialog"]') !== null);
     expect(confirmBtn).toBeDefined();
     if (confirmBtn) {
       fireEvent.click(confirmBtn);
     }
 
     await waitFor(() => {
-      expect(signOutSpy).toHaveBeenCalledWith('/api/auth/signout', expect.objectContaining({ method: 'POST' }));
+      expect(signOutSpy).toHaveBeenCalledWith(
+        '/api/auth/signout',
+        expect.objectContaining({ method: 'POST' })
+      );
     });
   });
 });

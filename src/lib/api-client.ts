@@ -3,10 +3,7 @@
  * Wraps native fetch for /api/* endpoints with cookie sessions, JSON serialization, and error handling.
  */
 
-export async function apiFetch<T = unknown>(
-  url: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiFetch<T = unknown>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');

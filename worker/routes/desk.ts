@@ -5,11 +5,7 @@
 
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
-import {
-  type AccessVariables,
-  declareRoutePolicy,
-  requireAccess,
-} from '../middleware/access';
+import { type AccessVariables, declareRoutePolicy, requireAccess } from '../middleware/access';
 
 export const deskRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -22,11 +18,12 @@ const deskPatientsSearchPolicy = declareRoutePolicy('GET', '/api/desk/patients',
   requireMfa: true,
 });
 
-deskRoutes.get('/patients', requireAccess(deskPatientsSearchPolicy), async c => {
+deskRoutes.get('/patients', requireAccess(deskPatientsSearchPolicy), async (c) => {
   const q = (c.req.query('q') || '').trim();
   const db = c.env.DB;
 
-  let query = 'SELECT id, uhid, mrn, full_name, dob, gender, phone, email, id_checked, created_at FROM patients WHERE deleted_at IS NULL';
+  let query =
+    'SELECT id, uhid, mrn, full_name, dob, gender, phone, email, id_checked, created_at FROM patients WHERE deleted_at IS NULL';
   const params: string[] = [];
 
   if (q) {
@@ -36,7 +33,9 @@ deskRoutes.get('/patients', requireAccess(deskPatientsSearchPolicy), async c => 
   query += ' ORDER BY full_name ASC LIMIT 50';
 
   const stmt = db.prepare(query);
-  const results = (await (params.length > 0 ? stmt.bind(...params) : stmt).all()) as { results: unknown[] };
+  const results = (await (params.length > 0 ? stmt.bind(...params) : stmt).all()) as {
+    results: unknown[];
+  };
 
   return c.json({ patients: results.results });
 });
@@ -47,7 +46,7 @@ const registerPatientPolicy = declareRoutePolicy('POST', '/api/desk/patients', {
   requireMfa: true,
 });
 
-deskRoutes.post('/patients', requireAccess(registerPatientPolicy), async c => {
+deskRoutes.post('/patients', requireAccess(registerPatientPolicy), async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     fullName?: string;
     dob?: string;
@@ -102,10 +101,7 @@ deskRoutes.post('/patients', requireAccess(registerPatientPolicy), async c => {
     )
     .run();
 
-  const record = await db
-    .prepare('SELECT * FROM patients WHERE id = ?')
-    .bind(patientId)
-    .first();
+  const record = await db.prepare('SELECT * FROM patients WHERE id = ?').bind(patientId).first();
 
   return c.json({ success: true, patient: record });
 });
@@ -116,7 +112,7 @@ const bookAppointmentPolicy = declareRoutePolicy('POST', '/api/desk/appointments
   requireMfa: true,
 });
 
-deskRoutes.post('/appointments', requireAccess(bookAppointmentPolicy), async c => {
+deskRoutes.post('/appointments', requireAccess(bookAppointmentPolicy), async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     patientId?: string;
     doctorId?: string;
@@ -155,10 +151,7 @@ deskRoutes.post('/appointments', requireAccess(bookAppointmentPolicy), async c =
     )
     .run();
 
-  const record = await db
-    .prepare('SELECT * FROM appointments WHERE id = ?')
-    .bind(apptId)
-    .first();
+  const record = await db.prepare('SELECT * FROM appointments WHERE id = ?').bind(apptId).first();
 
   return c.json({ success: true, appointment: record });
 });

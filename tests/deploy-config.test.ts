@@ -43,7 +43,8 @@ describe('Deploy configuration files', () => {
     // Headers
     expect(vercelConfig.headers).toBeDefined();
     const routeHeaders = vercelConfig.headers.find(
-      (h: { source: string; headers: Array<{ key: string; value: string }> }) => h.source === '/(.*)'
+      (h: { source: string; headers: Array<{ key: string; value: string }> }) =>
+        h.source === '/(.*)'
     );
     expect(routeHeaders, 'Route headers for /(.*) must exist').toBeDefined();
     const headersMap = new Map(
@@ -51,12 +52,12 @@ describe('Deploy configuration files', () => {
     );
 
     expect(headersMap.get('Content-Security-Policy')).toContain("default-src 'self'");
-    expect(headersMap.get('Content-Security-Policy')).toContain('https://challenges.cloudflare.com');
+    expect(headersMap.get('Content-Security-Policy')).toContain(
+      'https://challenges.cloudflare.com'
+    );
     expect(headersMap.get('Content-Security-Policy')).toContain("connect-src 'self'");
     expect(headersMap.get('Content-Security-Policy')).not.toContain('sentry.io');
-    expect(headersMap.get('Strict-Transport-Security')).toBe(
-      'max-age=31536000; includeSubDomains'
-    );
+    expect(headersMap.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
     expect(headersMap.get('X-Frame-Options')).toBe('DENY');
     expect(headersMap.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headersMap.get('Referrer-Policy')).toBe('no-referrer');

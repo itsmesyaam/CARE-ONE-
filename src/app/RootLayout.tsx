@@ -80,7 +80,10 @@ export function RootLayout(): React.JSX.Element {
       </header>
 
       {/* Main Content Area */}
-      <main role="main" className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12">
+      <main
+        role="main"
+        className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12"
+      >
         <div className="w-full max-w-4xl">
           {/* Hero Section */}
           <div className="mb-10 text-center">

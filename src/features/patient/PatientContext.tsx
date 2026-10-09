@@ -5,7 +5,8 @@ import { apiFetch } from '../../lib/api-client';
 import { SAMPLE_PEOPLE, createSampleSeed, PatientPerson, PatientRecordData } from './mock';
 
 export interface PatientSheetConfig {
-  type: 'add' | 'upload' | 'reading' | 'symptom' | 'report' | 'request' | 'confirm' | 'notice' | 'who';
+  type:
+    'add' | 'upload' | 'reading' | 'symptom' | 'report' | 'request' | 'confirm' | 'notice' | 'who';
   test?: string;
   k?: string;
   id?: string;
@@ -46,9 +47,19 @@ export interface PatientContextType {
   inst: boolean;
   setInst: (inst: boolean) => void;
   take: (key: string) => void;
-  addReport: (params: { title: string; kind: string; file: { name: string; size: number }; test?: string | null }) => string;
+  addReport: (params: {
+    title: string;
+    kind: string;
+    file: { name: string; size: number };
+    test?: string | null;
+  }) => string;
   addReading: (k: string, v: number | [number, number], ctx?: string | null) => void;
-  addSymptom: (params: { sel: string[]; txt: string; sev: 'mild' | 'moderate' | 'severe'; since?: string }) => void;
+  addSymptom: (params: {
+    sel: string[];
+    txt: string;
+    sev: 'mild' | 'moderate' | 'severe';
+    since?: string;
+  }) => void;
   signOut: (msg?: string) => Promise<void>;
   isSampleData: boolean;
 }
@@ -61,10 +72,10 @@ export const usePatient = (): PatientContextType => {
   return ctx;
 };
 
-export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app' }> = ({
-  children,
-  initialStep = 'app',
-}) => {
+export const PatientProvider: React.FC<{
+  children: React.ReactNode;
+  initialStep?: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app';
+}> = ({ children, initialStep = 'app' }) => {
   const { i18n } = useTranslation();
   const [lang, setLangState] = useState<string>(() => {
     try {
@@ -73,7 +84,9 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
       return i18n.language || 'en';
     }
   });
-  const [step, setStep] = useState<'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app'>(initialStep);
+  const [step, setStep] = useState<'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app'>(
+    initialStep
+  );
   const [pid, setPid] = useState<string>('anjali');
   const [tab, setTabState] = useState<string>('home');
   const [recTab, setRecTab] = useState<string>('reports');
@@ -162,10 +175,10 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
         v === 'home'
           ? '/patient'
           : v === 'appts'
-          ? '/patient/appointments'
-          : v === 'me'
-          ? '/patient/profile'
-          : `/patient/${v}`;
+            ? '/patient/appointments'
+            : v === 'me'
+              ? '/patient/profile'
+              : `/patient/${v}`;
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, '', targetPath);
         window.dispatchEvent(new PopStateEvent('popstate'));
@@ -175,15 +188,21 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     }
   }, []);
 
-  const fallbackRecord: PatientRecordData = useMemo(() => createSampleSeed()['anjali'] as PatientRecordData, []);
+  const fallbackRecord: PatientRecordData = useMemo(
+    () => createSampleSeed()['anjali'] as PatientRecordData,
+    []
+  );
   const fallbackPerson: PatientPerson = SAMPLE_PEOPLE[0] as PatientPerson;
-  const d: PatientRecordData = useMemo(() => (db[pid] || fallbackRecord), [db, pid, fallbackRecord]);
-  const p: PatientPerson = useMemo(() => SAMPLE_PEOPLE.find(x => x.id === pid) || fallbackPerson, [pid, fallbackPerson]);
+  const d: PatientRecordData = useMemo(() => db[pid] || fallbackRecord, [db, pid, fallbackRecord]);
+  const p: PatientPerson = useMemo(
+    () => SAMPLE_PEOPLE.find((x) => x.id === pid) || fallbackPerson,
+    [pid, fallbackPerson]
+  );
 
   const take = (key: string) => {
     const was = !!d.doses[key];
-    const all = d.slots.flatMap(s => s.meds.map(m => s.k + '-' + m));
-    const after = all.filter(k => (k === key ? !was : d.doses[k])).length;
+    const all = d.slots.flatMap((s) => s.meds.map((m) => s.k + '-' + m));
+    const after = all.filter((k) => (k === key ? !was : d.doses[k])).length;
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;
       const newDoses: Record<string, string> = { ...target.doses };
@@ -198,12 +217,31 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
         [pid]: updated,
       };
     });
-    toast(was ? 'Unmarked' : after === all.length ? "All of today's medicines are taken." : 'Marked as taken');
+    toast(
+      was
+        ? 'Unmarked'
+        : after === all.length
+          ? "All of today's medicines are taken."
+          : 'Marked as taken'
+    );
   };
 
-  const addReport = ({ title, kind, file, test }: { title: string; kind: string; file: { name: string; size: number }; test?: string | null }) => {
+  const addReport = ({
+    title,
+    kind,
+    file,
+    test,
+  }: {
+    title: string;
+    kind: string;
+    file: { name: string; size: number };
+    test?: string | null;
+  }) => {
     const id = 'r' + Date.now();
-    const sizeStr = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(file.size / 1024)} KB`;
+    const sizeStr =
+      file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;
       const updatedReports = [
@@ -221,7 +259,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
         ...target.reports,
       ];
       const updatedTests = test
-        ? target.tests.map(q => (q.id === test ? { ...q, st: 'sent' as const, on: '6 Oct' } : q))
+        ? target.tests.map((q) => (q.id === test ? { ...q, st: 'sent' as const, on: '6 Oct' } : q))
         : target.tests;
       return {
         ...prev,
@@ -250,7 +288,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
         ...target.readings,
         [k]: [...currentReadings, newEntry],
       };
-      const updatedLogs = target.logs.map(l =>
+      const updatedLogs = target.logs.map((l) =>
         l.k === k ? { ...l, last: '6 Oct', missed: undefined } : l
       );
       return {
@@ -290,7 +328,10 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
       otherS: 'Other symptom',
     };
     const parts = [
-      sel.filter(s => s !== 'otherS').map(s => symptomMap[s] || s).join(', '),
+      sel
+        .filter((s) => s !== 'otherS')
+        .map((s) => symptomMap[s] || s)
+        .join(', '),
       txt.trim(),
     ].filter(Boolean);
     const text = parts.join('. ') || 'Reported symptom';

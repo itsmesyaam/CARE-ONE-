@@ -101,9 +101,7 @@ export function PatientProfile(): React.JSX.Element {
     <div className="fadein space-y-6">
       {/* Page Header */}
       <div className="pt-3 pb-2 lg:pt-0">
-        <h1 className="disp text-3xl font-bold text-[var(--ink)]">
-          {t('patientProfile.title')}
-        </h1>
+        <h1 className="disp text-3xl font-bold text-[var(--ink)]">{t('patientProfile.title')}</h1>
       </div>
 
       <div className="lg:grid lg:grid-cols-2 lg:gap-10">
@@ -147,8 +145,8 @@ export function PatientProfile(): React.JSX.Element {
                               ? 'നിങ്ങൾ'
                               : 'You'
                             : lang === 'ml'
-                            ? 'നിങ്ങളുടെ കുട്ടി, നിങ്ങൾ രക്ഷിതാവ്'
-                            : "Your child, you're the guardian"}
+                              ? 'നിങ്ങളുടെ കുട്ടി, നിങ്ങൾ രക്ഷിതാവ്'
+                              : "Your child, you're the guardian"}
                         </span>
                       </div>
                     </div>
@@ -167,9 +165,7 @@ export function PatientProfile(): React.JSX.Element {
                 );
               })}
             </div>
-            <p className="text-xs text-[var(--ink3)] mt-2">
-              {t('patientProfile.addFamily')}
-            </p>
+            <p className="text-xs text-[var(--ink3)] mt-2">{t('patientProfile.addFamily')}</p>
           </section>
 
           {/* Hospital Help & Contacts */}
@@ -249,7 +245,11 @@ export function PatientProfile(): React.JSX.Element {
                   {t('patientProfile.language')}
                 </span>
                 <div className="w-full sm:w-56">
-                  <div className="seg seg-sm" role="group" aria-label={t('patientProfile.language')}>
+                  <div
+                    className="seg seg-sm"
+                    role="group"
+                    aria-label={t('patientProfile.language')}
+                  >
                     <button
                       type="button"
                       className={`press ${lang === 'en' ? 'on' : ''}`}
@@ -274,7 +274,11 @@ export function PatientProfile(): React.JSX.Element {
                   {t('patientProfile.textSize')}
                 </span>
                 <div className="w-full sm:w-56">
-                  <div className="seg seg-sm" role="group" aria-label={t('patientProfile.textSize')}>
+                  <div
+                    className="seg seg-sm"
+                    role="group"
+                    aria-label={t('patientProfile.textSize')}
+                  >
                     <button
                       type="button"
                       className={`press ${size === 0 ? 'on' : ''}`}
@@ -306,9 +310,7 @@ export function PatientProfile(): React.JSX.Element {
               {/* Push Notifications Switch */}
               <div className="row justify-between">
                 <div>
-                  <b className="block text-[var(--ink)] font-bold">
-                    {t('patientProfile.pushOn')}
-                  </b>
+                  <b className="block text-[var(--ink)] font-bold">{t('patientProfile.pushOn')}</b>
                   <span className="block text-xs text-[var(--ink3)]">
                     {t('patientProfile.pushSub')}
                   </span>
@@ -328,9 +330,7 @@ export function PatientProfile(): React.JSX.Element {
               {/* Email Notifications Switch */}
               <div className="row justify-between">
                 <div>
-                  <b className="block text-[var(--ink)] font-bold">
-                    {t('patientProfile.emailOn')}
-                  </b>
+                  <b className="block text-[var(--ink)] font-bold">{t('patientProfile.emailOn')}</b>
                   <span className="block text-xs text-[var(--ink3)]">
                     {t('patientProfile.emailSub')}
                   </span>
@@ -382,9 +382,7 @@ export function PatientProfile(): React.JSX.Element {
                 <Bell size={18} />
               </span>
               <span className="flex-1 min-w-0">
-                <b className="block text-[var(--ink)] font-bold">
-                  {t('patientProfile.reminders')}
-                </b>
+                <b className="block text-[var(--ink)] font-bold">{t('patientProfile.reminders')}</b>
               </span>
               <ChevronRight size={20} className="text-[var(--ink3)] flex-none" />
             </button>
@@ -401,9 +399,7 @@ export function PatientProfile(): React.JSX.Element {
                 <CalendarDays size={18} />
               </span>
               <span className="flex-1 min-w-0">
-                <b className="block text-[var(--ink)] font-bold">
-                  {t('patientProfile.appts')}
-                </b>
+                <b className="block text-[var(--ink)] font-bold">{t('patientProfile.appts')}</b>
               </span>
               <ChevronRight size={20} className="text-[var(--ink3)] flex-none" />
             </button>

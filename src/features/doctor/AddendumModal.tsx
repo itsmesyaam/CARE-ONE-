@@ -72,9 +72,7 @@ export function AddendumModal({
 
         <div className="lock-note mb-5">
           <Lock size={16} className="flex-none mt-0.5 text-[var(--ink2)]" />
-          <span className="text-xs leading-relaxed">
-            {t('doctorChart.signedNotesLock')}
-          </span>
+          <span className="text-xs leading-relaxed">{t('doctorChart.signedNotesLock')}</span>
         </div>
 
         {errorMsg && (
@@ -116,11 +114,7 @@ export function AddendumModal({
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-sec btn-sm"
-            >
+            <button type="button" onClick={onClose} className="btn btn-sec btn-sm">
               {t('doctorAccount.cancel')}
             </button>
             <button

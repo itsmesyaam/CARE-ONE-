@@ -5,11 +5,7 @@
 
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
-import {
-  type AccessVariables,
-  declareRoutePolicy,
-  requireAccess,
-} from '../middleware/access';
+import { type AccessVariables, declareRoutePolicy, requireAccess } from '../middleware/access';
 
 export const dietRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -21,7 +17,7 @@ const listGuidesPolicy = declareRoutePolicy('GET', '/api/diet/guides', {
   allowedRoles: ['patient', 'guardian', 'doctor', 'front_desk', 'admin'],
 });
 
-dietRoutes.get('/guides', requireAccess(listGuidesPolicy), async c => {
+dietRoutes.get('/guides', requireAccess(listGuidesPolicy), async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
 
@@ -34,7 +30,9 @@ dietRoutes.get('/guides', requireAccess(listGuidesPolicy), async c => {
   query += ' ORDER BY title_en ASC';
 
   const stmt = db.prepare(query);
-  const results = (await (params.length > 0 ? stmt.bind(...params) : stmt).all()) as { results: unknown[] };
+  const results = (await (params.length > 0 ? stmt.bind(...params) : stmt).all()) as {
+    results: unknown[];
+  };
 
   return c.json({ guides: results.results });
 });
@@ -45,7 +43,7 @@ const createGuidePolicy = declareRoutePolicy('POST', '/api/diet/guides', {
   requireMfa: true,
 });
 
-dietRoutes.post('/guides', requireAccess(createGuidePolicy), async c => {
+dietRoutes.post('/guides', requireAccess(createGuidePolicy), async (c) => {
   const user = c.get('user');
   const body = (await c.req.json().catch(() => ({}))) as {
     titleEn?: string;
@@ -97,10 +95,7 @@ dietRoutes.post('/guides', requireAccess(createGuidePolicy), async c => {
     )
     .run();
 
-  const record = await db
-    .prepare('SELECT * FROM diet_guides WHERE id = ?')
-    .bind(guideId)
-    .first();
+  const record = await db.prepare('SELECT * FROM diet_guides WHERE id = ?').bind(guideId).first();
 
   return c.json({ success: true, guide: record });
 });
@@ -111,42 +106,35 @@ const approveGuidePolicy = declareRoutePolicy('PUT', '/api/diet/guides/:guideId/
   requireMfa: true,
 });
 
-dietRoutes.put(
-  '/guides/:guideId/approve',
-  requireAccess(approveGuidePolicy),
-  async c => {
-    const guideId = c.req.param('guideId');
-    const user = c.get('user');
-    const db = c.env.DB;
-    const nowIso = new Date().toISOString();
+dietRoutes.put('/guides/:guideId/approve', requireAccess(approveGuidePolicy), async (c) => {
+  const guideId = c.req.param('guideId');
+  const user = c.get('user');
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
 
-    const existing = (await db
-      .prepare('SELECT status FROM diet_guides WHERE id = ?')
-      .bind(guideId)
-      .first()) as { status: string } | null;
+  const existing = (await db
+    .prepare('SELECT status FROM diet_guides WHERE id = ?')
+    .bind(guideId)
+    .first()) as { status: string } | null;
 
-    if (!existing) {
-      return c.json({ error: 'Diet guide not found' }, 404);
-    }
+  if (!existing) {
+    return c.json({ error: 'Diet guide not found' }, 404);
+  }
 
-    if (existing.status === 'approved') {
-      return c.json({ error: 'Diet guide is already approved and frozen' }, 400);
-    }
+  if (existing.status === 'approved') {
+    return c.json({ error: 'Diet guide is already approved and frozen' }, 400);
+  }
 
-    await db
-      .prepare(
-        `UPDATE diet_guides
+  await db
+    .prepare(
+      `UPDATE diet_guides
          SET status = 'approved', approved_by = ?, approved_at = ?, updated_at = ?
          WHERE id = ?`
-      )
-      .bind(user.staffId, nowIso, nowIso, guideId)
-      .run();
+    )
+    .bind(user.staffId, nowIso, nowIso, guideId)
+    .run();
 
-    const record = await db
-      .prepare('SELECT * FROM diet_guides WHERE id = ?')
-      .bind(guideId)
-      .first();
+  const record = await db.prepare('SELECT * FROM diet_guides WHERE id = ?').bind(guideId).first();
 
-    return c.json({ success: true, guide: record });
-  }
-);
+  return c.json({ success: true, guide: record });
+});

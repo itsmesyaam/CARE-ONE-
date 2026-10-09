@@ -13,11 +13,20 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
-  const m1 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'), 'utf8');
+  const m1 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'),
+    'utf8'
+  );
   sqlite.exec(m1);
-  const m2 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'), 'utf8');
+  const m2 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'),
+    'utf8'
+  );
   sqlite.exec(m2);
-  const m3 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'), 'utf8');
+  const m3 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'),
+    'utf8'
+  );
   sqlite.exec(m3);
 
   const d1 = {
@@ -30,26 +39,26 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
@@ -101,18 +110,22 @@ describe('Doctor Clinical Chart & Workflow API', () => {
     const app = createApp();
 
     // 1. Create draft note
-    const draftRes = await app.request(`/api/doctor/patients/${PATIENT_ARUN}/encounters`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const draftRes = await app.request(
+      `/api/doctor/patients/${PATIENT_ARUN}/encounters`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: 'Patient presents with mild fatigue and elevated blood glucose.',
+          clinicalNotes: 'Plan to adjust metformin dosage and advise morning walks.',
+          status: 'draft',
+        }),
       },
-      body: JSON.stringify({
-        summary: 'Patient presents with mild fatigue and elevated blood glucose.',
-        clinicalNotes: 'Plan to adjust metformin dosage and advise morning walks.',
-        status: 'draft',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(draftRes.status).toBe(200);
     const draftData = (await draftRes.json()) as { encounter: { id: string; status: string } };
@@ -122,12 +135,16 @@ describe('Doctor Clinical Chart & Workflow API', () => {
     const encounterId = draftData.encounter.id;
 
     // 2. Sign note (elevation to signed status)
-    const signRes = await app.request(`/api/doctor/encounters/${encounterId}/sign`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
+    const signRes = await app.request(
+      `/api/doctor/encounters/${encounterId}/sign`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+        },
       },
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(signRes.status).toBe(200);
     const signData = (await signRes.json()) as { encounter: { status: string; signed_at: string } };
@@ -135,16 +152,20 @@ describe('Doctor Clinical Chart & Workflow API', () => {
     expect(signData.encounter.signed_at).toBeDefined();
 
     // 3. Attempt to directly edit the signed note (must fail with 400 or trigger rejection)
-    const editRes = await app.request(`/api/doctor/encounters/${encounterId}`, {
-      method: 'PUT',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const editRes = await app.request(
+      `/api/doctor/encounters/${encounterId}`,
+      {
+        method: 'PUT',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: 'Tampered summary',
+        }),
       },
-      body: JSON.stringify({
-        summary: 'Tampered summary',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(editRes.status).toBe(400);
   });
@@ -155,16 +176,20 @@ describe('Doctor Clinical Chart & Workflow API', () => {
     // Use signed encounter from seed
     const signedEncounterId = 'ec000000-0000-0000-0000-000000000003';
 
-    const addendumRes = await app.request(`/api/doctor/encounters/${signedEncounterId}/addenda`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const addendumRes = await app.request(
+      `/api/doctor/encounters/${signedEncounterId}/addenda`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          note: 'Patient telephoned to report no adverse reactions to the medication adjustment.',
+        }),
       },
-      body: JSON.stringify({
-        note: 'Patient telephoned to report no adverse reactions to the medication adjustment.',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(addendumRes.status).toBe(200);
     const data = (await addendumRes.json()) as { addendum: { id: string; encounter_id: string } };
@@ -175,24 +200,30 @@ describe('Doctor Clinical Chart & Workflow API', () => {
   it('allows prescribing medications and enforces allergy warnings', async () => {
     const app = createApp();
 
-    const prescribeRes = await app.request(`/api/doctor/patients/${PATIENT_ARUN}/prescriptions`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const prescribeRes = await app.request(
+      `/api/doctor/patients/${PATIENT_ARUN}/prescriptions`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          drug: 'Metformin Hydrochloride',
+          dose: '500 mg',
+          route: 'oral',
+          frequency: '1-0-1 (twice daily after meals)',
+          duration: '30 days',
+          instructions: 'Take with food to prevent GI upset',
+        }),
       },
-      body: JSON.stringify({
-        drug: 'Metformin Hydrochloride',
-        dose: '500 mg',
-        route: 'oral',
-        frequency: '1-0-1 (twice daily after meals)',
-        duration: '30 days',
-        instructions: 'Take with food to prevent GI upset',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(prescribeRes.status).toBe(200);
-    const data = (await prescribeRes.json()) as { medication: { id: string; drug: string; status: string } };
+    const data = (await prescribeRes.json()) as {
+      medication: { id: string; drug: string; status: string };
+    };
     expect(data.medication.drug).toBe('Metformin Hydrochloride');
     expect(data.medication.status).toBe('active');
   });
@@ -202,32 +233,40 @@ describe('Doctor Clinical Chart & Workflow API', () => {
     const PATIENT_OTHER = 'e0000000-0000-0000-0000-000000000007'; // Patient not on Rahul's care team
 
     // 1. Too short reason rejected (< 15 chars)
-    const shortRes = await app.request(`/api/doctor/emergency-access`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const shortRes = await app.request(
+      `/api/doctor/emergency-access`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: PATIENT_OTHER,
+          reason: 'Short reason',
+        }),
       },
-      body: JSON.stringify({
-        patientId: PATIENT_OTHER,
-        reason: 'Short reason',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(shortRes.status).toBe(400);
 
     // 2. Valid reason (>= 15 chars) succeeds
-    const validRes = await app.request(`/api/doctor/emergency-access`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${doctorToken}`,
-        'Content-Type': 'application/json',
+    const validRes = await app.request(
+      `/api/doctor/emergency-access`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${doctorToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: PATIENT_OTHER,
+          reason: 'Acute respiratory distress and unresponsive in casualty emergency room',
+        }),
       },
-      body: JSON.stringify({
-        patientId: PATIENT_OTHER,
-        reason: 'Acute respiratory distress and unresponsive in casualty emergency room',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(validRes.status).toBe(200);
     const data = (await validRes.json()) as { access: { expires_at: string } };

@@ -17,7 +17,11 @@ export default {
     return app.fetch(request, env, ctx);
   },
 
-  async scheduled(controller: ScheduledController, env?: WorkerEnv, ctx?: ExecutionContext): Promise<void> {
+  async scheduled(
+    controller: ScheduledController,
+    env?: WorkerEnv,
+    ctx?: ExecutionContext
+  ): Promise<void> {
     console.log(`[Cron] Triggered at ${new Date(controller.scheduledTime).toISOString()}`);
     if (env?.DB) {
       const promise = processRemindersCron(env.DB, env);

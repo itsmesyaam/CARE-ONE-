@@ -56,7 +56,9 @@ export function PatientAppointments(): React.JSX.Element {
                   </span>
                   <span className="block text-xs text-[var(--ink3)]">{a.time}</span>
                 </div>
-                <span className={`tag ${a.st === 'done' ? 'tag-leaf' : 'tag-lat'} text-xs font-semibold flex-none`}>
+                <span
+                  className={`tag ${a.st === 'done' ? 'tag-leaf' : 'tag-lat'} text-xs font-semibold flex-none`}
+                >
                   {a.st === 'done' ? t('patientAppts.completed') : t('patientAppts.missed')}
                 </span>
               </div>

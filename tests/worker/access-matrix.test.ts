@@ -14,11 +14,20 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
-  const m1 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'), 'utf8');
+  const m1 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'),
+    'utf8'
+  );
   sqlite.exec(m1);
-  const m2 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'), 'utf8');
+  const m2 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'),
+    'utf8'
+  );
   sqlite.exec(m2);
-  const m3 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'), 'utf8');
+  const m3 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'),
+    'utf8'
+  );
   sqlite.exec(m3);
 
   const d1 = {
@@ -31,26 +40,26 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
@@ -110,9 +119,13 @@ describe('Access Layer Security Matrix', () => {
 
   it('1. Denies request when no session cookie is provided (401 Unauthenticated)', async () => {
     const app = createApp();
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(401);
   });
@@ -126,10 +139,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(200);
   });
@@ -143,10 +160,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_B}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_B}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
@@ -162,10 +183,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${DEPENDENT_C}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${DEPENDENT_C}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(200);
   });
@@ -179,10 +204,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(200);
   });
@@ -196,10 +225,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
@@ -215,10 +248,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: false, // AAL1 only, 2FA not completed
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
@@ -234,10 +271,14 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
@@ -253,14 +294,20 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'GET',
-      headers: { Cookie: `careone_session=${token}` },
-    }, mockEnv);
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'GET',
+        headers: { Cookie: `careone_session=${token}` },
+      },
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toMatch(/admin cannot access individual clinical records|role not authorized/i);
+    expect(body.error).toMatch(
+      /admin cannot access individual clinical records|role not authorized/i
+    );
   });
 
   it('10. Blocks state-changing request with mismatched Origin header (CSRF Protection)', async () => {
@@ -272,15 +319,19 @@ describe('Access Layer Security Matrix', () => {
       isMfaVerified: true,
     });
 
-    const res = await app.request(`http://localhost/api/patients/${PATIENT_A}/chart`, {
-      method: 'POST',
-      headers: {
-        Cookie: `careone_session=${token}`,
-        'Content-Type': 'application/json',
-        Origin: 'https://malicious-site.example.com',
+    const res = await app.request(
+      `http://localhost/api/patients/${PATIENT_A}/chart`,
+      {
+        method: 'POST',
+        headers: {
+          Cookie: `careone_session=${token}`,
+          'Content-Type': 'application/json',
+          Origin: 'https://malicious-site.example.com',
+        },
+        body: JSON.stringify({ note: 'test' }),
       },
-      body: JSON.stringify({ note: 'test' }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };

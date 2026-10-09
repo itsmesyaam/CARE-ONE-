@@ -87,10 +87,7 @@ export async function claimDueReminders(
     RETURNING *
   `;
 
-  const rows = await db
-    .prepare(query)
-    .bind(nowIso, nowIso, limit)
-    .all<ReminderRecord>();
+  const rows = await db.prepare(query).bind(nowIso, nowIso, limit).all<ReminderRecord>();
 
   return rows.results || [];
 }
@@ -98,9 +95,11 @@ export async function claimDueReminders(
 /**
  * 2. Delivers Web Push notification (Generic content only)
  */
-export async function sendWebPushNotification(
-  subscription: { endpoint: string; p256dh: string; auth: string }
-): Promise<boolean> {
+export async function sendWebPushNotification(subscription: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<boolean> {
   try {
     const payload = JSON.stringify(GENERIC_REMINDER_PUSH);
 
@@ -123,10 +122,7 @@ export async function sendWebPushNotification(
 /**
  * 3. Sends fallback Email reminder via Resend (Generic subject and text only)
  */
-export async function sendEmailReminder(
-  recipientEmail: string,
-  env: WorkerEnv
-): Promise<boolean> {
+export async function sendEmailReminder(recipientEmail: string, env: WorkerEnv): Promise<boolean> {
   if (!recipientEmail) return false;
 
   const apiKey = env.RESEND_API_KEY;

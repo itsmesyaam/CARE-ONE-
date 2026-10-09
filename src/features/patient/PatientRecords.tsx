@@ -63,15 +63,9 @@ function StatusTag({ r, lang }: { r: PatientReportItem; lang: string }) {
 // ─────────────────────────────────────────────────────────────
 // REPORT VIEWER MODAL
 // ─────────────────────────────────────────────────────────────
-export function ReportSheetModal({
-  id,
-  onClose,
-}: {
-  id: string;
-  onClose: () => void;
-}) {
+export function ReportSheetModal({ id, onClose }: { id: string; onClose: () => void }) {
   const { lang, d, toast } = usePatient();
-  const r = d.reports.find(x => x.id === id);
+  const r = d.reports.find((x) => x.id === id);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -97,12 +91,7 @@ export function ReportSheetModal({
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <h2 className="disp text-xl sm:text-2xl font-bold text-[var(--ink)]">{r.title}</h2>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={22} />
           </button>
         </div>
@@ -115,15 +104,21 @@ export function ReportSheetModal({
                 ? lang === 'ml'
                   ? 'നിങ്ങൾ അപ്‌ലോഡ് ചെയ്തത്'
                   : 'Uploaded by you'
-                : r.src || 'ABC Hospital'},{' '}
-              {r.date}
+                : r.src || 'ABC Hospital'}
+              , {r.date}
             </span>
           </div>
 
           {/* Document Preview Card */}
-          <div className="docprev mt-5 flex items-center gap-4 p-4 rounded-2xl bg-[var(--mist)]" aria-hidden="true">
+          <div
+            className="docprev mt-5 flex items-center gap-4 p-4 rounded-2xl bg-[var(--mist)]"
+            aria-hidden="true"
+          >
             <div className="docpage">
-              <span className={`ico ico-${meta.tone}`} style={{ width: 24, height: 24, borderRadius: 7 }}>
+              <span
+                className={`ico ico-${meta.tone}`}
+                style={{ width: 24, height: 24, borderRadius: 7 }}
+              >
                 <KindIcon size={14} />
               </span>
               <i style={{ width: '65%' }} />
@@ -132,7 +127,9 @@ export function ReportSheetModal({
               <i style={{ width: '50%' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold text-[var(--ink)] truncate">{r.file}</span>
+              <span className="block text-sm font-semibold text-[var(--ink)] truncate">
+                {r.file}
+              </span>
               <span className="block text-xs text-[var(--ink3)] mt-0.5">{r.size}</span>
             </div>
           </div>
@@ -159,10 +156,14 @@ export function ReportSheetModal({
                       <div key={i} className="row">
                         <div className="flex-1 min-w-0">
                           <b className="block text-sm text-[var(--ink)]">{v.k}</b>
-                          {v.ref && <span className="block text-xs text-[var(--ink3)]">{v.ref}</span>}
+                          {v.ref && (
+                            <span className="block text-xs text-[var(--ink3)]">{v.ref}</span>
+                          )}
                         </div>
                         <span className="text-right">
-                          <span className={`num text-lg font-bold ${v.hi ? 'text-[var(--lat)]' : 'text-[var(--ink)]'}`}>
+                          <span
+                            className={`num text-lg font-bold ${v.hi ? 'text-[var(--lat)]' : 'text-[var(--ink)]'}`}
+                          >
                             {v.v}
                           </span>{' '}
                           {v.u && <span className="text-xs text-[var(--ink3)]">{v.u}</span>}
@@ -203,13 +204,7 @@ export function ReportSheetModal({
             <button
               type="button"
               className="btn-p btn-sec press flex items-center justify-center gap-2"
-              onClick={() =>
-                toast(
-                  lang === 'ml'
-                    ? 'ഡൗൺലോഡ് ആരംഭിച്ചു'
-                    : 'Download started'
-                )
-              }
+              onClick={() => toast(lang === 'ml' ? 'ഡൗൺലോഡ് ആരംഭിച്ചു' : 'Download started')}
             >
               <Download size={18} />
               <span>{lang === 'ml' ? 'ഡൗൺലോഡ്' : 'Download'}</span>
@@ -230,15 +225,9 @@ export function ReportSheetModal({
 // ─────────────────────────────────────────────────────────────
 // UPLOAD REPORT MODAL
 // ─────────────────────────────────────────────────────────────
-export function UploadSheetModal({
-  test,
-  onClose,
-}: {
-  test?: string;
-  onClose: () => void;
-}) {
+export function UploadSheetModal({ test, onClose }: { test?: string; onClose: () => void }) {
   const { lang, d, addReport, openSheet, toast } = usePatient();
-  const pend = d.tests.filter(x => x.st !== 'sent');
+  const pend = d.tests.filter((x) => x.st !== 'sent');
 
   const [stepState, setStepState] = useState<'pick' | 'details' | 'prog' | 'done'>('pick');
   const [file, setFile] = useState<{ name: string; size: number; img: boolean } | null>(null);
@@ -247,7 +236,7 @@ export function UploadSheetModal({
   const [name, setName] = useState<string>('');
   const [date, setDate] = useState<string>('2026-10-06');
   const [linkOn, setLinkOn] = useState<boolean>(!!test);
-  const [link, setLink] = useState<string>(test || (pend[0]?.id || ''));
+  const [link, setLink] = useState<string>(test || pend[0]?.id || '');
   const [progStep, setProgStep] = useState<number>(0);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
@@ -274,9 +263,7 @@ export function UploadSheetModal({
     }
     if (f.size > 10 * 1024 * 1024) {
       setErr(
-        lang === 'ml'
-          ? 'ഫയൽ വലുപ്പം 10 MB-ൽ കുറവായിരിക്കണം.'
-          : 'File size must be under 10 MB.'
+        lang === 'ml' ? 'ഫയൽ വലുപ്പം 10 MB-ൽ കുറവായിരിക്കണം.' : 'File size must be under 10 MB.'
       );
       return;
     }
@@ -284,21 +271,36 @@ export function UploadSheetModal({
 
     if (f.type !== 'application/pdf') {
       optimizePhotoForUpload(f)
-        .then(optFile => {
+        .then((optFile) => {
           setFile({ name: optFile.name, size: optFile.size, img: true });
-          setName(optFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
+          setName(
+            optFile.name
+              .replace(/\.[^.]+$/, '')
+              .replace(/[-_]+/g, ' ')
+              .slice(0, 60)
+          );
           setStepState('details');
         })
         .catch(() => {
           setFile({ name: f.name, size: f.size, img: true });
-          setName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
+          setName(
+            f.name
+              .replace(/\.[^.]+$/, '')
+              .replace(/[-_]+/g, ' ')
+              .slice(0, 60)
+          );
           setStepState('details');
         });
       return;
     }
 
     setFile({ name: f.name, size: f.size, img: false });
-    setName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
+    setName(
+      f.name
+        .replace(/\.[^.]+$/, '')
+        .replace(/[-_]+/g, ' ')
+        .slice(0, 60)
+    );
     setStepState('details');
   };
 
@@ -342,15 +344,10 @@ export function UploadSheetModal({
                 ? 'അപ്‌ലോഡ് പൂർത്തിയായി'
                 : 'Report uploaded'
               : lang === 'ml'
-              ? 'റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുക'
-              : 'Upload a report'}
+                ? 'റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുക'
+                : 'Upload a report'}
           </h2>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={22} />
           </button>
         </div>
@@ -383,14 +380,14 @@ export function UploadSheetModal({
                 accept="image/jpeg,image/png"
                 capture="environment"
                 className="hidden"
-                onChange={e => handleFileSelect(e.target.files?.[0])}
+                onChange={(e) => handleFileSelect(e.target.files?.[0])}
               />
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="application/pdf,image/jpeg,image/png"
                 className="hidden"
-                onChange={e => handleFileSelect(e.target.files?.[0])}
+                onChange={(e) => handleFileSelect(e.target.files?.[0])}
               />
 
               <p className="text-xs sm:text-sm text-[var(--ink2)] mt-4 leading-relaxed">
@@ -400,7 +397,10 @@ export function UploadSheetModal({
               </p>
 
               {err && (
-                <p className="err mt-3 text-[var(--lat)] flex items-center gap-2 text-sm font-semibold" role="alert">
+                <p
+                  className="err mt-3 text-[var(--lat)] flex items-center gap-2 text-sm font-semibold"
+                  role="alert"
+                >
                   <AlertTriangle size={18} className="flex-none" />
                   <span>{err}</span>
                 </p>
@@ -459,13 +459,15 @@ export function UploadSheetModal({
                 {lang === 'ml' ? 'റിപ്പോർട്ട് തരം' : 'Report category'}
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
-                {([
-                  ['lab', lang === 'ml' ? 'ലാബ്' : 'Lab test'],
-                  ['scan', lang === 'ml' ? 'സ്കാൻ' : 'Scan'],
-                  ['rx', lang === 'ml' ? 'മരുന്ന് കുറിപ്പ്' : 'Prescription'],
-                  ['disc', lang === 'ml' ? 'ഡിസ്ചാർജ്' : 'Discharge'],
-                  ['other', lang === 'ml' ? 'മറ്റുള്ളവ' : 'Other'],
-                ] as const).map(([v, l]) => (
+                {(
+                  [
+                    ['lab', lang === 'ml' ? 'ലാബ്' : 'Lab test'],
+                    ['scan', lang === 'ml' ? 'സ്കാൻ' : 'Scan'],
+                    ['rx', lang === 'ml' ? 'മരുന്ന് കുറിപ്പ്' : 'Prescription'],
+                    ['disc', lang === 'ml' ? 'ഡിസ്ചാർജ്' : 'Discharge'],
+                    ['other', lang === 'ml' ? 'മറ്റുള്ളവ' : 'Other'],
+                  ] as const
+                ).map(([v, l]) => (
                   <button
                     key={v}
                     type="button"
@@ -477,19 +479,25 @@ export function UploadSheetModal({
                 ))}
               </div>
 
-              <label className="block text-xs font-semibold text-[var(--ink3)] uppercase tracking-wider mt-5" htmlFor="report-name-input">
+              <label
+                className="block text-xs font-semibold text-[var(--ink3)] uppercase tracking-wider mt-5"
+                htmlFor="report-name-input"
+              >
                 {lang === 'ml' ? 'റിപ്പോർട്ടിന്റെ പേര്' : 'Report title'}
               </label>
               <div className="field mt-1.5">
                 <input
                   id="report-name-input"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder={lang === 'ml' ? 'ഉദാ. രക്തപരിശോധന' : 'e.g. Blood test'}
                 />
               </div>
 
-              <label className="block text-xs font-semibold text-[var(--ink3)] uppercase tracking-wider mt-4" htmlFor="report-date-input">
+              <label
+                className="block text-xs font-semibold text-[var(--ink3)] uppercase tracking-wider mt-4"
+                htmlFor="report-date-input"
+              >
                 {lang === 'ml' ? 'പരിശോധനാ തീയതി' : 'Test date'}
               </label>
               <div className="field mt-1.5">
@@ -498,7 +506,7 @@ export function UploadSheetModal({
                   type="date"
                   value={date}
                   max="2026-10-06"
-                  onChange={e => setDate(e.target.value)}
+                  onChange={(e) => setDate(e.target.value)}
                 />
               </div>
 
@@ -508,14 +516,18 @@ export function UploadSheetModal({
                     <input
                       type="checkbox"
                       checked={linkOn}
-                      onChange={e => setLinkOn(e.target.checked)}
+                      onChange={(e) => setLinkOn(e.target.checked)}
                       className="rounded"
                     />
-                    <span>{lang === 'ml' ? 'പരിചരണ പദ്ധതിയിലെ പരിശോധനയുമായി ബന്ധിപ്പിക്കുക' : 'Link to a care plan test'}</span>
+                    <span>
+                      {lang === 'ml'
+                        ? 'പരിചരണ പദ്ധതിയിലെ പരിശോധനയുമായി ബന്ധിപ്പിക്കുക'
+                        : 'Link to a care plan test'}
+                    </span>
                   </label>
                   {linkOn && (
                     <div className="flex flex-wrap gap-2 mt-2 ml-6">
-                      {pend.map(x => (
+                      {pend.map((x) => (
                         <button
                           key={x.id}
                           type="button"
@@ -551,13 +563,21 @@ export function UploadSheetModal({
                 {[
                   lang === 'ml' ? 'ചിത്രം ചുരുക്കുന്നു' : 'Optimizing document',
                   lang === 'ml' ? 'മെറ്റാഡാറ്റ നീക്കംചെയ്യുന്നു' : 'Removing private metadata',
-                  lang === 'ml' ? 'സുരക്ഷിതമായി അപ്‌ലോഡ് ചെയ്യുന്നു' : 'Uploading to secure hospital vault',
+                  lang === 'ml'
+                    ? 'സുരക്ഷിതമായി അപ്‌ലോഡ് ചെയ്യുന്നു'
+                    : 'Uploading to secure hospital vault',
                 ].map((s, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-sm">
                     <span className={`tick ${idx + 1 <= progStep ? 'on' : ''}`}>
                       {idx + 1 <= progStep && <Check size={14} />}
                     </span>
-                    <span className={idx + 1 <= progStep ? 'font-semibold text-[var(--ink)]' : 'text-[var(--ink3)]'}>
+                    <span
+                      className={
+                        idx + 1 <= progStep
+                          ? 'font-semibold text-[var(--ink)]'
+                          : 'text-[var(--ink3)]'
+                      }
+                    >
                       {s}
                     </span>
                   </li>
@@ -577,11 +597,7 @@ export function UploadSheetModal({
                   : `Report received. Sent to ${d.doc} for clinical review.`}
               </p>
               <div className="grid grid-cols-2 gap-3 mt-7">
-                <button
-                  type="button"
-                  className="btn-p btn-sec press"
-                  onClick={onClose}
-                >
+                <button type="button" className="btn-p btn-sec press" onClick={onClose}>
                   {lang === 'ml' ? 'പൂർത്തിയായി' : 'Done'}
                 </button>
                 <button
@@ -620,7 +636,7 @@ export function PatientRecords(): React.JSX.Element {
   ];
 
   // Reports filtering & grouping
-  const filteredReports = d.reports.filter(r => {
+  const filteredReports = d.reports.filter((r) => {
     const matchFilter =
       filterKind === 'all' ||
       (filterKind === 'rev' && r.st === 'rev') ||
@@ -630,11 +646,14 @@ export function PatientRecords(): React.JSX.Element {
     return matchFilter && matchQuery;
   });
 
-  const groupedReports = filteredReports.reduce((acc, r) => {
-    acc[r.mon] = acc[r.mon] || [];
-    acc[r.mon]!.push(r);
-    return acc;
-  }, {} as Record<string, PatientReportItem[]>);
+  const groupedReports = filteredReports.reduce(
+    (acc, r) => {
+      acc[r.mon] = acc[r.mon] || [];
+      acc[r.mon]!.push(r);
+      return acc;
+    },
+    {} as Record<string, PatientReportItem[]>
+  );
 
   return (
     <div className="fadein">
@@ -642,9 +661,7 @@ export function PatientRecords(): React.JSX.Element {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="disp h1 text-[var(--ink)]">
-              {lang === 'ml' ? 'രേഖകൾ' : 'Records'}
-            </h1>
+            <h1 className="disp h1 text-[var(--ink)]">{lang === 'ml' ? 'രേഖകൾ' : 'Records'}</h1>
             <span className="sample-badge">Sample</span>
           </div>
           <p className="text-[var(--ink2)] mt-1 text-sm sm:text-base">
@@ -671,7 +688,7 @@ export function PatientRecords(): React.JSX.Element {
         role="tablist"
         aria-label={lang === 'ml' ? 'രേഖകൾ' : 'Records'}
       >
-        {tabs.map(tabItem => {
+        {tabs.map((tabItem) => {
           const isActive = recTab === tabItem.key;
           return (
             <button
@@ -683,9 +700,7 @@ export function PatientRecords(): React.JSX.Element {
               onClick={() => setRecTab(tabItem.key)}
             >
               <span>{tabItem.label}</span>
-              {tabItem.count !== undefined && (
-                <span className="pill-n">{tabItem.count}</span>
-              )}
+              {tabItem.count !== undefined && <span className="pill-n">{tabItem.count}</span>}
             </button>
           );
         })}
@@ -699,7 +714,7 @@ export function PatientRecords(): React.JSX.Element {
             <Search size={20} className="text-[var(--ink3)] flex-none mr-3" aria-hidden="true" />
             <input
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={lang === 'ml' ? 'റിപ്പോർട്ടുകൾ തിരയുക...' : 'Search reports...'}
               aria-label={lang === 'ml' ? 'റിപ്പോർട്ടുകൾ തിരയുക' : 'Search reports'}
             />
@@ -717,12 +732,14 @@ export function PatientRecords(): React.JSX.Element {
 
           {/* Filter Chips */}
           <div className="flex flex-wrap gap-2 mt-3">
-            {([
-              ['all', lang === 'ml' ? 'എല്ലാം' : 'All'],
-              ['rev', lang === 'ml' ? 'പരിശോധിച്ചത്' : 'Reviewed'],
-              ['wait', lang === 'ml' ? 'പരിശോധന കാക്കുന്നത്' : 'Waiting review'],
-              ['me', lang === 'ml' ? 'നിങ്ങൾ അപ്‌ലോഡ് ചെയ്തത്' : 'By you'],
-            ] as const).map(([v, l]) => (
+            {(
+              [
+                ['all', lang === 'ml' ? 'എല്ലാം' : 'All'],
+                ['rev', lang === 'ml' ? 'പരിശോധിച്ചത്' : 'Reviewed'],
+                ['wait', lang === 'ml' ? 'പരിശോധന കാക്കുന്നത്' : 'Waiting review'],
+                ['me', lang === 'ml' ? 'നിങ്ങൾ അപ്‌ലോഡ് ചെയ്തത്' : 'By you'],
+              ] as const
+            ).map(([v, l]) => (
               <button
                 key={v}
                 type="button"
@@ -755,7 +772,7 @@ export function PatientRecords(): React.JSX.Element {
                   {month}
                 </h2>
                 <div className="grp">
-                  {reports.map(r => {
+                  {reports.map((r) => {
                     const meta = getKindMeta(r.kind);
                     const KindIcon = meta.icon;
                     return (
@@ -777,8 +794,8 @@ export function PatientRecords(): React.JSX.Element {
                               ? lang === 'ml'
                                 ? 'നിങ്ങൾ അപ്‌ലോഡ് ചെയ്തത്'
                                 : 'Uploaded by you'
-                              : r.src || 'ABC Hospital'},{' '}
-                            {r.date}
+                              : r.src || 'ABC Hospital'}
+                            , {r.date}
                           </span>
                           <span className="block mt-1.5">
                             <StatusTag r={r} lang={lang} />
@@ -814,12 +831,14 @@ export function PatientRecords(): React.JSX.Element {
 
           {/* Metric Selector Chips */}
           <div className="flex flex-wrap gap-2 mb-5">
-            {([
-              ['bp', lang === 'ml' ? 'രക്തസമ്മർദ്ദം' : 'Blood pressure'],
-              ['sugar', lang === 'ml' ? 'ഷുഗർ' : 'Blood sugar'],
-              ['weight', lang === 'ml' ? 'ശരീരഭാരം' : 'Weight'],
-              ['a1c', 'HbA1c'],
-            ] as const).map(([val, label]) => {
+            {(
+              [
+                ['bp', lang === 'ml' ? 'രക്തസമ്മർദ്ദം' : 'Blood pressure'],
+                ['sugar', lang === 'ml' ? 'ഷുഗർ' : 'Blood sugar'],
+                ['weight', lang === 'ml' ? 'ശരീരഭാരം' : 'Weight'],
+                ['a1c', 'HbA1c'],
+              ] as const
+            ).map(([val, label]) => {
               const active = (metric || 'bp') === val;
               return (
                 <button
@@ -840,9 +859,22 @@ export function PatientRecords(): React.JSX.Element {
             const currentMetric = (metric || 'bp') as 'bp' | 'sugar' | 'weight' | 'a1c';
             const arr = d.readings[currentMetric] || [];
             const last = arr[arr.length - 1];
-            const unit = currentMetric === 'bp' ? 'mmHg' : currentMetric === 'sugar' ? 'mg/dL' : currentMetric === 'weight' ? 'kg' : '%';
-            const valStr = last ? (Array.isArray(last.v) ? `${last.v[0]}/${last.v[1]}` : String(last.v)) : '—';
-            const tg = d.tg[currentMetric as keyof typeof d.tg] || (currentMetric === 'weight' ? 'below 68 kg' : '');
+            const unit =
+              currentMetric === 'bp'
+                ? 'mmHg'
+                : currentMetric === 'sugar'
+                  ? 'mg/dL'
+                  : currentMetric === 'weight'
+                    ? 'kg'
+                    : '%';
+            const valStr = last
+              ? Array.isArray(last.v)
+                ? `${last.v[0]}/${last.v[1]}`
+                : String(last.v)
+              : '—';
+            const tg =
+              d.tg[currentMetric as keyof typeof d.tg] ||
+              (currentMetric === 'weight' ? 'below 68 kg' : '');
             const high = last ? isReadingHigh(currentMetric, last.v) : false;
 
             return (
@@ -868,8 +900,8 @@ export function PatientRecords(): React.JSX.Element {
                           ? 'ലക്ഷ്യത്തിന് പുറത്ത്'
                           : 'Outside target'
                         : lang === 'ml'
-                        ? 'ലക്ഷ്യ പരിധിയിൽ'
-                        : 'In target'}
+                          ? 'ലക്ഷ്യ പരിധിയിൽ'
+                          : 'In target'}
                     </span>
                   )}
                 </div>
@@ -884,12 +916,19 @@ export function PatientRecords(): React.JSX.Element {
 
                 <div className="mt-5 flex items-center justify-between pt-4 border-t border-[var(--line)]">
                   <span className="text-xs text-[var(--ink3)]">
-                    {lang === 'ml' ? `${arr.length} അളവുകൾ രേഖപ്പെടുത്തി` : `${arr.length} readings recorded`}
+                    {lang === 'ml'
+                      ? `${arr.length} അളവുകൾ രേഖപ്പെടുത്തി`
+                      : `${arr.length} readings recorded`}
                   </span>
                   <button
                     type="button"
                     className="btn-p btn-tint btn-sm press flex items-center gap-1.5"
-                    onClick={() => openSheet({ type: currentMetric === 'a1c' ? 'upload' : 'reading', k: currentMetric })}
+                    onClick={() =>
+                      openSheet({
+                        type: currentMetric === 'a1c' ? 'upload' : 'reading',
+                        k: currentMetric,
+                      })
+                    }
                   >
                     <Plus size={16} />
                     <span>{lang === 'ml' ? 'റീഡിംഗ് ചേർക്കുക' : 'Log reading'}</span>
@@ -907,7 +946,14 @@ export function PatientRecords(): React.JSX.Element {
             {(() => {
               const currentMetric = (metric || 'bp') as 'bp' | 'sugar' | 'weight' | 'a1c';
               const arr = d.readings[currentMetric] || [];
-              const unit = currentMetric === 'bp' ? 'mmHg' : currentMetric === 'sugar' ? 'mg/dL' : currentMetric === 'weight' ? 'kg' : '%';
+              const unit =
+                currentMetric === 'bp'
+                  ? 'mmHg'
+                  : currentMetric === 'sugar'
+                    ? 'mg/dL'
+                    : currentMetric === 'weight'
+                      ? 'kg'
+                      : '%';
 
               if (arr.length === 0) {
                 return (
@@ -932,11 +978,14 @@ export function PatientRecords(): React.JSX.Element {
                       >
                         <div>
                           <b className="block text-sm text-[var(--ink)]">
-                            {valStr} <span className="font-normal text-xs text-[var(--ink3)]">{unit}</span>
+                            {valStr}{' '}
+                            <span className="font-normal text-xs text-[var(--ink3)]">{unit}</span>
                           </b>
                           <span className="text-xs text-[var(--ink3)]">
                             {reading.d}
-                            {reading.ctx ? ` · ${reading.ctx === 'fasting' ? (lang === 'ml' ? 'വെറുംവയറ്റിൽ' : 'Fasting') : (lang === 'ml' ? 'ഭക്ഷണശേഷം' : 'After meal')}` : ''}
+                            {reading.ctx
+                              ? ` · ${reading.ctx === 'fasting' ? (lang === 'ml' ? 'വെറുംവയറ്റിൽ' : 'Fasting') : lang === 'ml' ? 'ഭക്ഷണശേഷം' : 'After meal'}`
+                              : ''}
                           </span>
                         </div>
                         <span className={`tag ${high ? 'tag-lat' : 'tag-leaf'}`}>
@@ -945,8 +994,8 @@ export function PatientRecords(): React.JSX.Element {
                               ? 'ഉയർന്നത്'
                               : 'Elevated'
                             : lang === 'ml'
-                            ? 'സാധാരണം'
-                            : 'Target'}
+                              ? 'സാധാരണം'
+                              : 'Target'}
                         </span>
                       </div>
                     );
@@ -962,12 +1011,18 @@ export function PatientRecords(): React.JSX.Element {
       {recTab === 'meds' && (
         <div className="fadein">
           <div className="grp">
-            {d.meds.map(m => (
+            {d.meds.map((m) => (
               <div key={m.id} className="row">
-                <span className="ico ico-leaf"><Pill size={20} /></span>
+                <span className="ico ico-leaf">
+                  <Pill size={20} />
+                </span>
                 <div className="flex-1 min-w-0">
-                  <b className="block text-sm font-bold text-[var(--ink)]">{m.name} {m.dose}</b>
-                  <span className="block text-xs text-[var(--ink2)]">{m.how} · {m.by}</span>
+                  <b className="block text-sm font-bold text-[var(--ink)]">
+                    {m.name} {m.dose}
+                  </b>
+                  <span className="block text-xs text-[var(--ink2)]">
+                    {m.how} · {m.by}
+                  </span>
                 </div>
               </div>
             ))}
@@ -994,13 +1049,15 @@ export function PatientRecords(): React.JSX.Element {
                 : "Signed notes can't be changed. If your doctor corrects something, it's added below the original."}
             </span>
           </div>
-          {d.visits.map(v => (
+          {d.visits.map((v) => (
             <div key={v.id} className="grp p-5">
               <div className="flex items-center justify-between mb-2">
                 <b className="text-base text-[var(--ink)]">{v.reason}</b>
                 <span className="text-xs text-[var(--ink3)]">{v.date}</span>
               </div>
-              <p className="text-xs text-[var(--ink2)] mb-3">{v.doc} · {v.dept}</p>
+              <p className="text-xs text-[var(--ink2)] mb-3">
+                {v.doc} · {v.dept}
+              </p>
               <div className="p-3 rounded-xl bg-[var(--mist)] text-xs sm:text-sm text-[var(--ink)] mb-3">
                 <b>{lang === 'ml' ? 'കണ്ടെത്തൽ:' : 'Clinical note:'}</b> {v.found}
               </div>
@@ -1016,11 +1073,15 @@ export function PatientRecords(): React.JSX.Element {
       {recTab === 'summary' && (
         <div className="fadein flex flex-col gap-5">
           <div className="grp p-5">
-            <h2 className="h3 text-[var(--ink)] mb-3">{lang === 'ml' ? 'രോഗാവസ്ഥകൾ' : 'Active conditions'}</h2>
+            <h2 className="h3 text-[var(--ink)] mb-3">
+              {lang === 'ml' ? 'രോഗാവസ്ഥകൾ' : 'Active conditions'}
+            </h2>
             {d.conds.map((c, i) => (
               <div key={i} className="py-1.5 flex items-center justify-between text-sm">
                 <span className="font-semibold text-[var(--ink)]">{c.n}</span>
-                <span className="text-xs text-[var(--ink3)]">{lang === 'ml' ? `${c.since} മുതൽ` : `Since ${c.since}`}</span>
+                <span className="text-xs text-[var(--ink3)]">
+                  {lang === 'ml' ? `${c.since} മുതൽ` : `Since ${c.since}`}
+                </span>
               </div>
             ))}
           </div>
@@ -1040,7 +1101,9 @@ export function PatientRecords(): React.JSX.Element {
 
           <div className="grp p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="h3 text-[var(--ink)]">{lang === 'ml' ? 'അറിയിച്ച ലക്ഷണങ്ങൾ' : 'Reported symptoms'}</h2>
+              <h2 className="h3 text-[var(--ink)]">
+                {lang === 'ml' ? 'അറിയിച്ച ലക്ഷണങ്ങൾ' : 'Reported symptoms'}
+              </h2>
               <button
                 type="button"
                 className="btn-p btn-tint btn-sm press flex items-center gap-1.5"
@@ -1052,7 +1115,7 @@ export function PatientRecords(): React.JSX.Element {
             </div>
             {d.symptoms && d.symptoms.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {d.symptoms.map(s => (
+                {d.symptoms.map((s) => (
                   <div key={s.id} className="row items-start">
                     <span className="ico ico-mist flex-none">
                       <MessageSquare size={18} />
@@ -1060,7 +1123,18 @@ export function PatientRecords(): React.JSX.Element {
                     <div className="flex-1 min-w-0">
                       <b className="block text-sm text-[var(--ink)]">{s.text}</b>
                       <span className="block text-xs text-[var(--ink3)] mt-0.5">
-                        {s.date} · {s.sev === 'mild' ? (lang === 'ml' ? 'നേരിയത്' : 'Mild') : s.sev === 'moderate' ? (lang === 'ml' ? 'മിതമായത്' : 'Moderate') : (lang === 'ml' ? 'കഠിനമായത്' : 'Severe')}
+                        {s.date} ·{' '}
+                        {s.sev === 'mild'
+                          ? lang === 'ml'
+                            ? 'നേരിയത്'
+                            : 'Mild'
+                          : s.sev === 'moderate'
+                            ? lang === 'ml'
+                              ? 'മിതമായത്'
+                              : 'Moderate'
+                            : lang === 'ml'
+                              ? 'കഠിനമായത്'
+                              : 'Severe'}
                       </span>
                       <span className="block mt-1.5">
                         <span className={`tag ${s.st === 'seen' ? 'tag-leaf' : 'tag-zari'}`}>
@@ -1069,8 +1143,8 @@ export function PatientRecords(): React.JSX.Element {
                               ? `${s.by || d.doc} പരിശോധിച്ചു`
                               : `Reviewed by ${s.by || d.doc}`
                             : lang === 'ml'
-                            ? 'പരിശോധന കാക്കുന്നു'
-                            : 'Waiting review'}
+                              ? 'പരിശോധന കാക്കുന്നു'
+                              : 'Waiting review'}
                         </span>
                       </span>
                     </div>

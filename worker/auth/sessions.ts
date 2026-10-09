@@ -156,7 +156,7 @@ export function getSessionCookie(c: Context): string | null {
   const cookieHeader = c.req.header('Cookie');
   if (!cookieHeader) return null;
 
-  const cookies = cookieHeader.split(';').map(c => c.trim());
+  const cookies = cookieHeader.split(';').map((c) => c.trim());
   for (const cookie of cookies) {
     if (cookie.startsWith(`${SESSION_COOKIE_NAME}=`)) {
       return cookie.substring(SESSION_COOKIE_NAME.length + 1);

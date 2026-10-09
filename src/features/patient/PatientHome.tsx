@@ -33,10 +33,7 @@ function Dots({ p }: { p: [number, number, number] | null }) {
     );
   }
   return (
-    <span
-      className="dots"
-      aria-label={`Morning ${p[0]}, Noon ${p[1]}, Night ${p[2]}`}
-    >
+    <span className="dots" aria-label={`Morning ${p[0]}, Noon ${p[1]}, Night ${p[2]}`}>
       {p.map((x, i) => (
         <i key={i} className={x ? 'on' : ''} />
       ))}
@@ -61,9 +58,14 @@ function Spark({ data }: { data: number[] }) {
   const ly = lastPt ? lastPt[1] : 0;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full mt-2" style={{ height: 34 }} aria-hidden="true">
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="w-full mt-2"
+      style={{ height: 34 }}
+      aria-hidden="true"
+    >
       <polyline
-        points={pts.map(p => p.join(',')).join(' ')}
+        points={pts.map((p) => p.join(',')).join(' ')}
         fill="none"
         stroke="#1F6B4F"
         strokeWidth="2.2"
@@ -137,11 +139,7 @@ export function Ticket() {
       </div>
 
       <div className="grid grid-cols-2 gap-2 mt-3">
-        <button
-          type="button"
-          className="btn-p btn-sec btn-sm press w-full"
-          onClick={downloadIcs}
-        >
+        <button type="button" className="btn-p btn-sec btn-sm press w-full" onClick={downloadIcs}>
           <CalendarPlus size={18} className="flex-none" />
           <span>{lang === 'ml' ? 'കലണ്ടറിൽ ചേർക്കുക' : 'Add to calendar'}</span>
         </button>
@@ -162,7 +160,7 @@ export function Ticket() {
 function Prep() {
   const { lang, d, openSheet } = usePatient();
   const items = [
-    ...d.tests.map(x => ({
+    ...d.tests.map((x) => ({
       id: x.id,
       label: x.name,
       ok: x.st === 'sent',
@@ -172,8 +170,8 @@ function Prep() {
             ? `${x.on}-ൽ അപ്‌ലോഡ് ചെയ്തു`
             : `Uploaded ${x.on}`
           : lang === 'ml'
-          ? `${x.due}-നകം`
-          : `Due ${x.due}`,
+            ? `${x.due}-നകം`
+            : `Due ${x.due}`,
       act:
         x.st !== 'sent'
           ? ([
@@ -182,7 +180,7 @@ function Prep() {
             ] as const)
           : null,
     })),
-    ...d.logs.slice(0, 1).map(x => ({
+    ...d.logs.slice(0, 1).map((x) => ({
       id: x.id,
       label: x.name,
       ok: false,
@@ -195,7 +193,7 @@ function Prep() {
   ];
 
   if (!items.length) return null;
-  const doneCount = items.filter(i => i.ok).length;
+  const doneCount = items.filter((i) => i.ok).length;
 
   return (
     <section className="grp" aria-labelledby="prep-h">
@@ -214,7 +212,7 @@ function Prep() {
         <i style={{ width: `${(doneCount / items.length) * 100}%` }} />
       </div>
 
-      {items.map(i => (
+      {items.map((i) => (
         <div key={i.id} className="row">
           <span className={`tick ${i.ok ? 'on' : ''}`}>
             {i.ok && <Check size={14} strokeWidth={3} />}
@@ -226,11 +224,7 @@ function Prep() {
             <span className="block text-xs text-[var(--ink3)]">{i.sub}</span>
           </div>
           {i.act && (
-            <button
-              type="button"
-              className="btn-p btn-tint btn-sm press"
-              onClick={i.act[1]}
-            >
+            <button type="button" className="btn-p btn-tint btn-sm press" onClick={i.act[1]}>
               {i.act[0]}
             </button>
           )}
@@ -242,8 +236,8 @@ function Prep() {
 
 function Meds() {
   const { lang, d, take } = usePatient();
-  const allKeys = d.slots.flatMap(s => s.meds.map(m => s.k + '-' + m));
-  const takenCount = allKeys.filter(k => d.doses[k]).length;
+  const allKeys = d.slots.flatMap((s) => s.meds.map((m) => s.k + '-' + m));
+  const takenCount = allKeys.filter((k) => d.doses[k]).length;
 
   return (
     <section aria-labelledby="meds-h">
@@ -259,8 +253,8 @@ function Meds() {
       </div>
 
       <ol className="list-none p-0 m-0">
-        {d.slots.map(s => {
-          const done = s.meds.every(m => d.doses[s.k + '-' + m]);
+        {d.slots.map((s) => {
+          const done = s.meds.every((m) => d.doses[s.k + '-' + m]);
           const Icon = s.k === 'night' ? Moon : Sun;
           const slotLabel =
             s.k === 'morning'
@@ -268,8 +262,8 @@ function Meds() {
                 ? 'രാവിലെ'
                 : 'Morning'
               : lang === 'ml'
-              ? 'രാത്രി'
-              : 'Night';
+                ? 'രാത്രി'
+                : 'Night';
 
           return (
             <li key={s.k} className={`tl-i ${done ? 'done' : s.eta ? 'now' : ''}`}>
@@ -293,8 +287,8 @@ function Meds() {
               </div>
 
               <ul className="list-none p-0 m-0">
-                {s.meds.map(mid => {
-                  const m = d.meds.find(x => x.id === mid) as MedicationItem;
+                {s.meds.map((mid) => {
+                  const m = d.meds.find((x) => x.id === mid) as MedicationItem;
                   if (!m) return null;
                   const key = s.k + '-' + mid;
                   const at = d.doses[key];
@@ -304,14 +298,14 @@ function Meds() {
                         ? 'ഭക്ഷണശേഷം'
                         : 'after food'
                       : m.food === 'beforeFood'
-                      ? lang === 'ml'
-                        ? 'ഭക്ഷണത്തിന് മുമ്പ്'
-                        : 'before food'
-                      : m.food === 'atBed'
-                      ? lang === 'ml'
-                        ? 'ഉറങ്ങും മുമ്പ്'
-                        : 'at bedtime'
-                      : '';
+                        ? lang === 'ml'
+                          ? 'ഭക്ഷണത്തിന് മുമ്പ്'
+                          : 'before food'
+                        : m.food === 'atBed'
+                          ? lang === 'ml'
+                            ? 'ഉറങ്ങും മുമ്പ്'
+                            : 'at bedtime'
+                          : '';
 
                   return (
                     <li key={mid} className="med">
@@ -364,7 +358,7 @@ function ReadTiles() {
   } as const;
 
   const ks = (['bp', 'sugar', 'weight', 'a1c'] as const).filter(
-    k => d.readings[k] && d.readings[k].length > 0
+    (k) => d.readings[k] && d.readings[k].length > 0
   );
 
   const formatVal = (k: string, v: number | [number, number]) =>
@@ -393,12 +387,12 @@ function ReadTiles() {
       </div>
 
       <div className="hscroll tiles -mx-5 px-5 lg:mx-0 lg:px-0">
-        {ks.map(k => {
+        {ks.map((k) => {
           const arr = d.readings[k] || [];
           const last = arr[arr.length - 1];
           if (!last) return null;
           const [Icon, unit, label] = METRICS[k];
-          const sparkData = arr.map(r => (Array.isArray(r.v) ? r.v[0] : (r.v as number)));
+          const sparkData = arr.map((r) => (Array.isArray(r.v) ? r.v[0] : (r.v as number)));
 
           return (
             <button
@@ -475,7 +469,7 @@ function RecentReports() {
       </div>
 
       <div className="grp">
-        {d.reports.slice(0, 3).map(r => {
+        {d.reports.slice(0, 3).map((r) => {
           const [Icon, tone] = KIND_CONFIG[r.kind] || KIND_CONFIG.other;
 
           return (

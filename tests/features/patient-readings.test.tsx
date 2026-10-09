@@ -86,7 +86,9 @@ describe('Patient Feature: Screen 3 - Log a Reading Sheet Modal', () => {
     fireEvent.change(sysInput, { target: { value: '80' } });
     fireEvent.change(diaInput, { target: { value: '120' } });
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/Check this number. It looks unusual for this reading./i);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Check this number. It looks unusual for this reading./i
+    );
     expect(screen.getByRole('button', { name: /Save reading/i })).toBeDisabled();
   });
 

@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import {
-  ShieldCheck,
-  Lock,
-  ChevronLeft,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
-  Languages,
-} from 'lucide-react';
+import { ShieldCheck, Lock, ChevronLeft, Eye, EyeOff, Copy, Check, Languages } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
 import { apiFetch } from '../../lib/api-client';
 
@@ -210,8 +201,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
 
   const formatAuthError = (err: unknown): string => {
     const rawMessage =
-      (err as { message?: string })?.message ||
-      (err instanceof Error ? err.message : String(err));
+      (err as { message?: string })?.message || (err instanceof Error ? err.message : String(err));
 
     if (!rawMessage) return t('staffAuth.signInFailed', 'Sign-in failed. Please try again.');
 
@@ -242,13 +232,16 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
 
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: normalizedEmail,
-          password: actualPassword,
-        }),
-      });
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>(
+        '/api/auth/staff/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password: actualPassword,
+          }),
+        }
+      );
       if (res?.requireTotp) {
         setStaffId(res.staffId);
         setBusy(false);
@@ -271,14 +264,21 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         codeToUse = generatedCode;
       }
 
-      const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
-      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
-        method: 'POST',
-        body: JSON.stringify({
-          staffId: idToVerify,
-          code: codeToUse,
-        }),
-      });
+      const idToVerify =
+        staffId ||
+        (email.includes('admin')
+          ? 'b0000000-0000-0000-0000-000000000001'
+          : 'b0000000-0000-0000-0000-000000000003');
+      const res = await apiFetch<{ success: boolean; user?: { role: string } }>(
+        '/api/auth/staff/verify-totp',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            staffId: idToVerify,
+            code: codeToUse,
+          }),
+        }
+      );
       setBusy(false);
       if (res?.user?.role === 'admin') {
         navigate('/admin');
@@ -323,13 +323,16 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
 
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: normalizedEmail,
-          password: actualPassword,
-        }),
-      });
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>(
+        '/api/auth/staff/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password: actualPassword,
+          }),
+        }
+      );
       if (res?.staffId) {
         setStaffId(res.staffId);
       }
@@ -351,9 +354,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               <Lock size={32} />
             </span>
             <h1 className="disp h1 text-center text-white">{t('staffAuth.lockTitle')}</h1>
-            <p className="mt-3 text-center text-white/75 text-base">
-              {t('staffAuth.lockSub')}
-            </p>
+            <p className="mt-3 text-center text-white/75 text-base">{t('staffAuth.lockSub')}</p>
 
             <form onSubmit={handleUnlockSubmit} className="mt-8 w-full" noValidate>
               <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/10 border border-white/15">
@@ -503,7 +504,9 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                   type="button"
                   className="p-1.5 text-[var(--ink3)] hover:text-[var(--ink)] transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? t('staffAuth.hidePassword') : t('staffAuth.showPassword')}
+                  aria-label={
+                    showPassword ? t('staffAuth.hidePassword') : t('staffAuth.showPassword')
+                  }
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -595,9 +598,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               <span>{t('staffAuth.recordsHiddenNote')}</span>
             </div>
 
-            <p className="mt-5 text-sm text-[var(--ink3)]">
-              {t('staffAuth.lostPhone')}
-            </p>
+            <p className="mt-5 text-sm text-[var(--ink3)]">{t('staffAuth.lostPhone')}</p>
 
             <button
               type="button"
@@ -652,10 +653,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                 <div className="min-w-0 flex-1">
                   <h2 className="h3 text-[var(--ink)]">{t('staffAuth.step3Title')}</h2>
                   <div className="mt-3">
-                    <CodeBoxes
-                      label={t('staffAuth.codeFromApp')}
-                      onOk={handleEnrollSuccess}
-                    />
+                    <CodeBoxes label={t('staffAuth.codeFromApp')} onOk={handleEnrollSuccess} />
                   </div>
                 </div>
               </li>

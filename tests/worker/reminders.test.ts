@@ -20,11 +20,20 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON;');
 
-  const m1 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'), 'utf8');
+  const m1 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql'),
+    'utf8'
+  );
   sqlite.exec(m1);
-  const m2 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'), 'utf8');
+  const m2 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0002_seed_demo_data.sql'),
+    'utf8'
+  );
   sqlite.exec(m2);
-  const m3 = fs.readFileSync(path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'), 'utf8');
+  const m3 = fs.readFileSync(
+    path.resolve(process.cwd(), 'migrations/0003_staff_auth_credentials.sql'),
+    'utf8'
+  );
   sqlite.exec(m3);
 
   const d1 = {
@@ -37,26 +46,26 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const safe = boundParams.map((p) => (p === undefined ? null : p));
           const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
@@ -136,8 +145,12 @@ describe('Care Reminders & Cron Trigger Job', () => {
     expect(claimed[0]?.status).toBe('claimed');
 
     // Verify database state
-    const dueRow = sqlite.prepare("SELECT status FROM reminders WHERE id = 'rem-due-1'").get() as { status: string };
-    const futureRow = sqlite.prepare("SELECT status FROM reminders WHERE id = 'rem-future-1'").get() as { status: string };
+    const dueRow = sqlite.prepare("SELECT status FROM reminders WHERE id = 'rem-due-1'").get() as {
+      status: string;
+    };
+    const futureRow = sqlite
+      .prepare("SELECT status FROM reminders WHERE id = 'rem-future-1'")
+      .get() as { status: string };
 
     expect(dueRow.status).toBe('claimed');
     expect(futureRow.status).toBe('pending');
@@ -154,15 +167,17 @@ describe('Care Reminders & Cron Trigger Job', () => {
     `);
 
     // Mock global fetch for Web Push endpoint
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ success: true }), { status: 201 })
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 201 }));
 
     const result = await processRemindersCron(d1, mockEnv);
     expect(result.processed).toBe(1);
     expect(result.sentPush).toBe(1);
 
-    const row = sqlite.prepare("SELECT status, channel FROM reminders WHERE id = 'rem-push-1'").get() as { status: string; channel: string };
+    const row = sqlite
+      .prepare("SELECT status, channel FROM reminders WHERE id = 'rem-push-1'")
+      .get() as { status: string; channel: string };
     expect(row.status).toBe('sent');
     expect(row.channel).toBe('push');
 
@@ -177,15 +192,19 @@ describe('Care Reminders & Cron Trigger Job', () => {
     `);
 
     // Patient has email arun@example.com but NO push subscription
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ id: 'resend_email_id_123' }), { status: 200 })
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: 'resend_email_id_123' }), { status: 200 })
+      );
 
     const result = await processRemindersCron(d1, mockEnv);
     expect(result.processed).toBe(1);
     expect(result.sentEmail).toBe(1);
 
-    const row = sqlite.prepare("SELECT status, channel FROM reminders WHERE id = 'rem-email-fallback'").get() as { status: string; channel: string };
+    const row = sqlite
+      .prepare("SELECT status, channel FROM reminders WHERE id = 'rem-email-fallback'")
+      .get() as { status: string; channel: string };
     expect(row.status).toBe('sent');
     expect(row.channel).toBe('email');
 
@@ -205,19 +224,25 @@ describe('Care Reminders & Cron Trigger Job', () => {
 
     // 1st attempt
     await processRemindersCron(d1, mockEnv);
-    let row = sqlite.prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'").get() as { status: string; attempts: number };
+    let row = sqlite
+      .prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'")
+      .get() as { status: string; attempts: number };
     expect(row.status).toBe('pending');
     expect(row.attempts).toBe(1);
 
     // 2nd attempt
     await processRemindersCron(d1, mockEnv);
-    row = sqlite.prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'").get() as { status: string; attempts: number };
+    row = sqlite
+      .prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'")
+      .get() as { status: string; attempts: number };
     expect(row.status).toBe('pending');
     expect(row.attempts).toBe(2);
 
     // 3rd attempt -> should transition to 'failed'
     await processRemindersCron(d1, mockEnv);
-    row = sqlite.prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'").get() as { status: string; attempts: number };
+    row = sqlite
+      .prepare("SELECT status, attempts FROM reminders WHERE id = 'rem-fail-test'")
+      .get() as { status: string; attempts: number };
     expect(row.status).toBe('failed');
     expect(row.attempts).toBe(3);
   });
@@ -232,43 +257,59 @@ describe('Care Reminders & Cron Trigger Job', () => {
     });
 
     // 1. Subscribe
-    const subRes = await app.request('http://localhost/api/notifications/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
-      },
-      body: JSON.stringify({
-        endpoint: 'https://push.example.com/sub/12345',
-        keys: {
-          p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QT9Ac',
-          auth: 'tBHItJI5svbpez7KI4CCXg',
+    const subRes = await app.request(
+      'http://localhost/api/notifications/subscribe',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
         },
-      }),
-    }, mockEnv);
+        body: JSON.stringify({
+          endpoint: 'https://push.example.com/sub/12345',
+          keys: {
+            p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QT9Ac',
+            auth: 'tBHItJI5svbpez7KI4CCXg',
+          },
+        }),
+      },
+      mockEnv
+    );
 
     expect(subRes.status).toBe(200);
 
-    const subRow = sqlite.prepare("SELECT * FROM push_subscriptions WHERE endpoint = 'https://push.example.com/sub/12345'").get() as { user_id: string };
+    const subRow = sqlite
+      .prepare(
+        "SELECT * FROM push_subscriptions WHERE endpoint = 'https://push.example.com/sub/12345'"
+      )
+      .get() as { user_id: string };
     expect(subRow).toBeDefined();
     expect(subRow.user_id).toBe(PATIENT_A);
 
     // 2. Unsubscribe
-    const unsubRes = await app.request('http://localhost/api/notifications/subscribe', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: `careone_session=${patientToken}`,
-        Origin: 'http://localhost',
+    const unsubRes = await app.request(
+      'http://localhost/api/notifications/subscribe',
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `careone_session=${patientToken}`,
+          Origin: 'http://localhost',
+        },
+        body: JSON.stringify({
+          endpoint: 'https://push.example.com/sub/12345',
+        }),
       },
-      body: JSON.stringify({
-        endpoint: 'https://push.example.com/sub/12345',
-      }),
-    }, mockEnv);
+      mockEnv
+    );
 
     expect(unsubRes.status).toBe(200);
-    const deletedRow = sqlite.prepare("SELECT * FROM push_subscriptions WHERE endpoint = 'https://push.example.com/sub/12345'").get();
+    const deletedRow = sqlite
+      .prepare(
+        "SELECT * FROM push_subscriptions WHERE endpoint = 'https://push.example.com/sub/12345'"
+      )
+      .get();
     expect(deletedRow).toBeUndefined();
   });
 });

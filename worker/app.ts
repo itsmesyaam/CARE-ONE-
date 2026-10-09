@@ -56,7 +56,7 @@ export function createApp(): Hono<{ Bindings: WorkerEnv; Variables: AccessVariab
   });
 
   // Health check endpoint
-  app.get('/api/health', c => {
+  app.get('/api/health', (c) => {
     return c.json({
       status: 'ok',
       service: 'care-one-api',
@@ -74,41 +74,34 @@ export function createApp(): Hono<{ Bindings: WorkerEnv; Variables: AccessVariab
   app.route('/api/notifications', notificationRoutes);
 
   // Scoped Patient Chart Endpoints
-  app.get(
-    '/api/patients/:patientId/chart',
-    requireAccess(patientChartReadPolicy),
-    async c => {
-      const patientId = c.req.param('patientId');
-      const patient = await c.env.DB
-        .prepare('SELECT id, full_name, dob, gender FROM patients WHERE id = ?')
-        .bind(patientId)
-        .first();
+  app.get('/api/patients/:patientId/chart', requireAccess(patientChartReadPolicy), async (c) => {
+    const patientId = c.req.param('patientId');
+    const patient = await c.env.DB.prepare(
+      'SELECT id, full_name, dob, gender FROM patients WHERE id = ?'
+    )
+      .bind(patientId)
+      .first();
 
-      return c.json({
-        patientId,
-        patient,
-        status: 'active',
-      });
-    }
-  );
+    return c.json({
+      patientId,
+      patient,
+      status: 'active',
+    });
+  });
 
-  app.post(
-    '/api/patients/:patientId/chart',
-    requireAccess(patientChartWritePolicy),
-    async c => {
-      const patientId = c.req.param('patientId');
-      const body = await c.req.json().catch(() => ({}));
-      return c.json({
-        success: true,
-        patientId,
-        created: true,
-        body,
-      });
-    }
-  );
+  app.post('/api/patients/:patientId/chart', requireAccess(patientChartWritePolicy), async (c) => {
+    const patientId = c.req.param('patientId');
+    const body = await c.req.json().catch(() => ({}));
+    return c.json({
+      success: true,
+      patientId,
+      created: true,
+      body,
+    });
+  });
 
   // 404 handler for API routes
-  app.notFound(c => {
+  app.notFound((c) => {
     if (c.req.path.startsWith('/api')) {
       return c.json({ error: 'Not Found' }, 404);
     }

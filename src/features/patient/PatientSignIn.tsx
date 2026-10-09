@@ -81,11 +81,7 @@ function AuthFrame({
       <div className="zari-band" />
       <div className="flex items-center justify-between gap-3 px-4 lg:px-10 pt-4">
         {back ? (
-          <button
-            type="button"
-            className="back press text-sm font-semibold"
-            onClick={back}
-          >
+          <button type="button" className="back press text-sm font-semibold" onClick={back}>
             <ChevronLeft size={20} />
             {lang === 'ml' ? 'തിരികെ' : 'Back'}
           </button>
@@ -110,8 +106,18 @@ function WelcomeView({ onStartSignIn }: { onStartSignIn: () => void }) {
   const { lang } = usePatient();
   const pv = [
     [Pill, lang === 'ml' ? 'രാത്രിയിലെ മരുന്നുകൾ' : 'Night medicines', '9:00 PM', 'leaf'],
-    [BadgeCheck, lang === 'ml' ? 'ലിപിഡ് പ്രൊഫൈൽ പരിശോധിച്ചു' : 'Lipid profile reviewed', 'Dr. Rahul Nair', 'leaf'],
-    [CalendarDays, lang === 'ml' ? 'അടുത്ത സന്ദർശനം, വ്യാഴം 15 ഒക്ടോ' : 'Next visit, Thu 15 Oct', '10:30 AM', 'zari'],
+    [
+      BadgeCheck,
+      lang === 'ml' ? 'ലിപിഡ് പ്രൊഫൈൽ പരിശോധിച്ചു' : 'Lipid profile reviewed',
+      'Dr. Rahul Nair',
+      'leaf',
+    ],
+    [
+      CalendarDays,
+      lang === 'ml' ? 'അടുത്ത സന്ദർശനം, വ്യാഴം 15 ഒക്ടോ' : 'Next visit, Thu 15 Oct',
+      '10:30 AM',
+      'zari',
+    ],
   ] as const;
 
   return (
@@ -128,7 +134,9 @@ function WelcomeView({ onStartSignIn }: { onStartSignIn: () => void }) {
       <main className="flex-1 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center px-5 lg:px-12 py-10">
         <div>
           <h1 className="disp hero-t kin text-[var(--ink)]">
-            {lang === 'ml' ? 'സന്ദർശനങ്ങൾക്കിടയിലും നിങ്ങളുടെ പരിചരണം.' : 'Your care, between visits.'}
+            {lang === 'ml'
+              ? 'സന്ദർശനങ്ങൾക്കിടയിലും നിങ്ങളുടെ പരിചരണം.'
+              : 'Your care, between visits.'}
           </h1>
           <p className="text-[var(--ink2)] text-base sm:text-lg mt-5 max-w-md">
             {lang === 'ml'
@@ -200,10 +208,7 @@ function SignInForm({
     };
   }, []);
 
-  const ok =
-    method === 'phone'
-      ? val.replace(/\D/g, '').length === 10
-      : /^\S+@\S+\.\S+$/.test(val);
+  const ok = method === 'phone' ? val.replace(/\D/g, '').length === 10 : /^\S+@\S+\.\S+$/.test(val);
 
   const handleSend = () => {
     const formatted =
@@ -257,8 +262,8 @@ function SignInForm({
             ? 'മൊബൈൽ നമ്പർ'
             : 'Mobile number'
           : lang === 'ml'
-          ? 'ഇമെയിൽ വിലാസം'
-          : 'Email address'}
+            ? 'ഇമെയിൽ വിലാസം'
+            : 'Email address'}
       </label>
 
       <div className="field">
@@ -269,7 +274,7 @@ function SignInForm({
           type={method === 'phone' ? 'tel' : 'email'}
           inputMode={method === 'phone' ? 'numeric' : 'email'}
           autoComplete={method === 'phone' ? 'tel-national' : 'email'}
-          onChange={e =>
+          onChange={(e) =>
             setVal(
               method === 'phone'
                 ? e.target.value.replace(/[^\d ]/g, '').slice(0, 11)
@@ -381,11 +386,7 @@ function OtpForm({
     <AuthFrame
       back={onBack}
       title={lang === 'ml' ? '6 അക്ക കോഡ് നൽകുക' : 'Enter the 6-digit code'}
-      sub={
-        lang === 'ml'
-          ? `${contact}-ലേക്ക് കോഡ് അയച്ചു.`
-          : `We sent it to ${contact}.`
-      }
+      sub={lang === 'ml' ? `${contact}-ലേക്ക് കോഡ് അയച്ചു.` : `We sent it to ${contact}.`}
     >
       <div
         className={`otp ${hasError ? 'shake' : ''}`}
@@ -395,7 +396,7 @@ function OtpForm({
         {digits.map((val, i) => (
           <input
             key={i}
-            ref={el => {
+            ref={(el) => {
               refs.current[i] = el;
             }}
             value={val}
@@ -404,13 +405,13 @@ function OtpForm({
             autoComplete={i === 0 ? 'one-time-code' : 'off'}
             aria-label={`Digit ${i + 1}`}
             className={`${val ? 'filled' : ''} ${hasError ? 'bad' : ''}`}
-            onChange={e => handleChange(i, e)}
-            onKeyDown={e => {
+            onChange={(e) => handleChange(i, e)}
+            onKeyDown={(e) => {
               if (e.key === 'Backspace' && !digits[i] && i > 0) {
                 refs.current[i - 1]?.focus();
               }
             }}
-            onPaste={e => {
+            onPaste={(e) => {
               e.preventDefault();
               fillCode(e.clipboardData.getData('text'));
             }}
@@ -419,7 +420,10 @@ function OtpForm({
       </div>
 
       {hasError && (
-        <p className="err mt-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--lat)]" role="alert">
+        <p
+          className="err mt-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--lat)]"
+          role="alert"
+        >
           <AlertTriangle size={16} />
           {lang === 'ml'
             ? 'കോഡ് ശരിയല്ല. ഏറ്റവും പുതിയ മെസേജ് നോക്കി വീണ്ടും ശ്രമിക്കുക.'
@@ -472,13 +476,7 @@ function OtpForm({
   );
 }
 
-function ConsentView({
-  onAgree,
-  onDecline,
-}: {
-  onAgree: () => void;
-  onDecline: () => void;
-}) {
+function ConsentView({ onAgree, onDecline }: { onAgree: () => void; onDecline: () => void }) {
   const { lang } = usePatient();
   const [agreed, setAgreed] = useState(false);
 
@@ -520,8 +518,14 @@ function ConsentView({
 
   return (
     <AuthFrame
-      title={lang === 'ml' ? 'നിങ്ങളുടെ വിവരങ്ങൾ എങ്ങനെ ഉപയോഗിക്കുന്നു' : 'How we use your information'}
-      sub={lang === 'ml' ? 'രേഖകൾ കാണുന്നതിന് മുമ്പ് ഇത് വായിക്കുക.' : 'Read this before you see your records.'}
+      title={
+        lang === 'ml' ? 'നിങ്ങളുടെ വിവരങ്ങൾ എങ്ങനെ ഉപയോഗിക്കുന്നു' : 'How we use your information'
+      }
+      sub={
+        lang === 'ml'
+          ? 'രേഖകൾ കാണുന്നതിന് മുമ്പ് ഇത് വായിക്കുക.'
+          : 'Read this before you see your records.'
+      }
     >
       <div className="grp">
         {rows.map(([Icon, title, desc], i) => (
@@ -538,7 +542,9 @@ function ConsentView({
       </div>
 
       <p className="text-xs text-[var(--ink3)] mt-4">
-        {lang === 'ml' ? 'അറിയിപ്പ് പതിപ്പ് 1.2, ഒക്ടോബർ 2026' : 'Notice version 1.2, updated 1 Oct 2026'}
+        {lang === 'ml'
+          ? 'അറിയിപ്പ് പതിപ്പ് 1.2, ഒക്ടോബർ 2026'
+          : 'Notice version 1.2, updated 1 Oct 2026'}
       </p>
       <p className="text-xs text-[var(--ink3)] mt-1">
         {lang === 'ml'
@@ -547,11 +553,7 @@ function ConsentView({
       </p>
 
       <label className="check mt-6">
-        <input
-          type="checkbox"
-          checked={agreed}
-          onChange={e => setAgreed(e.target.checked)}
-        />
+        <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
         <span className="text-xs sm:text-sm font-medium text-[var(--ink)]">
           {lang === 'ml'
             ? 'ഞാൻ ഇത് വായിച്ചു. എന്റെ വിവരങ്ങൾ ഇങ്ങനെ ഉപയോഗിക്കാൻ സമ്മതിക്കുന്നു.'
@@ -560,11 +562,7 @@ function ConsentView({
       </label>
 
       <div className="flex gap-3 mt-6">
-        <button
-          type="button"
-          className="btn-p btn-sec press flex-1"
-          onClick={onDecline}
-        >
+        <button type="button" className="btn-p btn-sec press flex-1" onClick={onDecline}>
           {lang === 'ml' ? 'ഇപ്പോൾ വേണ്ട' : 'Not now'}
         </button>
         <button
@@ -613,8 +611,8 @@ function WhoView({ onContinue }: { onContinue: () => void }) {
                     ? 'നിങ്ങൾ'
                     : 'You'
                   : lang === 'ml'
-                  ? 'നിങ്ങളുടെ കുട്ടി, നിങ്ങൾ രക്ഷിതാവ്'
-                  : "Your child, you're the guardian"}
+                    ? 'നിങ്ങളുടെ കുട്ടി, നിങ്ങൾ രക്ഷിതാവ്'
+                    : "Your child, you're the guardian"}
               </span>
               <span className="block text-xs text-[var(--ink3)] mt-0.5">
                 {lang === 'ml' ? 'ഹോസ്പിറ്റൽ നമ്പർ' : 'Hospital number'} {person.mrn}
@@ -632,11 +630,7 @@ function WhoView({ onContinue }: { onContinue: () => void }) {
           : 'To link another family member, bring their ID to the front desk.'}
       </p>
 
-      <button
-        type="button"
-        className="btn-p btn-pri press w-full mt-6"
-        onClick={onContinue}
-      >
+      <button type="button" className="btn-p btn-pri press w-full mt-6" onClick={onContinue}>
         {lang === 'ml' ? 'തുടരുക' : 'Continue'}
       </button>
     </AuthFrame>
@@ -651,12 +645,7 @@ export function PatientSignIn(): React.JSX.Element {
   if (step === 'welcome') {
     body = <WelcomeView onStartSignIn={() => go('signin')} />;
   } else if (step === 'signin') {
-    body = (
-      <SignInForm
-        onBack={() => go('welcome')}
-        onSentCode={() => go('otp')}
-      />
-    );
+    body = <SignInForm onBack={() => go('welcome')} onSentCode={() => go('otp')} />;
   } else if (step === 'otp') {
     body = (
       <OtpForm
@@ -694,4 +683,3 @@ export function PatientSignIn(): React.JSX.Element {
     </div>
   );
 }
-

@@ -109,7 +109,10 @@ export function EmergencyAccessModal({
 
         {/* Emergency Reason Form */}
         <form onSubmit={handleGrant} className="mt-5">
-          <label htmlFor="emergency-reason" className="block text-sm font-bold text-[var(--ink)] mb-1.5">
+          <label
+            htmlFor="emergency-reason"
+            className="block text-sm font-bold text-[var(--ink)] mb-1.5"
+          >
             {t('emergencyModal.reason')}
           </label>
           <textarea
@@ -120,9 +123,7 @@ export function EmergencyAccessModal({
             placeholder={t('emergencyModal.reasonPh')}
             className="w-full rounded-xl border border-[var(--line)] p-3 text-base text-[var(--ink)] focus:outline-none focus:border-[var(--leaf)] focus:ring-1 focus:ring-[var(--leaf)]"
           />
-          <p className="mt-1 text-xs text-[var(--ink3)]">
-            {t('emergencyModal.reasonHint')}
-          </p>
+          <p className="mt-1 text-xs text-[var(--ink3)]">{t('emergencyModal.reasonHint')}</p>
 
           {/* Quick Preset Reason Chips */}
           <div className="flex flex-wrap gap-1.5 mt-3">
@@ -158,11 +159,7 @@ export function EmergencyAccessModal({
           </label>
 
           {/* Submit Action */}
-          <button
-            type="submit"
-            disabled={!valid}
-            className="btn btn-danger w-full mt-6"
-          >
+          <button type="submit" disabled={!valid} className="btn btn-danger w-full mt-6">
             <ShieldAlert size={18} />
             {t('emergencyModal.submitBtn')}
           </button>

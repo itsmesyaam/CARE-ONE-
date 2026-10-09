@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import {
-  ShieldCheck,
-  Timer,
-  LogOut,
-  Check,
-  ShieldAlert,
-} from 'lucide-react';
+import { ShieldCheck, Timer, LogOut, Check, ShieldAlert } from 'lucide-react';
 import { apiFetch } from '../../lib/api-client';
 
 interface EmergencyAccessRow {
@@ -32,7 +26,9 @@ export function DoctorAccount(): React.JSX.Element {
     queryKey: ['doctor', 'care_team_count'],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ careTeam: Array<{ patient_id: string }> }>('/api/doctor/care-team');
+        const res = await apiFetch<{ careTeam: Array<{ patient_id: string }> }>(
+          '/api/doctor/care-team'
+        );
         return res.careTeam ? res.careTeam.length : 0;
       } catch {
         return 0;
@@ -45,7 +41,9 @@ export function DoctorAccount(): React.JSX.Element {
     queryKey: ['doctor', 'emergency_logs'],
     queryFn: async () => {
       try {
-        const res = await apiFetch<{ emergencyAccess: EmergencyAccessRow[] }>('/api/doctor/emergency-access');
+        const res = await apiFetch<{ emergencyAccess: EmergencyAccessRow[] }>(
+          '/api/doctor/emergency-access'
+        );
         return res.emergencyAccess || [];
       } catch {
         return [];
@@ -101,7 +99,9 @@ export function DoctorAccount(): React.JSX.Element {
               </div>
               <div>
                 <dt className="text-xs text-[var(--ink3)]">{t('doctorAccount.email')}</dt>
-                <dd className="font-semibold text-[var(--ink)] mt-0.5 break-all">dr.rahul@example.com</dd>
+                <dd className="font-semibold text-[var(--ink)] mt-0.5 break-all">
+                  dr.rahul@example.com
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-[var(--ink3)]">{t('doctorAccount.opRoom')}</dt>
@@ -132,7 +132,9 @@ export function DoctorAccount(): React.JSX.Element {
                   </span>
                   <div>
                     <b className="block text-sm text-[var(--ink)]">{t('doctorAccount.twoFa')}</b>
-                    <span className="text-xs text-[var(--ink3)]">{t('doctorAccount.twoFaApp')}</span>
+                    <span className="text-xs text-[var(--ink3)]">
+                      {t('doctorAccount.twoFaApp')}
+                    </span>
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md bg-[var(--leaft)] text-[var(--leaf)]">
@@ -147,8 +149,12 @@ export function DoctorAccount(): React.JSX.Element {
                     <Timer size={18} />
                   </span>
                   <div>
-                    <b className="block text-sm text-[var(--ink)]">{t('doctorAccount.screenLock')}</b>
-                    <span className="text-xs text-[var(--ink3)]">{t('doctorAccount.screenLockSub')}</span>
+                    <b className="block text-sm text-[var(--ink)]">
+                      {t('doctorAccount.screenLock')}
+                    </b>
+                    <span className="text-xs text-[var(--ink3)]">
+                      {t('doctorAccount.screenLockSub')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -187,7 +193,11 @@ export function DoctorAccount(): React.JSX.Element {
                         Reason: {log.reason}
                       </span>
                       <span className="block text-xs text-[var(--ink3)] mt-1">
-                        Active until {new Date(log.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        Active until{' '}
+                        {new Date(log.expires_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
                   </div>
@@ -215,7 +225,11 @@ export function DoctorAccount(): React.JSX.Element {
 
       {/* SIGN OUT CONFIRMATION MODAL */}
       {signOutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="staff-theme w-full max-w-sm rounded-[24px] bg-white p-6 shadow-2xl border border-[var(--line)]">
             <h2 className="text-lg font-bold text-[var(--ink)]">
               {t('doctorAccount.signOutConfirm')}

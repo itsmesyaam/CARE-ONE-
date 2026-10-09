@@ -83,19 +83,11 @@ export function PatientReminders(): React.JSX.Element {
                   {items.map((r) => {
                     const Icon = IC[r.ic] || Bell;
                     const action = !r.done && ACT[r.k];
-                    const reminderTitle =
-                      t(`patientReminders.${r.k}`, { defaultValue: r.k });
+                    const reminderTitle = t(`patientReminders.${r.k}`, { defaultValue: r.k });
 
                     return (
-                      <div
-                        key={r.id}
-                        className={`rem ${r.done ? 'is-done' : ''}`}
-                      >
-                        <span
-                          className={`ico flex-none ${
-                            r.done ? 'ico-mist' : 'ico-leaf'
-                          }`}
-                        >
+                      <div key={r.id} className={`rem ${r.done ? 'is-done' : ''}`}>
+                        <span className={`ico flex-none ${r.done ? 'ico-mist' : 'ico-leaf'}`}>
                           <Icon size={20} />
                         </span>
                         <div className="flex-1 min-w-0">
@@ -108,9 +100,7 @@ export function PatientReminders(): React.JSX.Element {
                             </span>
                           )}
                           <span className="block text-xs text-[var(--ink3)] mt-0.5">
-                            {r.done
-                              ? t('patientReminders.takenAt', { time: r.done })
-                              : r.time}
+                            {r.done ? t('patientReminders.takenAt', { time: r.done }) : r.time}
                           </span>
                         </div>
                         {action && (
@@ -122,12 +112,7 @@ export function PatientReminders(): React.JSX.Element {
                             {action[0]}
                           </button>
                         )}
-                        {r.done && (
-                          <Check
-                            size={20}
-                            className="text-[var(--leaf)] flex-none"
-                          />
-                        )}
+                        {r.done && <Check size={20} className="text-[var(--leaf)] flex-none" />}
                       </div>
                     );
                   })}

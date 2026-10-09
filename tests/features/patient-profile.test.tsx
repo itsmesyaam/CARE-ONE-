@@ -40,7 +40,7 @@ describe('Patient Profile Screen (Screen 5)', () => {
     );
 
     expect(screen.getByText('Aarav Menon')).toBeInTheDocument();
-    
+
     // Switch to Aarav
     const aaravBtn = screen.getByRole('button', { name: /Aarav Menon/i });
     fireEvent.click(aaravBtn);
@@ -130,9 +130,9 @@ describe('Patient Profile Screen (Screen 5)', () => {
     expect(screen.getByText(/This clears your records from this device/i)).toBeInTheDocument();
 
     // Confirm sign out inside dialog
-    const confirmBtn = screen.getAllByRole('button', { name: /Sign out/i }).find(
-      btn => btn.closest('[role="dialog"]') !== null
-    );
+    const confirmBtn = screen
+      .getAllByRole('button', { name: /Sign out/i })
+      .find((btn) => btn.closest('[role="dialog"]') !== null);
     expect(confirmBtn).toBeDefined();
     if (confirmBtn) fireEvent.click(confirmBtn);
   });

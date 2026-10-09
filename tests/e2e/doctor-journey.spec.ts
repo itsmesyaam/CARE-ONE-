@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Doctor Portal E2E Journey', () => {
-  test('authenticates with MFA, opens Arun Kumar chart, writes and signs a note, prescribes, and reviews a report', async ({ page }) => {
+  test('authenticates with MFA, opens Arun Kumar chart, writes and signs a note, prescribes, and reviews a report', async ({
+    page,
+  }) => {
     // 1. Navigate to Staff Sign-In
     await page.goto('/staff/signin');
     await expect(page.locator('h1')).toContainText(/Staff sign-in/i);
@@ -30,7 +32,9 @@ test.describe('Doctor Portal E2E Journey', () => {
     const openChartBtn = page.getByRole('button', { name: /Open chart/i }).first();
     await openChartBtn.click();
 
-    await expect(page).toHaveURL(/\/doctor\/chart\/e0000000-0000-0000-0000-000000000001/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/doctor\/chart\/e0000000-0000-0000-0000-000000000001/, {
+      timeout: 10000,
+    });
     await expect(page.locator('h1')).toContainText(/Arun Kumar/i);
     await expect(page.getByText(/ABC-1001/i)).toBeVisible();
     await expect(page.getByText(/Allergic to penicillin/i)).toBeVisible();
@@ -45,8 +49,14 @@ test.describe('Doctor Portal E2E Journey', () => {
       await startNoteBtn.click();
 
       // Step 1: Note Details
-      await page.locator('input[type="text"]').first().fill('Routine chronic check-up. Blood pressure controlled.');
-      await page.locator('textarea').first().fill('Chest clear, CVS normal, pedal pulses present. Mild diabetic retinopathy stable.');
+      await page
+        .locator('input[type="text"]')
+        .first()
+        .fill('Routine chronic check-up. Blood pressure controlled.');
+      await page
+        .locator('textarea')
+        .first()
+        .fill('Chest clear, CVS normal, pedal pulses present. Mild diabetic retinopathy stable.');
       await page.click('button:has-text("Next: Medicines")');
 
       // Step 2: Prescribing with Allergy Warning Check
@@ -88,13 +98,15 @@ test.describe('Doctor Portal E2E Journey', () => {
     await expect(page.locator('h1')).toContainText(/Review/i);
 
     const reviewButtons = page.locator('.space-y-3 button:has-text("Review")');
-    if (await reviewButtons.count() > 0) {
+    if ((await reviewButtons.count()) > 0) {
       await reviewButtons.first().click();
 
       // Provide doctor comment for patient
       const commentInput = page.locator('form textarea');
       if (await commentInput.isVisible()) {
-        await commentInput.fill('HbA1c levels remain well-controlled. Continue current dietary modifications and medication schedule.');
+        await commentInput.fill(
+          'HbA1c levels remain well-controlled. Continue current dietary modifications and medication schedule.'
+        );
 
         // Select Next Step
         const nextStepSelect = page.locator('form select');

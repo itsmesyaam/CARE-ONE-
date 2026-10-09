@@ -158,10 +158,7 @@ export interface AccessVariables {
 export function requireAccess(
   policy: AccessPolicy
 ): MiddlewareHandler<{ Bindings: WorkerEnv; Variables: AccessVariables }> {
-  return async (
-    c: Context<{ Bindings: WorkerEnv; Variables: AccessVariables }>,
-    next: Next
-  ) => {
+  return async (c: Context<{ Bindings: WorkerEnv; Variables: AccessVariables }>, next: Next) => {
     // 1. Origin validation on state-changing requests
     if (!validateOrigin(c)) {
       return c.json({ error: 'CSRF Origin mismatch: State-changing request denied' }, 403);
@@ -194,10 +191,7 @@ export function requireAccess(
     // 4. Role Authorization Check
     if (!policy.allowedRoles.includes(userRole)) {
       if (userRole === 'admin') {
-        return c.json(
-          { error: 'Forbidden: Admin cannot access individual clinical records' },
-          403
-        );
+        return c.json({ error: 'Forbidden: Admin cannot access individual clinical records' }, 403);
       }
       return c.json({ error: `Forbidden: Role '${userRole}' not authorized for this route` }, 403);
     }
@@ -217,7 +211,11 @@ export function requireAccess(
       const targetPatientId =
         c.req.param('patientId') ||
         c.req.query('patient_id') ||
-        (await c.req.raw.clone().json().then(b => (b as { patient_id?: string })?.patient_id).catch(() => null));
+        (await c.req.raw
+          .clone()
+          .json()
+          .then((b) => (b as { patient_id?: string })?.patient_id)
+          .catch(() => null));
 
       if (!targetPatientId) {
         return c.json({ error: 'Target patient ID is required for scoped route' }, 400);
@@ -226,14 +224,12 @@ export function requireAccess(
       const db = c.env.DB;
 
       if (userRole === 'admin') {
-        return c.json(
-          { error: 'Forbidden: Admin cannot access individual clinical records' },
-          403
-        );
+        return c.json({ error: 'Forbidden: Admin cannot access individual clinical records' }, 403);
       }
 
       if (userRole === 'patient') {
-        const isSelf = session.patient_id === targetPatientId || session.user_id === targetPatientId;
+        const isSelf =
+          session.patient_id === targetPatientId || session.user_id === targetPatientId;
         if (!isSelf) {
           return c.json(
             { error: 'Forbidden: Patient isolation violation (cannot access other patients)' },
@@ -243,10 +239,7 @@ export function requireAccess(
       } else if (userRole === 'guardian') {
         const authorized = await isAuthorizedGuardian(db, session.user_id, targetPatientId);
         if (!authorized) {
-          return c.json(
-            { error: 'Forbidden: Guardian not authorized for target patient' },
-            403
-          );
+          return c.json({ error: 'Forbidden: Guardian not authorized for target patient' }, 403);
         }
       } else if (userRole === 'doctor') {
         if (!session.staff_id) {
@@ -260,17 +253,11 @@ export function requireAccess(
             : false;
 
           if (!hasEmergency) {
-            return c.json(
-              { error: 'Forbidden: Doctor not authorized on patient care team' },
-              403
-            );
+            return c.json({ error: 'Forbidden: Doctor not authorized on patient care team' }, 403);
           }
         }
       } else if (userRole === 'front_desk') {
-        return c.json(
-          { error: 'Forbidden: Front desk cannot access clinical records' },
-          403
-        );
+        return c.json({ error: 'Forbidden: Front desk cannot access clinical records' }, 403);
       }
 
       c.set('targetPatientId', targetPatientId);

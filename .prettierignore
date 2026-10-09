@@ -5,3 +5,5 @@ dist
 package-lock.json
 *.sql
 *.md
+design/
+worker/worker-configuration.d.ts

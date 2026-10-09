@@ -42,9 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <h1 className="mb-2 text-xl font-bold text-slate-900">
               {i18n.t('errorBoundary.title')}
             </h1>
-            <p className="mb-6 text-sm text-slate-600">
-              {i18n.t('errorBoundary.message')}
-            </p>
+            <p className="mb-6 text-sm text-slate-600">{i18n.t('errorBoundary.message')}</p>
             <button
               onClick={this.handleReload}
               className="inline-flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2 font-medium text-sm text-white hover:bg-sky-800 transition"

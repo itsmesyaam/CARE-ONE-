@@ -15,13 +15,16 @@ export async function fetchDepartments(): Promise<Department[]> {
 }
 
 export async function createDepartment(payload: DepartmentFormData): Promise<Department> {
-  const res = await apiFetch<{ success: boolean; department: Department }>('/api/admin/departments', {
-    method: 'POST',
-    body: JSON.stringify({
-      name: payload.name.trim(),
-      code: payload.code.trim().toUpperCase(),
-    }),
-  });
+  const res = await apiFetch<{ success: boolean; department: Department }>(
+    '/api/admin/departments',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        name: payload.name.trim(),
+        code: payload.code.trim().toUpperCase(),
+      }),
+    }
+  );
   return res.department;
 }
 
@@ -29,13 +32,16 @@ export async function updateDepartment(
   id: string,
   payload: DepartmentFormData
 ): Promise<Department> {
-  const res = await apiFetch<{ success: boolean; department: Department }>(`/api/admin/departments/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      name: payload.name.trim(),
-      code: payload.code.trim().toUpperCase(),
-    }),
-  });
+  const res = await apiFetch<{ success: boolean; department: Department }>(
+    `/api/admin/departments/${id}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: payload.name.trim(),
+        code: payload.code.trim().toUpperCase(),
+      }),
+    }
+  );
   return res.department;
 }
 
@@ -43,10 +49,13 @@ export async function toggleArchiveDepartment(
   id: string,
   isArchived?: boolean
 ): Promise<Department> {
-  const res = await apiFetch<{ success: boolean; department: Department }>(`/api/admin/departments/${id}/archive`, {
-    method: 'PATCH',
-    body: JSON.stringify({ isArchived }),
-  });
+  const res = await apiFetch<{ success: boolean; department: Department }>(
+    `/api/admin/departments/${id}/archive`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ isArchived }),
+    }
+  );
   return res.department;
 }
 
@@ -70,10 +79,15 @@ export async function toggleStaffActive(
   id: string,
   currentIsActive?: boolean
 ): Promise<StaffMember> {
-  const res = await apiFetch<{ success: boolean; staff: Record<string, unknown> }>(`/api/admin/staff/${id}/active`, {
-    method: 'PATCH',
-    body: JSON.stringify({ isActive: currentIsActive !== undefined ? !currentIsActive : undefined }),
-  });
+  const res = await apiFetch<{ success: boolean; staff: Record<string, unknown> }>(
+    `/api/admin/staff/${id}/active`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        isActive: currentIsActive !== undefined ? !currentIsActive : undefined,
+      }),
+    }
+  );
   const s = res.staff;
   return {
     id: String(s.id),
@@ -140,6 +154,8 @@ export async function fetchAdminAuditLogs(
   if (filter.endDate) query.set('endDate', filter.endDate);
   query.set('limit', String(limit));
   query.set('offset', String(offset));
-  const res = await apiFetch<{ logs: AuditLogEntry[] }>(`/api/admin/audit-logs?${query.toString()}`);
+  const res = await apiFetch<{ logs: AuditLogEntry[] }>(
+    `/api/admin/audit-logs?${query.toString()}`
+  );
   return res.logs || [];
 }

@@ -31,24 +31,24 @@ const mlFlat = flatten(ml);
 const enKeys = Object.keys(enFlat).sort();
 const mlKeys = Object.keys(mlFlat).sort();
 
-const missingInMl = enKeys.filter(k => !(k in mlFlat));
-const missingInEn = mlKeys.filter(k => !(k in enFlat));
+const missingInMl = enKeys.filter((k) => !(k in mlFlat));
+const missingInEn = mlKeys.filter((k) => !(k in enFlat));
 
 let hasErrors = false;
 
 if (missingInMl.length > 0) {
   console.error('ERROR: Keys present in en.json but missing in ml.json:');
-  missingInMl.forEach(k => console.error(`  - ${k}`));
+  missingInMl.forEach((k) => console.error(`  - ${k}`));
   hasErrors = true;
 }
 
 if (missingInEn.length > 0) {
   console.error('ERROR: Keys present in ml.json but missing in en.json:');
-  missingInEn.forEach(k => console.error(`  - ${k}`));
+  missingInEn.forEach((k) => console.error(`  - ${k}`));
   hasErrors = true;
 }
 
-const getVars = str => (str.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).sort();
+const getVars = (str) => (str.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).sort();
 
 for (const key of enKeys) {
   if (key in mlFlat) {

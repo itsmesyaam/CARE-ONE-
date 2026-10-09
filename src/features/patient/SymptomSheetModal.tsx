@@ -27,7 +27,7 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
   const red = sel.includes('chest') || sel.includes('breath') || sev === 'severe';
 
   const toggleSymptom = (s: string) => {
-    setSel(prev => (prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]));
+    setSel((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
 
   const symptomList: Array<{ id: string; en: string; ml: string }> = [
@@ -41,7 +41,11 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
     { id: 'otherS', en: 'Something else', ml: 'മറ്റെന്തെങ്കിലും' },
   ];
 
-  const onsetList: Array<{ id: 'today' | 'yesterday' | 'days23' | 'week'; en: string; ml: string }> = [
+  const onsetList: Array<{
+    id: 'today' | 'yesterday' | 'days23' | 'week';
+    en: string;
+    ml: string;
+  }> = [
     { id: 'today', en: 'Today', ml: 'ഇന്ന്' },
     { id: 'yesterday', en: 'Yesterday', ml: 'ഇന്നലെ' },
     { id: 'days23', en: '2 to 3 days ago', ml: '2-3 ദിവസം മുമ്പ്' },
@@ -81,12 +85,7 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
           <h2 className="disp text-xl lg:text-2xl font-bold text-[var(--ink)]">
             {lang === 'ml' ? 'ലക്ഷണം അറിയിക്കുക' : 'Tell us a symptom'}
           </h2>
-          <button
-            type="button"
-            className="icon-btn press"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className="icon-btn press" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -129,7 +128,7 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
           {lang === 'ml' ? 'എന്താണ് അനുഭവപ്പെടുന്നത്?' : 'What are you feeling?'}
         </p>
         <div className="flex flex-wrap gap-2">
-          {symptomList.map(s => {
+          {symptomList.map((s) => {
             const isSelected = sel.includes(s.id);
             return (
               <button
@@ -167,7 +166,7 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
             id="sx"
             rows={3}
             value={txt}
-            onChange={e => setTxt(e.target.value)}
+            onChange={(e) => setTxt(e.target.value)}
             placeholder={
               lang === 'ml'
                 ? 'ഉദാഹരണത്തിന്: എഴുന്നേറ്റു നിൽക്കുമ്പോൾ തലകറക്കം, ഞായറാഴ്ച മുതൽ'
@@ -178,11 +177,9 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
         </div>
 
         {/* Onset Timing */}
-        <p className="lbl mt-5">
-          {lang === 'ml' ? 'എപ്പോൾ തുടങ്ങി?' : 'When did it start?'}
-        </p>
+        <p className="lbl mt-5">{lang === 'ml' ? 'എപ്പോൾ തുടങ്ങി?' : 'When did it start?'}</p>
         <div className="flex flex-wrap gap-2">
-          {onsetList.map(item => (
+          {onsetList.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -204,7 +201,7 @@ export function SymptomSheetModal({ onClose }: SymptomSheetModalProps): React.JS
           role="radiogroup"
           aria-label={lang === 'ml' ? 'എത്രത്തോളം ബുദ്ധിമുട്ടുണ്ട്?' : 'How bad is it?'}
         >
-          {severityOptions.map(opt => {
+          {severityOptions.map((opt) => {
             const isSelected = sev === opt.id;
             return (
               <button

@@ -25,8 +25,12 @@ describe('Staff Auth Feature: StaffSignIn', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: /Enter your 6-digit code/i })).toBeInTheDocument();
-    expect(screen.getByText(/Patient records stay hidden until this step is done/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: /Enter your 6-digit code/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Patient records stay hidden until this step is done/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Setting up two-factor for the first time\?/i)).toBeInTheDocument();
   });
 
@@ -37,7 +41,9 @@ describe('Staff Auth Feature: StaffSignIn', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: /Set up two-factor sign-in/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: /Set up two-factor sign-in/i })
+    ).toBeInTheDocument();
     expect(screen.getByText(/Install an authenticator app/i)).toBeInTheDocument();
     expect(screen.getByText(/Scan this code with the app/i)).toBeInTheDocument();
     expect(screen.getByText(/Type the code the app shows/i)).toBeInTheDocument();

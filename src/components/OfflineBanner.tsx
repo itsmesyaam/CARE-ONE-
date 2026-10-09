@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 export function OfflineBanner(): React.JSX.Element | null {
   const [isOnline, setIsOnline] = useState<boolean>(() =>
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
+    typeof navigator !== 'undefined' ? navigator.onLine : true
   );
   const { t } = useTranslation();
 
@@ -34,7 +34,7 @@ export function OfflineBanner(): React.JSX.Element | null {
       <span>
         {t(
           'common.offlineWarning',
-          'You are currently offline. Please reconnect to view or update medical records.',
+          'You are currently offline. Please reconnect to view or update medical records.'
         )}
       </span>
     </div>

@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest';
 describe('Security: Content Security Policy in index.html', () => {
   const indexPath = path.resolve(__dirname, '../index.html');
   const indexHtml = fs.readFileSync(indexPath, 'utf-8');
-  const metaMatch = indexHtml.match(/<meta[^>]*?http-equiv=["']Content-Security-Policy["'][\s\S]*?>/i);
+  const metaMatch = indexHtml.match(
+    /<meta[^>]*?http-equiv=["']Content-Security-Policy["'][\s\S]*?>/i
+  );
   const contentMatch = metaMatch ? metaMatch[0].match(/content="([^"]+)"/i) : null;
   const policy = contentMatch ? contentMatch[1] : '';
 

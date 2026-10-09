@@ -5,11 +5,7 @@
 
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
-import {
-  type AccessVariables,
-  declareRoutePolicy,
-  requireAccess,
-} from '../middleware/access';
+import { type AccessVariables, declareRoutePolicy, requireAccess } from '../middleware/access';
 
 export const notificationRoutes = new Hono<{
   Bindings: WorkerEnv;
@@ -21,7 +17,7 @@ const subscribePolicy = declareRoutePolicy('POST', '/api/notifications/subscribe
   allowedRoles: ['patient', 'guardian'],
 });
 
-notificationRoutes.post('/subscribe', requireAccess(subscribePolicy), async c => {
+notificationRoutes.post('/subscribe', requireAccess(subscribePolicy), async (c) => {
   const user = c.get('user');
   let body: {
     endpoint?: string;
@@ -72,7 +68,7 @@ const unsubscribePolicy = declareRoutePolicy('DELETE', '/api/notifications/subsc
   allowedRoles: ['patient', 'guardian'],
 });
 
-notificationRoutes.delete('/subscribe', requireAccess(unsubscribePolicy), async c => {
+notificationRoutes.delete('/subscribe', requireAccess(unsubscribePolicy), async (c) => {
   const user = c.get('user');
   let body: { endpoint?: string };
 
@@ -101,7 +97,7 @@ const vapidKeyPolicy = declareRoutePolicy('GET', '/api/notifications/vapid-key',
   public: true,
 });
 
-notificationRoutes.get('/vapid-key', requireAccess(vapidKeyPolicy), async c => {
+notificationRoutes.get('/vapid-key', requireAccess(vapidKeyPolicy), async (c) => {
   return c.json({
     vapidPublicKey: c.env.VAPID_PUBLIC_KEY || '',
   });
@@ -112,7 +108,7 @@ const getRemindersPolicy = declareRoutePolicy('GET', '/api/notifications/reminde
   allowedRoles: ['patient', 'guardian'],
 });
 
-notificationRoutes.get('/reminders', requireAccess(getRemindersPolicy), async c => {
+notificationRoutes.get('/reminders', requireAccess(getRemindersPolicy), async (c) => {
   const user = c.get('user');
   if (!user.patientId) {
     return c.json({ reminders: [] });
