@@ -16,7 +16,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 - [Bilingual Support (English & Malayalam)](#-bilingual-support-english--malayalam)
 - [Demo Accounts & Walkthrough](#-demo-accounts--walkthrough)
 - [Local Development & Testing](#-local-development--testing)
-- [Connecting & Deploying to Remote Supabase](#-connecting--deploying-to-remote-supabase)
+- [Connecting & Deploying to Cloudflare](#-connecting--deploying-to-cloudflare)
 - [Repository Branches & Pushing to GitHub](#-repository-branches--pushing-to-github)
 
 ---
@@ -30,11 +30,11 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
    - A doctor can only access records for patients on their active care team (established via appointment booking, valid for 1 year).
    - Non-care-team doctors attempting access are blocked. In acute situations, emergency **break-glass access** can be invoked for 4 hours with mandatory clinical justification and immutable audit logging.
 3. **Signed Encounters are Immutable**:
-   - Once a consultation note is signed, it is frozen at the database engine level via triggers.
+   - Once a consultation note is signed, it is frozen at the database engine level via SQLite triggers.
    - Amendments must be recorded as separate, timestamped `encounter_addenda`. Hard deletes of clinical records are strictly blocked.
-4. **Zero Client-Side Trust & Strict RLS**:
-   - Every single database table in the `public` schema has Postgres Row-Level Security (RLS) enabled.
-   - All roles and permissions are evaluated server-side via helper functions in the `private` schema. Client-supplied IDs in request payloads cannot alter permissions.
+4. **Zero Client-Side Trust & Strict Scoping**:
+   - Every API route goes through a centralized access layer with default-deny semantics.
+   - All roles and permissions are evaluated server-side. Patient scoping is enforced in the SQL WHERE clause. Client-supplied IDs in request payloads cannot alter permissions.
 5. **Two-Factor Authentication (AAL2 TOTP)**:
    - Mandatory for all hospital staff (Admin, Doctor, Front Desk) to access clinical and administrative tools.
 
@@ -50,15 +50,16 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
   - React Router 7 SPA.
   - `react-i18next` for 100% symmetric English & Malayalam localization.
   - Recharts for administrative and clinical trend visualizations.
-- **Backend (Supabase)**:
-  - PostgreSQL 15 with strict Row-Level Security policies.
-  - Supabase Auth with TOTP MFA (`aal2` factor enforcement).
-  - Supabase Storage with anti-IDOR path validation constraints.
-  - Supabase Edge Functions (Deno runtime) for privileged workflows (`invite-staff`, `invite-patient`, `send-reminders`).
-  - `pg_cron` & `pg_net` for background task scheduling.
+- **Backend (Cloudflare Native)**:
+  - Cloudflare Worker serving the React SPA and `/api` REST endpoints with Hono.
+  - Cloudflare D1 (serverless relational SQLite at the edge) accessed via Drizzle ORM.
+  - D1 SQLite triggers enforcing audit log append-only immutability, signed note freezing, and care-team creation.
+  - Cloudflare R2 private bucket for authenticated patient document storage.
+  - Native D1-backed sessions, TOTP MFA for staff, and Resend email OTPs for patients.
+  - Cloudflare Cron Triggers every 5 minutes for automated reminders.
 - **Testing & Quality Assurance**:
   - Vitest + Testing Library for frontend component and integration tests.
-  - pgTAP via `supabase test db` for database access rules and RLS policy verification.
+  - Vitest with `@cloudflare/vitest-pool-workers` for API and access-matrix verification.
   - Automated i18n key symmetry checking (`scripts/check-i18n.js`).
   - Playwright & Axe-Core for smoke testing and accessibility validation.
 
@@ -118,19 +119,19 @@ A comprehensive pre-production application and backend security audit was conduc
    - Updated `storage.objects` SELECT and INSERT policies to prevent users or compromised clients from uploading or viewing documents outside their designated patient folder.
 2. **Hard Delete Prohibition on Clinical Data**:
    - Replaced permissive `ALL` policies on `allergies`, `conditions`, `medications`, and `observations` with explicit `SELECT`, `INSERT`, and `UPDATE` policies for care-team doctors, disallowing permanent deletions.
-3. **Privilege Revocation on Automated RPCs**:
-   - Revoked public/anon/authenticated execution rights on `public.claim_due_reminders` and `public.generate_daily_medicine_reminders`, granting execution strictly to `service_role` (background cron jobs).
-4. **Edge Function Caller Rate Limiting**:
-   - Built a sliding window rate limiter in `supabase/functions/_shared/rate-limit.ts` restricting invitation dispatch (`invite-staff`, `invite-patient`) to 10 requests per 5 minutes per actor, returning `429 Too Many Requests` with `Retry-After` headers.
-5. **Production CORS Origin Enforcement**:
-   - Gated `getAllowedOrigin()` in Edge Functions so production environments strictly enforce `ALLOWED_ORIGIN` or the verified hospital domain (`https://careone.pages.dev`), disallowing `localhost` fallbacks.
+3. **Privilege Revocation on Background Reminders**:
+   - Automated reminder claiming and daily medicine reminder generation run strictly via internal Cloudflare Cron Trigger workers.
+4. **Invitation Rate Limiting**:
+   - Built a sliding window rate limiter in Worker middleware restricting invitation dispatch (`invite-staff`, `invite-patient`) to 10 requests per 5 minutes per actor, returning `429 Too Many Requests` with `Retry-After` headers.
+5. **Origin Enforcement**:
+   - State-changing requests strictly enforce `Origin` header validation against allowed origins, preventing CSRF.
 6. **Session Termination & Header Sign-Out**:
-   - Added a prominent, accessible sign-out button in the `AdminDashboard` header that invalidates Supabase sessions, clears the TanStack Query client cache, and redirects safely.
+   - Added a prominent, accessible sign-out button in the `AdminDashboard` header that invalidates sessions on the server, clears client cache, and redirects safely.
 7. **Client Route Guards & Error Sanitization**:
    - Guarded sensitive admin routes (`AdminRouteGuard`) with active session checks.
-   - Sanitized UI error displays to prevent leaking raw PostgreSQL constraint names, syntax errors, or schema structures.
+   - Sanitized UI error displays to prevent leaking internal database errors or schema structures.
 8. **HTTP Security Headers**:
-   - Enforced strict Content Security Policy (CSP), HTTP Strict Transport Security (HSTS 1 year), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and restricted `Permissions-Policy`.
+   - Enforced strict Content Security Policy (`connect-src 'self'`), HTTP Strict Transport Security (HSTS 1 year), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and restricted `Permissions-Policy`.
    - Zero clinical data caching in PWA service worker configurations.
 
 ---
@@ -146,7 +147,7 @@ CareOne is built from the ground up with native support for **English** and **Ma
 
 ##  Demo Accounts & Walkthrough
 
-The platform includes evergreen demo seed data (`supabase/seed.sql`) formulated with dynamic dates relative to execution time (`current_date`, `now()`).
+The platform includes evergreen demo seed data (`scripts/seed-demo-d1.sql` / `scripts/reset-demo-d1.js`) formulated with dynamic dates relative to execution time (`date('now')`, `datetime('now')`).
 
 ### Demo Credentials (All passwords: `DemoPassword123!`)
 
@@ -160,7 +161,7 @@ The platform includes evergreen demo seed data (`supabase/seed.sql`) formulated 
 | **Patient** | `arun.kumar@example.com` | Arun Kumar (48) | Complete history: diabetes, worsening HbA1c, home BP logs. |
 | **Guardian** | `sujatha.kumar@example.com` | Sujatha Kumar | Arun's spouse; guardian for Baby Meenakshi (pediatric chart). |
 
-*Note: All demo staff accounts have pre-seeded, persistent TOTP factors in `auth.mfa_factors` for seamless testing.*
+*Note: All demo staff accounts have pre-seeded, persistent TOTP factors for seamless testing.*
 
 ---
 
@@ -168,27 +169,23 @@ The platform includes evergreen demo seed data (`supabase/seed.sql`) formulated 
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (>= 20.0.0)
-- [Docker Desktop](https://www.docker.com/) (running)
-- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- Cloudflare Wrangler CLI (included in devDependencies)
 
 ### Quick Start
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Start local Supabase container stack
-npx supabase start
-
-# 3. Apply all migrations and seed demo data
+# 2. Apply migrations and seed local D1 demo data
 npm run demo:reset
 
-# 4. Start local Vite development server
+# 3. Start local development server
 npm run dev
+# or start the full Cloudflare Worker environment locally:
+npm run dev:worker
 ```
 
-The app will be available at `http://localhost:5173`.
-Local Supabase Studio is available at `http://localhost:54323`.
-Local Inbucket (email inbox) is available at `http://localhost:54324`.
+The app will be available at `http://localhost:5173` (Vite) or `http://localhost:8787` (Wrangler).
 
 ### Verification Suite
 Run all automated quality and security checks:
@@ -205,8 +202,8 @@ npm test
 # Verify bilingual i18n symmetry (English & Malayalam)
 npm run i18n:check
 
-# Run pgTAP database security & RLS test suites
-npx supabase test db
+# Reset and seed local D1 database
+npm run demo:reset
 
 # Verify production Vite build
 npm run build
@@ -214,44 +211,9 @@ npm run build
 
 ---
 
-##  Connecting & Deploying to Remote Supabase
+## Connecting & Deploying to Cloudflare
 
-### 1. Frontend Configuration
-Set your remote project credentials in `.env.local` (this file is gitignored):
-```dotenv
-VITE_SUPABASE_URL=https://<YOUR_PROJECT_ID>.supabase.co
-VITE_SUPABASE_ANON_KEY=<YOUR_PUBLISHABLE_ANON_KEY>
-```
-
-### 2. Pushing Database Schema & Migrations
-To push all database tables, security definer functions, triggers, and Row-Level Security policies to your remote Supabase project:
-```bash
-# Login to Supabase CLI
-npx supabase login
-
-# Link your local repository to your remote project
-npx supabase link --project-ref <YOUR_PROJECT_ID>
-
-# Push migrations to the remote database
-npx supabase db push
-```
-
-### 3. Deploying Edge Functions
-```bash
-# Set production secrets
-npx supabase secrets set ALLOWED_ORIGIN="https://<your-app-domain>" ENVIRONMENT="production"
-
-# Deploy Edge Functions
-npx supabase functions deploy invite-staff
-npx supabase functions deploy invite-patient
-npx supabase functions deploy send-reminders
-```
-
-### 4. Frontend Hosting Options (Vercel & Cloudflare Pages)
-
-CareOne supports dual hosting with full Single-Page Application (SPA) routing and strict security headers:
-- **Vercel**: Configured via [`vercel.json`](./vercel.json) with `$schema`, SPA rewrites (`/(.*)` → `/index.html`), and all 7 HTTP security headers. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in project environment settings.
-- **Cloudflare Pages**: Configured via [`public/_headers`](./public/_headers), outputting to `dist/_headers` on build. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+CareOne is deployed to Cloudflare Workers with serverless D1 database, R2 private document storage, and Cron Triggers.
 
 For complete step-by-step instructions, see [`docs/DEPLOY.md`](./docs/DEPLOY.md).
 

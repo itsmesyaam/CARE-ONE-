@@ -8,7 +8,6 @@ import {
   Check,
   ShieldAlert,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api-client';
 
 interface EmergencyAccessRow {
@@ -62,13 +61,7 @@ export function DoctorAccount(): React.JSX.Element {
       // ignore
     }
     try {
-      await supabase.auth.signOut();
-    } catch {
-      // ignore
-    }
-    try {
       sessionStorage.clear();
-      localStorage.removeItem('supabase.auth.token');
     } catch {
       // ignore
     }

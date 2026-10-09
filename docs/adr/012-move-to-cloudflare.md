@@ -1,4 +1,4 @@
-# ADR 012: Move Complete Platform from Supabase to Cloudflare Native Stack
+# ADR 012: Move Complete Platform to Cloudflare Native Stack
 
 - **Date:** October 9, 2026
 - **Status:** Accepted
@@ -9,14 +9,14 @@
 
 ## 1. Context and Problem Statement
 
-CareOne V1 was initially architected as a static Single Page Application hosted on Cloudflare Pages communicating cross-origin directly with a Supabase PostgreSQL backend (leveraging Postgres Row-Level Security, GoTrue Auth with TOTP MFA, Supabase Storage, and Deno Edge Functions).
+CareOne V1 was initially architected as a static Single Page Application hosted on Cloudflare Pages communicating cross-origin directly with an external PostgreSQL backend (leveraging Postgres Row-Level Security, external Auth with TOTP MFA, external Storage, and Edge Functions).
 
 In operation and live deployment, this cross-origin architecture introduced substantial operational friction:
-1. **Network and CSP Boundaries:** Cross-origin communication between Cloudflare (`*.workers.dev` / Pages) and Supabase (`*.supabase.co`) caused network failures ("Failed to fetch"), complex Content Security Policies, and reliance on external PaaS project health and regional latency.
-2. **Platform Fragmentations:** Managing two separate cloud environments (Cloudflare for frontend and CDN, Supabase for PostgreSQL, Storage, Functions, and Auth) duplicated secret management, deployment steps, and failure modes.
-3. **Inactivity Pausing:** Supabase free-tier projects automatically pause after inactivity, impacting demo reliability.
+1. **Network and CSP Boundaries:** Cross-origin communication between Cloudflare and external backend endpoints caused network failures ("Failed to fetch"), complex Content Security Policies, and reliance on external PaaS project health and regional latency.
+2. **Platform Fragmentations:** Managing two separate cloud environments (Cloudflare for frontend and CDN, separate PaaS for PostgreSQL, Storage, Functions, and Auth) duplicated secret management, deployment steps, and failure modes.
+3. **Inactivity Pausing:** Free-tier external database projects automatically pause after inactivity, impacting demo reliability.
 
-A strategic decision was made to remove Supabase completely and consolidate the entire stack into a single, cohesive, native Cloudflare platform.
+A strategic decision was made to consolidate the entire stack into a single, cohesive, native Cloudflare platform.
 
 ---
 
@@ -48,7 +48,7 @@ We are migrating the entire backend, database, authentication, storage, and back
    - Access-matrix test suite validates all roles and denial cases against every route.
 
 5. **File Storage:**
-   - Migrate from Supabase Storage to a private **Cloudflare R2** bucket.
+   - Migrate from external storage to a private **Cloudflare R2** bucket.
    - All uploads and downloads pass strictly through authenticated Worker endpoints that verify permissions on every request. The R2 bucket is never exposed publicly.
    - 10 MB file size limit, MIME whitelist (PDF, JPEG, PNG), and client-side photo re-encoding.
 
@@ -65,17 +65,17 @@ We are migrating the entire backend, database, authentication, storage, and back
 
 ## 3. What This Replaces
 
-| Component | Previous Architecture (Supabase) | New Architecture (Cloudflare) |
+| Component | Previous Architecture (External PaaS) | New Architecture (Cloudflare) |
 |---|---|---|
 | **Hosting & Serving** | Cloudflare Pages (static only) | Cloudflare Worker (Static Assets + Hono `/api`) |
 | **API Architecture** | Direct client-to-Postgres PostgREST RPCs | Hono REST API under `/api` with access layer |
-| **Database** | PostgreSQL (Supabase managed) | Cloudflare D1 (SQLite) with Drizzle ORM |
+| **Database** | PostgreSQL (managed) | Cloudflare D1 (SQLite) with Drizzle ORM |
 | **Row Security** | PostgreSQL Row-Level Security (RLS) policies | Centralized Worker access middleware + SQL scoping |
-| **Auth & MFA** | GoTrue Auth (email OTP, TOTP MFA) | D1-backed sessions, TOTP engine, Resend OTP |
-| **File Storage** | Supabase Storage buckets | Cloudflare R2 private bucket via Worker proxy |
+| **Auth & MFA** | External Auth (email OTP, TOTP MFA) | D1-backed sessions, TOTP engine, Resend OTP |
+| **File Storage** | External Storage buckets | Cloudflare R2 private bucket via Worker proxy |
 | **Scheduled Tasks** | `pg_cron` calling Edge Functions | Cloudflare Cron Triggers |
-| **Local Tooling** | Supabase CLI (`supabase start`, Docker) | Wrangler (`wrangler dev --local`) |
-| **Database Tests** | pgTAP via `supabase test db` | Vitest via `@cloudflare/vitest-pool-workers` |
+| **Local Tooling** | External CLI and Docker | Wrangler (`wrangler dev --local`) |
+| **Database Tests** | External harness | Vitest via `@cloudflare/vitest-pool-workers` |
 
 ---
 

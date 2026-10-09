@@ -14,7 +14,6 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
-import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api-client';
 
 export function DoctorLayout(): React.JSX.Element {
@@ -28,11 +27,6 @@ export function DoctorLayout(): React.JSX.Element {
   const handleDoctorSignOut = async () => {
     try {
       await apiFetch('/api/auth/signout', { method: 'POST' });
-    } catch {
-      // ignore
-    }
-    try {
-      await supabase.auth.signOut();
     } catch {
       // ignore
     }

@@ -12,7 +12,6 @@ import {
   Languages,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
-import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api-client';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
@@ -243,36 +242,15 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
 
-      let apiLoginSuccess = false;
-      try {
-        const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: actualPassword,
-          }),
-        });
-        if (res?.requireTotp) {
-          setStaffId(res.staffId);
-          apiLoginSuccess = true;
-          setBusy(false);
-          setStep('twofa');
-          return;
-        }
-      } catch {
-        // Fallback to supabase for mock environments
-      }
-
-      if (!apiLoginSuccess) {
-        const { error } = await supabase.auth.signInWithPassword({
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+        method: 'POST',
+        body: JSON.stringify({
           email: normalizedEmail,
           password: actualPassword,
-        });
-        if (error) {
-          setAuthError(formatAuthError(error));
-          setBusy(false);
-          return;
-        }
+        }),
+      });
+      if (res?.requireTotp) {
+        setStaffId(res.staffId);
         setBusy(false);
         setStep('twofa');
       }
@@ -293,56 +271,20 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         codeToUse = generatedCode;
       }
 
-      let apiTotpSuccess = false;
-      try {
-        const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
-        const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
-          method: 'POST',
-          body: JSON.stringify({
-            staffId: idToVerify,
-            code: codeToUse,
-          }),
-        });
-        if (res?.success) {
-          apiTotpSuccess = true;
-          setBusy(false);
-          if (res.user?.role === 'admin') {
-            navigate('/admin');
-          } else if (res.user?.role === 'front_desk') {
-            navigate('/desk');
-          } else {
-            navigate('/doctor');
-          }
-          return;
-        }
-      } catch {
-        // Fallback for tests
-      }
-
-      if (!apiTotpSuccess) {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const totpFactor = factors?.totp?.[0];
-        if (totpFactor) {
-          let result = await supabase.auth.mfa.challengeAndVerify({
-            factorId: totpFactor.id,
-            code: codeToUse,
-          });
-
-          // Fallback to computed TOTP if manual code had skew
-          if (result.error && codeToUse !== generatedCode) {
-            result = await supabase.auth.mfa.challengeAndVerify({
-              factorId: totpFactor.id,
-              code: generatedCode,
-            });
-          }
-
-          if (result.error) {
-            setAuthError(formatAuthError(result.error));
-            setBusy(false);
-            return;
-          }
-        }
-        setBusy(false);
+      const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
+      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
+        method: 'POST',
+        body: JSON.stringify({
+          staffId: idToVerify,
+          code: codeToUse,
+        }),
+      });
+      setBusy(false);
+      if (res?.user?.role === 'admin') {
+        navigate('/admin');
+      } else if (res?.user?.role === 'front_desk') {
+        navigate('/desk');
+      } else {
         navigate('/doctor');
       }
     } catch (err: unknown) {
@@ -381,33 +323,15 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
 
-      let apiUnlockSuccess = false;
-      try {
-        const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: actualPassword,
-          }),
-        });
-        if (res?.staffId) {
-          setStaffId(res.staffId);
-          apiUnlockSuccess = true;
-        }
-      } catch {
-        // Fallback
-      }
-
-      if (!apiUnlockSuccess) {
-        const { error } = await supabase.auth.signInWithPassword({
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+        method: 'POST',
+        body: JSON.stringify({
           email: normalizedEmail,
           password: actualPassword,
-        });
-        if (error) {
-          setLockError(true);
-          setBusy(false);
-          return;
-        }
+        }),
+      });
+      if (res?.staffId) {
+        setStaffId(res.staffId);
       }
       await handle2FASuccess();
     } catch {
@@ -477,11 +401,6 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               onClick={async () => {
                 try {
                   await apiFetch('/api/auth/signout', { method: 'POST' });
-                } catch {
-                  // ignore
-                }
-                try {
-                  await supabase.auth.signOut();
                 } catch {
                   // ignore
                 }

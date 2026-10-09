@@ -19,10 +19,9 @@
     "types:worker": "wrangler types worker/worker-configuration.d.ts",
     "i18n:check": "node scripts/check-i18n.js",
     "demo:reset:d1": "node scripts/reset-demo-d1.js",
-    "demo:reset": "supabase db reset && node scripts/reset-demo-d1.js"
+    "demo:reset": "node scripts/reset-demo-d1.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.2",
     "@tanstack/react-query": "^5.104.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
@@ -57,7 +56,6 @@
     "eslint-plugin-react-refresh": "^0.4.26",
     "jsdom": "^30.1.2",
     "prettier": "^3.5.3",
-    "supabase": "^2.119.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.71.1",
