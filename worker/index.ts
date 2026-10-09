@@ -1,5 +1,6 @@
 import { createApp } from './app';
 import type { WorkerEnv } from './env';
+import { processRemindersCron } from './jobs/reminders';
 
 export const app = createApp();
 
@@ -16,7 +17,15 @@ export default {
     return app.fetch(request, env, ctx);
   },
 
-  async scheduled(controller: ScheduledController): Promise<void> {
+  async scheduled(controller: ScheduledController, env?: WorkerEnv, ctx?: ExecutionContext): Promise<void> {
     console.log(`[Cron] Triggered at ${new Date(controller.scheduledTime).toISOString()}`);
+    if (env?.DB) {
+      const promise = processRemindersCron(env.DB, env);
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(promise);
+      } else {
+        await promise;
+      }
+    }
   },
 };
