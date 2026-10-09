@@ -29,6 +29,7 @@ export const staff = sqliteTable('staff', {
   departmentId: text('department_id').references(() => departments.id),
   role: text('role', { enum: ['doctor', 'front_desk', 'admin'] }).notNull(),
   fullName: text('full_name').notNull(),
+  email: text('email'),
   phone: text('phone'),
   isActive: integer('is_active').notNull().default(1),
   createdAt: text('created_at').notNull(),
