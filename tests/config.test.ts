@@ -26,11 +26,13 @@ describe('Cloudflare Platform and Environment Configuration', () => {
     expect(content).toContain('"assets"');
   });
 
-  it('validates .gitignore protects all local and environment files', () => {
+  it('validates .gitignore protects all local, environment, and build files', () => {
     const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
     expect(gitignore).toContain('.env.local');
     expect(gitignore).toContain('.dev.vars');
     expect(gitignore).toMatch(/\.env\*/);
+    expect(gitignore).toContain('coverage/');
+    expect(gitignore).toContain('dist/');
   });
 
   it('exports apiFetch client helper from src/lib/api-client', async () => {

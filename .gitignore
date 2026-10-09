@@ -12,7 +12,8 @@ node_modules/
 # Cloudflare Wrangler
 .wrangler/
 
-# Build output
+# Build & Test outputs
 dist/
+coverage/
 test-results/
 playwright-report/
