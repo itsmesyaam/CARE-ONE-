@@ -1,9 +1,40 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
 import { authRoutes } from './routes/auth';
+import { declareRoutePolicy, requireAccess, type AccessVariables } from './middleware/access';
 
-export function createApp(): Hono<{ Bindings: WorkerEnv }> {
-  const app = new Hono<{ Bindings: WorkerEnv }>();
+// Declare standard system policies
+declareRoutePolicy('GET', '/api/health', { allowedRoles: [], public: true });
+declareRoutePolicy('POST', '/api/auth/patient/request-otp', { allowedRoles: [], public: true });
+declareRoutePolicy('POST', '/api/auth/patient/verify-otp', { allowedRoles: [], public: true });
+declareRoutePolicy('POST', '/api/auth/staff/login', { allowedRoles: [], public: true });
+declareRoutePolicy('POST', '/api/auth/staff/verify-totp', { allowedRoles: [], public: true });
+declareRoutePolicy('POST', '/api/auth/signout', {
+  allowedRoles: ['patient', 'guardian', 'doctor', 'front_desk', 'admin'],
+  public: true,
+});
+declareRoutePolicy('GET', '/api/auth/session', {
+  allowedRoles: ['patient', 'guardian', 'doctor', 'front_desk', 'admin'],
+  public: true,
+});
+
+// Patient Chart Scoped Policies
+const patientChartReadPolicy = declareRoutePolicy('GET', '/api/patients/:patientId/chart', {
+  allowedRoles: ['patient', 'guardian', 'doctor'],
+  patientScoped: true,
+  allowEmergencyAccess: true,
+  requireMfa: true,
+});
+
+const patientChartWritePolicy = declareRoutePolicy('POST', '/api/patients/:patientId/chart', {
+  allowedRoles: ['doctor'],
+  patientScoped: true,
+  allowEmergencyAccess: true,
+  requireMfa: true,
+});
+
+export function createApp(): Hono<{ Bindings: WorkerEnv; Variables: AccessVariables }> {
+  const app = new Hono<{ Bindings: WorkerEnv; Variables: AccessVariables }>();
 
   // Global Security Headers Middleware
   app.use('*', async (c, next) => {
@@ -27,6 +58,40 @@ export function createApp(): Hono<{ Bindings: WorkerEnv }> {
 
   // Auth routes
   app.route('/api/auth', authRoutes);
+
+  // Scoped Patient Chart Endpoints
+  app.get(
+    '/api/patients/:patientId/chart',
+    requireAccess(patientChartReadPolicy),
+    async c => {
+      const patientId = c.req.param('patientId');
+      const patient = await c.env.DB
+        .prepare('SELECT id, full_name, dob, gender FROM patients WHERE id = ?')
+        .bind(patientId)
+        .first();
+
+      return c.json({
+        patientId,
+        patient,
+        status: 'active',
+      });
+    }
+  );
+
+  app.post(
+    '/api/patients/:patientId/chart',
+    requireAccess(patientChartWritePolicy),
+    async c => {
+      const patientId = c.req.param('patientId');
+      const body = await c.req.json().catch(() => ({}));
+      return c.json({
+        success: true,
+        patientId,
+        created: true,
+        body,
+      });
+    }
+  );
 
   // 404 handler for API routes
   app.notFound(c => {

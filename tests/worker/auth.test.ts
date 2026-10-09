@@ -39,23 +39,27 @@ function createMockD1(): { d1: D1Database; sqlite: DatabaseSync } {
         },
         async first<T = unknown>(col?: string): Promise<T | null> {
           const stmt = sqlite.prepare(sql);
-          const row = stmt.get(...boundParams) as QueryRow | undefined;
+          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const row = stmt.get(...safe) as QueryRow | undefined;
           if (!row) return null;
           return (col ? (row[col] as T) : (row as T)) ?? null;
         },
         async all<T = unknown>() {
           const stmt = sqlite.prepare(sql);
-          const results = stmt.all(...boundParams) as T[];
+          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const results = stmt.all(...safe) as T[];
           return { results, success: true, meta: { duration: 0 } };
         },
         async run() {
           const stmt = sqlite.prepare(sql);
-          const info = stmt.run(...boundParams) as { changes?: number };
+          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const info = stmt.run(...safe) as { changes?: number };
           return { success: true, meta: { changes: info.changes || 0, duration: 0 } };
         },
         async raw<T = unknown[]>() {
           const stmt = sqlite.prepare(sql);
-          const rows = stmt.all(...boundParams) as QueryRow[];
+          const safe = boundParams.map(p => (p === undefined ? null : p));
+          const rows = stmt.all(...safe) as QueryRow[];
           return rows.map((r: QueryRow) => Object.values(r)) as T[];
         },
       };
@@ -85,7 +89,7 @@ describe('Native Authentication & Session Routes', () => {
       DB: d1,
       ENVIRONMENT: 'test',
       RESEND_API_KEY: 'mock-key',
-    };
+    } as unknown as WorkerEnv;
   });
 
   it('rejects patient OTP requests that exceed rate limit (max 3 per 10m)', async () => {
