@@ -39,4 +39,11 @@ describe('Local Supabase and Environment Configuration', () => {
     expect(gitignore).toMatch(/\.env\*/);
     expect(gitignore).toContain('!.env.example');
   });
+
+  it('exports getSupabaseConfigurationError function from src/lib/supabase', async () => {
+    const { getSupabaseConfigurationError } = await import('../src/lib/supabase');
+    expect(typeof getSupabaseConfigurationError).toBe('function');
+    // On local test runner, returns null because it's test / localhost environment
+    expect(getSupabaseConfigurationError()).toBeNull();
+  });
 });
