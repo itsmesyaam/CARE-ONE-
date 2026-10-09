@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleInvitePatient } from '../../supabase/functions/invite-patient/handler';
 import { resetRateLimits } from '../../supabase/functions/_shared/rate-limit';
 
+interface ApiResponse {
+  error?: string;
+  success?: boolean;
+  user_id?: string;
+}
+
 describe('Edge Function: invite-patient', () => {
   const mockEnv = {
     SUPABASE_URL: 'http://127.0.0.1:54321',
@@ -27,7 +33,7 @@ describe('Edge Function: invite-patient', () => {
 
     const res = await handleInvitePatient(req, mockEnv);
     expect(res.status).toBe(401);
-    const body = await res.json();
+    const body = (await res.json()) as ApiResponse;
     expect(body.error).toMatch(/authorization/i);
   });
 
@@ -47,7 +53,7 @@ describe('Edge Function: invite-patient', () => {
 
     const res = await handleInvitePatient(req, mockEnv);
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as ApiResponse;
     expect(body.error).toMatch(/aal2|two-factor/i);
   });
 
@@ -67,7 +73,7 @@ describe('Edge Function: invite-patient', () => {
 
     const res = await handleInvitePatient(req, mockEnv);
     expect(res.status).toBe(403);
-    const body = await res.json();
+    const body = (await res.json()) as ApiResponse;
     expect(body.error).toMatch(/front_desk|admin|privileges/i);
   });
 
@@ -103,7 +109,7 @@ describe('Edge Function: invite-patient', () => {
 
     const res = await handleInvitePatient(req, mockEnv);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as ApiResponse;
     expect(body.success).toBe(true);
     expect(body.user_id).toBeDefined();
   });
@@ -177,7 +183,7 @@ describe('Edge Function: invite-patient', () => {
     });
     const res11 = await handleInvitePatient(req11, mockEnv);
     expect(res11.status).toBe(429);
-    const body = await res11.json();
+    const body = (await res11.json()) as ApiResponse;
     expect(body.error).toMatch(/rate limit|too many requests/i);
     expect(res11.headers.get('Retry-After')).toBeDefined();
   });
