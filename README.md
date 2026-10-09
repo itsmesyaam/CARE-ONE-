@@ -1,4 +1,4 @@
-# CareOne Hospital Platform 🏥
+# CareOne Hospital Platform 
 
 > *"We are not trying to replace your hospital management system. We are building your hospital's digital healthcare companion — a platform that gives your doctors a complete picture of their patients and keeps your patients connected to the hospital between visits."*
 
@@ -6,7 +6,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 
 - [Core Principles & Architectural Highlights](#-core-principles--architectural-highlights)
 - [System Architecture & Stack](#-system-architecture--stack)
@@ -21,7 +21,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## 🔒 Core Principles & Architectural Highlights
+##  Core Principles & Architectural Highlights
 
 1. **Strict Clinical Privacy & Zero Admin Snooping**:
    - Hospital Administrators have access **only** to aggregated operational metrics (counts of appointments, workload distributions, audit event logs).
@@ -40,7 +40,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## 🛠 System Architecture & Stack
+##  System Architecture & Stack
 
 - **Frontend**:
   - React 19 + TypeScript (Strict mode, zero `any`).
@@ -64,7 +64,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## 👥 User Roles & Security Boundary
+##  User Roles & Security Boundary
 
 | Role | Permitted Access | Restricted Access | MFA Required |
 | :--- | :--- | :--- | :---: |
@@ -76,7 +76,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## ⚡ Key Features
+##  Key Features
 
 ### 1. Patient Registration & Sequence UHID Generator
 - Front desk registers patients with deterministic Unique Health Identification numbers (`ABC-0001`, `ABC-0002`, etc.).
@@ -109,7 +109,7 @@ CareOne is an enterprise-grade, privacy-first patient engagement and doctor assi
 
 ---
 
-## 🛡 Security Hardening & Audit Remediations
+##  Security Hardening & Audit Remediations
 
 A comprehensive pre-production application and backend security audit was conducted, resulting in several layers of defense-in-depth hardening:
 
@@ -135,7 +135,7 @@ A comprehensive pre-production application and backend security audit was conduc
 
 ---
 
-## 🌐 Bilingual Support (English & Malayalam)
+##  Bilingual Support (English & Malayalam)
 
 CareOne is built from the ground up with native support for **English** and **Malayalam (മലയാളം)**:
 - 100% key symmetry verified by automated CI checks (`npm run i18n:check`).
@@ -144,7 +144,7 @@ CareOne is built from the ground up with native support for **English** and **Ma
 
 ---
 
-## 🧪 Demo Accounts & Walkthrough
+##  Demo Accounts & Walkthrough
 
 The platform includes evergreen demo seed data (`supabase/seed.sql`) formulated with dynamic dates relative to execution time (`current_date`, `now()`).
 
@@ -164,7 +164,7 @@ The platform includes evergreen demo seed data (`supabase/seed.sql`) formulated 
 
 ---
 
-## 🚀 Local Development & Testing
+##  Local Development & Testing
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (>= 20.0.0)
@@ -214,7 +214,7 @@ npm run build
 
 ---
 
-## ☁ Connecting & Deploying to Remote Supabase
+##  Connecting & Deploying to Remote Supabase
 
 ### 1. Frontend Configuration
 Set your remote project credentials in `.env.local` (this file is gitignored):
@@ -257,7 +257,7 @@ For complete step-by-step instructions, see [`docs/DEPLOY.md`](./docs/DEPLOY.md)
 
 ---
 
-## 🚀 Repository Branches & Pushing to GitHub
+##  Repository Branches & Pushing to GitHub
 
 All latest security audit remediations, rate limiting, and navigation enhancements are committed on the feature branch:
 ```text
