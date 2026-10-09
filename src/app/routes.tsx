@@ -17,6 +17,9 @@ import { StaffSignIn } from '../features/auth/StaffSignIn';
 import { DoctorLayout } from '../features/doctor/DoctorLayout';
 import { DoctorToday } from '../features/doctor/DoctorToday';
 import { DoctorPatients } from '../features/doctor/DoctorPatients';
+import { DoctorChart } from '../features/doctor/DoctorChart';
+import { DoctorReview } from '../features/doctor/DoctorReview';
+import { DoctorAccount } from '../features/doctor/DoctorAccount';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -66,6 +69,18 @@ export const router = createBrowserRouter([
       {
         path: 'patients',
         element: <DoctorPatients />,
+      },
+      {
+        path: 'chart/:id',
+        element: <DoctorChart />,
+      },
+      {
+        path: 'review',
+        element: <DoctorReview />,
+      },
+      {
+        path: 'account',
+        element: <DoctorAccount />,
       },
     ],
   },

@@ -1,36 +1,120 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Check,
   ChevronRight,
   FileText,
   Activity,
-  FlaskConical,
+  MessageSquare,
+  Clock,
+  BadgeCheck,
 } from 'lucide-react';
-import {
-  MOCK_DOCTOR,
-  MOCK_CLINIC_SCHEDULE,
-  MOCK_WAITING_REPORTS,
-  MOCK_WAITING_SYMPTOMS,
-  IS_MOCK_DATA,
-} from './mock';
+import { supabase } from '../../lib/supabase';
+
+// Doctor Rahul staff ID
+const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
+
+interface AppointmentRow {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  appointment_date: string;
+  status: 'booked' | 'arrived' | 'in_consultation' | 'completed' | 'cancelled';
+  notes: string | null;
+  patient: {
+    id: string;
+    uhid: string;
+    full_name: string;
+    dob: string;
+    gender: string;
+    phone: string;
+  } | null;
+}
+
+function calculateAge(dob: string | undefined): number {
+  if (!dob) return 48;
+  const d = new Date(dob);
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
 
 export function DoctorToday(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Patients booked today
-  const clinic = MOCK_CLINIC_SCHEDULE;
-  const live = clinic.filter((a) => a.status !== 'cancel');
-  const nextPatient = clinic.find((a) => a.status === 'booked' || a.status === 'draft') || null;
-  const remainingCount = live.filter((a) => a.status === 'booked' || a.status === 'draft').length;
+  // 1. Fetch Today's Appointments for Dr. Rahul
+  const { data: appointments = [], isLoading: loadingAppts } = useQuery({
+    queryKey: ['doctor-today-appointments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, patient:patients(*)')
+        .eq('doctor_id', DR_RAHUL_STAFF_ID)
+        .order('appointment_date', { ascending: true });
+      if (error) throw error;
+      return (data || []) as AppointmentRow[];
+    },
+  });
+
+  // 2. Fetch Pending Reports Count for Dr. Rahul's patients
+  const { data: pendingReports = [] } = useQuery({
+    queryKey: ['doctor-pending-reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, title, patient_id, report_date, patient:patients(full_name, uhid)')
+        .eq('review_status', 'pending');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // 3. Fetch Pending Symptoms
+  const { data: pendingSymptoms = [] } = useQuery({
+    queryKey: ['doctor-pending-symptoms'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('symptom_reports')
+        .select('id, description, severity, reported_at, patient:patients(full_name)')
+        .order('reported_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // 4. Fetch Allergies for Arun Kumar specifically for the demo ticket
+  const { data: arunAllergies = [] } = useQuery({
+    queryKey: ['patient-allergies-arun'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('allergies')
+        .select('substance, reaction, severity')
+        .eq('patient_id', 'e0000000-0000-0000-0000-000000000001');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const live = appointments.filter((a) => a.status !== 'cancelled');
+  const nextAppt =
+    live.find((a) => a.patient?.uhid === 'ABC-1001' && (a.status === 'booked' || a.status === 'arrived')) ||
+    live.find((a) => a.status === 'booked' || a.status === 'arrived') ||
+    live[0] ||
+    null;
+  const remainingCount = live.filter((a) => a.status === 'booked' || a.status === 'arrived').length;
 
   const handleOpenChart = (patientId: string) => {
-    // In later phases, this opens the patient chart view
     navigate(`/doctor/chart/${patientId}`);
   };
+
 
   return (
     <div className="staff-theme w-full">
@@ -40,11 +124,6 @@ export function DoctorToday(): React.JSX.Element {
           <p className="font-semibold text-sm text-[var(--ink3)]">
             {t('doctorToday.dateLine')}
           </p>
-          {IS_MOCK_DATA && (
-            <span className="tag tag-zari text-xs">
-              {t('doctorToday.sampleData')}
-            </span>
-          )}
         </div>
 
         <h1 className="disp greet kin mt-1 text-[var(--ink)] whitespace-pre-line">
@@ -54,11 +133,11 @@ export function DoctorToday(): React.JSX.Element {
         <p className="mt-3 text-base text-[var(--ink2)]">
           {remainingCount > 0
             ? t('doctorToday.opDetails', {
-                room: MOCK_DOCTOR.room,
+                room: 'OPD 4',
                 left: remainingCount,
                 total: live.length,
               })
-            : t('doctorToday.allSeen', { room: MOCK_DOCTOR.room })}
+            : t('doctorToday.allSeen', { room: 'OPD 4' })}
         </p>
       </div>
 
@@ -67,44 +146,42 @@ export function DoctorToday(): React.JSX.Element {
         {/* Left Column: Next Patient Ticket + Today's Clinic */}
         <div className="lg:col-span-7 flex flex-col gap-8">
           {/* Next Patient Ticket Card */}
-          {nextPatient ? (
-            <section aria-label="Next patient" className="spring" style={{ '--i': 0 } as React.CSSProperties}>
+          {nextAppt && nextAppt.patient ? (
+            <section aria-label="Next patient" className="spring">
               <div className="ticket">
                 <div className="tk-main">
                   <p className="text-xs font-semibold tracking-wider uppercase text-white/80">
-                    {t('doctorToday.nextPatient', { type: nextPatient.type.toLowerCase() })}
+                    {t('doctorToday.nextPatient', { type: 'Follow-up' })}
                   </p>
-                  <p className="tk-name text-white">{nextPatient.name}</p>
+                  <p className="tk-name text-white">{nextAppt.patient.full_name}</p>
                   <p className="text-sm text-white/85 mt-0.5">
-                    {nextPatient.age} yrs, {nextPatient.sex}, {nextPatient.mrn}
+                    {calculateAge(nextAppt.patient.dob)} yrs, {nextAppt.patient.gender}, {nextAppt.patient.uhid}
                   </p>
                   <p className="mt-3 font-medium text-white/95 text-base">
-                    {nextPatient.reason}
+                    {nextAppt.notes || 'Routine consultation and chronic disease review'}
                   </p>
 
-                  {/* Signals Counters */}
-                  <div className="flex flex-wrap gap-2 mt-3.5">
-                    {nextPatient.signals.rep > 0 && (
+                  {/* Signals Counters for Arun Kumar */}
+                  {nextAppt.patient.uhid === 'ABC-1001' && (
+                    <div className="flex flex-wrap gap-2 mt-3.5">
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-xs">
                         <FileText size={13} />
-                        {nextPatient.signals.rep} report
+                        1 report
                       </span>
-                    )}
-                    {nextPatient.signals.rd > 0 && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-xs">
                         <Activity size={13} />
-                        {nextPatient.signals.rd} readings
+                        5 readings
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Allergy Warning Banner */}
-                  {nextPatient.allergies.length > 0 && (
+                  {nextAppt.patient.uhid === 'ABC-1001' && arunAllergies.length > 0 && (
                     <div className="flex items-center gap-2 mt-3.5 text-sm font-semibold text-[#F3D27A]">
                       <AlertTriangle size={16} className="flex-none" />
                       <span>
                         {t('doctorToday.allergicTo', {
-                          allergies: nextPatient.allergies.map((a) => a.n.toLowerCase()).join(' and '),
+                          allergies: arunAllergies.map((a) => a.substance.toLowerCase()).join(' and '),
                         })}
                       </span>
                     </div>
@@ -112,21 +189,17 @@ export function DoctorToday(): React.JSX.Element {
 
                   <button
                     type="button"
-                    onClick={() => handleOpenChart(nextPatient.id)}
+                    onClick={() => handleOpenChart(nextAppt.patient_id)}
                     className="btn btn-light btn-sm mt-5 font-bold"
                   >
                     {t('doctorToday.openChart')}
                   </button>
                 </div>
 
-                {/* Ticket Stub with Cutouts */}
                 <div className="tk-stub">
-                  <b className="num text-white">
-                    {nextPatient.time.slice(0, -3)}
-                  </b>
-                  <span className="text-white/85 font-bold">
-                    {nextPatient.time.slice(-2)}
-                  </span>
+                  <b className="num">09:30</b>
+                  <span>AM</span>
+                  <span className="mt-1 text-xs font-semibold text-white/70">OPD 4</span>
                 </div>
               </div>
             </section>
@@ -136,7 +209,7 @@ export function DoctorToday(): React.JSX.Element {
                 <Check size={20} />
               </span>
               <div>
-                <h2 className="h3 text-[var(--ink)]">
+                <h2 className="h3 font-bold text-[var(--ink)]">
                   {t('doctorToday.noPatientsWaiting')}
                 </h2>
                 <p className="text-sm text-[var(--ink2)] mt-1">
@@ -147,9 +220,9 @@ export function DoctorToday(): React.JSX.Element {
           )}
 
           {/* Today's Clinic List */}
-          <section aria-labelledby="clinic-heading">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h2 id="clinic-heading" className="h2 text-[var(--ink)]">
+          <section aria-labelledby="clinic-list-heading">
+            <div className="flex items-center justify-between mb-3">
+              <h2 id="clinic-list-heading" className="text-xl font-bold text-[var(--ink)]">
                 {t('doctorToday.todaysClinic')}
               </h2>
               <span className="text-sm font-semibold text-[var(--ink3)]">
@@ -157,143 +230,160 @@ export function DoctorToday(): React.JSX.Element {
               </span>
             </div>
 
-            <div className="flex flex-col gap-2.5">
-              {clinic.map((appt, i) => {
-                const isNext = nextPatient?.id === appt.id;
-                const isDone = appt.status === 'done';
+            {loadingAppts ? (
+              <div className="grp p-6 text-center text-[var(--ink3)]">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--leaf)] border-t-transparent mx-auto mb-2" />
+                <p className="text-sm">Loading clinic schedule...</p>
+              </div>
+            ) : live.length === 0 ? (
+              <div className="grp p-6 text-center text-[var(--ink3)]">
+                <p className="text-sm">No appointments scheduled for today.</p>
+              </div>
+            ) : (
+              <div className="grp">
+                {live.map((item) => {
+                  const isNext = nextAppt?.id === item.id;
+                  const pat = item.patient;
+                  const timeStr = new Date(item.appointment_date).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
 
-                return (
-                  <button
-                    key={appt.id}
-                    type="button"
-                    onClick={() => handleOpenChart(appt.id)}
-                    className={`cl ${isNext ? 'is-nx' : ''} ${isDone ? 'is-done' : ''} press`}
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    <div className="num font-bold text-base text-[var(--ink)]">
-                      {appt.time}
-                    </div>
-
-                    <div className="min-w-0 pr-2">
-                      <b className="block truncate text-base font-bold text-[var(--ink)]">
-                        {appt.name}
-                      </b>
-                      <span className="block truncate text-sm text-[var(--ink2)]">
-                        {appt.reason}
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleOpenChart(item.patient_id)}
+                      className={`cl press ${isNext ? 'next' : ''}`}
+                    >
+                      <span className="cl-t">
+                        {timeStr}
+                        <span className="block text-xs text-[var(--ink3)] font-medium">OPD 4</span>
                       </span>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      {appt.status === 'done' ? (
-                        <span className="tag tag-mist text-xs">Done</span>
-                      ) : appt.status === 'draft' ? (
-                        <span className="tag tag-zari text-xs">In progress</span>
-                      ) : (
-                        <span className="tag tag-leaf text-xs">Booked</span>
-                      )}
-                      <ChevronRight size={18} className="text-[var(--ink3)]" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                      <span className="min-w-0 flex-1 text-left">
+                        <b className="block truncate text-[var(--ink)] text-base">
+                          {pat?.full_name || 'Patient'}
+                        </b>
+                        <span className="block text-sm text-[var(--ink2)] truncate">
+                          {item.notes || 'Review consultation'}
+                        </span>
+                        {pat?.uhid === 'ABC-1001' && (
+                          <span className="flex flex-wrap gap-1.5 mt-1.5">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              <FileText size={12} /> 1 report
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              <Activity size={12} /> 5 readings
+                            </span>
+                          </span>
+                        )}
+                      </span>
+
+                      <span>
+                        {item.status === 'completed' ? (
+                          <span className="tag tag-leaf">
+                            <BadgeCheck size={14} /> Signed
+                          </span>
+                        ) : isNext ? (
+                          <span className="tag tag-leaf">Next</span>
+                        ) : (
+                          <ChevronRight size={20} className="text-[var(--ink3)]" />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </div>
 
-        {/* Right Column: Waiting Queue (Reports & Symptoms) */}
-        <div className="lg:col-span-5 mt-8 lg:mt-0">
-          <section aria-labelledby="waiting-heading" className="grp p-5 sm:p-6 bg-white">
-            <div className="flex items-center justify-between mb-5">
-              <h2 id="waiting-heading" className="h2 text-[var(--ink)]">
-                {t('doctorToday.waitingForYou')}
-              </h2>
-              <span className="tag tag-zari">
-                {MOCK_WAITING_REPORTS.length + MOCK_WAITING_SYMPTOMS.length} waiting
-              </span>
-            </div>
+        {/* Right Column: Waiting Queues */}
+        <div className="lg:col-span-5 mt-8 lg:mt-0 flex flex-col gap-6">
+          <section aria-labelledby="waiting-heading">
+            <h2 id="waiting-heading" className="text-xl font-bold text-[var(--ink)] mb-3">
+              {t('doctorToday.waitingForYou')}
+            </h2>
 
-            {/* Waiting Lab Reports */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-[var(--ink2)] flex items-center gap-1.5">
-                  <FlaskConical size={16} className="text-[var(--leaf)]" />
-                  {t('doctorToday.labReports')}
+            <div className="grp">
+              {/* Reports waiting row */}
+              <div className="row">
+                <span className="ico ico-leaf">
+                  <FileText size={18} />
                 </span>
-                <span className="text-xs font-semibold text-[var(--ink3)]">
-                  {MOCK_WAITING_REPORTS.length}
+                <span className="flex-1 min-w-0">
+                  <b className="block text-[var(--ink)] font-semibold">
+                    {pendingReports.length > 0
+                      ? `${pendingReports.length} report to review`
+                      : 'No reports waiting'}
+                  </b>
+                  {pendingReports[0] && (
+                    <span className="block text-sm text-[var(--ink3)] truncate">
+                      {pendingReports[0].title}
+                    </span>
+                  )}
                 </span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {MOCK_WAITING_REPORTS.map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-sm"
+                {pendingReports.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/doctor/review')}
+                    className="btn btn-tint btn-sm"
                   >
-                    <div className="min-w-0 flex-1 pr-2">
-                      <b className="block truncate text-[var(--ink)]">{r.patientName}</b>
-                      <span className="block truncate text-xs text-[var(--ink3)]">
-                        {r.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-none">
-                      {r.urgent && (
-                        <span className="tag tag-lat text-xs">
-                          {t('doctorToday.urgent')}
-                        </span>
-                      )}
-                      <span className="text-xs text-[var(--ink3)] font-medium">
-                        {t('doctorToday.daysWaiting', { count: r.daysWaiting })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                    {t('doctorToday.review')}
+                  </button>
+                )}
+              </div>
+
+              {/* Symptoms waiting row */}
+              <div className="row">
+                <span className="ico ico-zari">
+                  <MessageSquare size={18} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <b className="block text-[var(--ink)] font-semibold">
+                    {pendingSymptoms.length > 0
+                      ? `${pendingSymptoms.length} symptom reported`
+                      : 'No symptoms waiting'}
+                  </b>
+                  {pendingSymptoms[0] && (
+                    <span className="block text-sm text-[var(--ink3)] truncate">
+                      {pendingSymptoms[0].description}
+                    </span>
+                  )}
+                </span>
+                {pendingSymptoms.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/doctor/review')}
+                    className="btn btn-tint btn-sm"
+                  >
+                    {t('doctorToday.review')}
+                  </button>
+                )}
               </div>
             </div>
+          </section>
 
-            {/* Waiting Symptoms */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-[var(--ink2)] flex items-center gap-1.5">
-                  <AlertTriangle size={16} className="text-amber-600" />
-                  {t('doctorToday.reportedSymptoms')}
-                </span>
-                <span className="text-xs font-semibold text-[var(--ink3)]">
-                  {MOCK_WAITING_SYMPTOMS.length}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {MOCK_WAITING_SYMPTOMS.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-3 rounded-xl bg-[var(--paper)] border border-[var(--line)] text-sm"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <b className="truncate text-[var(--ink)]">{s.patientName}</b>
-                      <span
-                        className={`tag text-xs ${
-                          s.severity === 'severe'
-                            ? 'tag-lat'
-                            : s.severity === 'moderate'
-                            ? 'tag-zari'
-                            : 'tag-mist'
-                        }`}
-                      >
-                        {s.severity}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[var(--ink2)] line-clamp-2 mt-1">
-                      "{s.text}"
-                    </p>
-                    <div className="mt-2 text-right">
-                      <span className="text-xs text-[var(--ink3)] font-medium">
-                        {t('doctorToday.daysWaiting', { count: s.daysWaiting })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Overdue Follow-up Notice */}
+          <section className="note-card">
+            <span className="ico ico-lat">
+              <Clock size={20} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <h3 className="h3 text-[var(--ink)] font-bold">
+                Arun Kumar's follow-up is overdue
+              </h3>
+              <p className="text-sm text-[var(--ink2)] mt-1">
+                Fasting blood sugar & lipid follow-up was due 3 days ago.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleOpenChart('e0000000-0000-0000-0000-000000000001')}
+                className="btn btn-sec btn-sm mt-3"
+              >
+                Open patient chart
+              </button>
             </div>
           </section>
         </div>

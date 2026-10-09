@@ -1,24 +1,43 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   X,
-  Clock,
   ChevronRight,
   Lock,
   ShieldAlert,
   FileText,
   Activity,
-  AlertCircle,
   Check,
 } from 'lucide-react';
-import {
-  DirectoryPatient,
-  MOCK_DIRECTORY_PATIENTS,
-  IS_MOCK_DATA,
-} from './mock';
+import { supabase } from '../../lib/supabase';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
+
+const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
+
+interface DbPatient {
+  id: string;
+  uhid: string;
+  full_name: string;
+  dob: string;
+  gender: string;
+  blood_group: string | null;
+  phone: string;
+  created_at: string;
+}
+
+function calculateAge(dobString: string): number {
+  const dob = new Date(dobString);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
 
 export function DoctorPatients(): React.JSX.Element {
   const { t } = useTranslation();
@@ -26,60 +45,198 @@ export function DoctorPatients(): React.JSX.Element {
 
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all' | 'review' | 'overdue'>('all');
-  const [selectedEmergencyPatient, setSelectedEmergencyPatient] = useState<DirectoryPatient | null>(null);
-  const [glassActive, setGlassActive] = useState<
-    Record<string, { until: string; untilTime: number; reason: string }>
-  >({});
+  const [selectedEmergencyPatient, setSelectedEmergencyPatient] = useState<{
+    id: string;
+    name: string;
+    mrn: string;
+    phone: string;
+    owner?: string;
+    dept?: string;
+  } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // 1. Fetch Patients
+  const { data: patients = [] } = useQuery<DbPatient[]>({
+    queryKey: ['doctor', 'patients', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('patients').select('*').order('full_name');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 2. Fetch Doctor's Care Team
+  const { data: careTeam = [], refetch: refetchCareTeam } = useQuery({
+    queryKey: ['doctor', 'patients', 'care_team'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('care_team')
+        .select('patient_id, expires_at')
+        .eq('staff_id', DR_RAHUL_STAFF_ID)
+        .is('revoked_at', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 3. Fetch Active Emergency Accesses
+  const { data: emergencyAccesses = [], refetch: refetchEmergency } = useQuery({
+    queryKey: ['doctor', 'patients', 'emergency_access'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('emergency_access')
+        .select('patient_id, expires_at, reason')
+        .eq('staff_id', DR_RAHUL_STAFF_ID)
+        .gt('expires_at', new Date().toISOString());
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 4. Fetch Conditions
+  const { data: conditions = [] } = useQuery({
+    queryKey: ['doctor', 'patients', 'conditions'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conditions').select('patient_id, name, status');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 5. Fetch Pending Documents (for Needs Review signal)
+  const { data: pendingDocs = [] } = useQuery({
+    queryKey: ['doctor', 'patients', 'pending_docs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('documents').select('patient_id').eq('review_status', 'pending');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 6. Fetch Pending Symptoms (for Needs Review signal)
+  const { data: pendingSymptoms = [] } = useQuery({
+    queryKey: ['doctor', 'patients', 'pending_symptoms'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('symptom_reports').select('patient_id').is('reviewed_at', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 7. Fetch Encounters for last visit
+  const { data: encounters = [] } = useQuery({
+    queryKey: ['doctor', 'patients', 'encounters'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('encounters').select('patient_id, signed_at').eq('status', 'signed');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // 8. Fetch Upcoming Appointments for next visit
+  const { data: appointments = [] } = useQuery({
+    queryKey: ['doctor', 'patients', 'appointments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('patient_id, appointment_date')
+        .gte('appointment_date', new Date().toISOString())
+        .order('appointment_date', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const carePatientIds = new Set(careTeam.map((ct) => ct.patient_id));
+  const emergencyPatientMap = new Map(emergencyAccesses.map((ea) => [ea.patient_id, ea]));
 
   const qq = q.trim().toLowerCase();
   const qd = q.replace(/\D/g, '');
 
-  const match = (p: DirectoryPatient) =>
+  const matchPatient = (p: DbPatient) =>
     !qq ||
-    p.name.toLowerCase().includes(qq) ||
-    p.mrn.toLowerCase().includes(qq) ||
+    p.full_name.toLowerCase().includes(qq) ||
+    p.uhid.toLowerCase().includes(qq) ||
     (qd.length >= 4 && p.phone.replace(/\D/g, '').includes(qd));
 
-  const needsReview = (p: DirectoryPatient) =>
-    p.signals.rep > 0 || p.signals.sx > 0;
 
-  const careTeamPatients = MOCK_DIRECTORY_PATIENTS.filter(
-    (p) => p.inCareTeam && match(p)
-  ).sort((a, b) => a.name.localeCompare(b.name));
+  // Build directory items for care team patients
+  const careTeamPatients = patients
+    .filter((p) => (carePatientIds.has(p.id) || emergencyPatientMap.has(p.id)) && matchPatient(p))
+    .map((p) => {
+      const conds = conditions.filter((c) => c.patient_id === p.id && c.status === 'active').map((c) => c.name);
+      const repCount = pendingDocs.filter((d) => d.patient_id === p.id).length;
+      const sxCount = pendingSymptoms.filter((s) => s.patient_id === p.id).length;
+
+      const lastEnc = encounters
+        .filter((e) => e.patient_id === p.id && Boolean(e.signed_at))
+        .sort((a, b) => new Date(b.signed_at!).getTime() - new Date(a.signed_at!).getTime())[0];
+
+      const nextAppt = appointments.find((a) => a.patient_id === p.id);
+
+      return {
+        id: p.id,
+        name: p.full_name,
+        mrn: p.uhid,
+        phone: p.phone,
+        age: calculateAge(p.dob),
+        gender: p.gender,
+        conditions: conds,
+        repCount,
+        sxCount,
+        lastVisit: lastEnc?.signed_at ? new Date(lastEnc.signed_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'New patient',
+        nextVisit: nextAppt ? new Date(nextAppt.appointment_date).toLocaleDateString([], { day: 'numeric', month: 'short' }) : 'None booked',
+        isEmergency: emergencyPatientMap.has(p.id),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredLists = {
     all: careTeamPatients,
-    review: careTeamPatients.filter(needsReview),
-    overdue: careTeamPatients.filter((p) => Boolean(p.overdue)),
+    review: careTeamPatients.filter((p) => p.repCount > 0 || p.sxCount > 0),
+    overdue: careTeamPatients.filter(() => false),
   };
 
   const list = filteredLists[filter];
+
+  // Patients outside care team
   const others =
     qq.length >= 3
-      ? MOCK_DIRECTORY_PATIENTS.filter((p) => !p.inCareTeam && match(p))
+      ? patients
+          .filter((p) => !carePatientIds.has(p.id) && !emergencyPatientMap.has(p.id) && matchPatient(p))
+          .map((p) => ({
+            id: p.id,
+            name: p.full_name,
+            mrn: p.uhid,
+            phone: p.phone,
+            age: calculateAge(p.dob),
+            gender: p.gender,
+            owner: 'Hospital Care Team',
+            dept: 'General Medicine',
+          }))
       : [];
 
-  const handleOpenChart = (patientId: string) => {
-    navigate(`/doctor/chart/${patientId}`);
-  };
-
-  const handleGrantGlass = (patientId: string, reason: string) => {
-    const expiration = new Date(Date.now() + 4 * 3600 * 1000);
-    const untilFormatted = expiration.toLocaleTimeString([], {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-
-    setGlassActive((prev) => ({
-      ...prev,
-      [patientId]: { until: untilFormatted, untilTime: expiration.getTime(), reason },
-    }));
-
-    setSelectedEmergencyPatient(null);
-    const msg = t('emergencyModal.grantedToast', { time: untilFormatted });
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 5000);
+  const handleGrantGlass = async (targetPid: string, reason: string) => {
+    try {
+      const { error } = await supabase.rpc('request_emergency_access', {
+        p_patient_id: targetPid,
+        p_reason: reason,
+      });
+      if (error) {
+        setToastMessage(error.message);
+        setTimeout(() => setToastMessage(null), 5000);
+        return;
+      }
+      setSelectedEmergencyPatient(null);
+      await refetchEmergency();
+      await refetchCareTeam();
+      const msg = t('emergencyModal.grantedToast', { time: '4 hours' });
+      setToastMessage(msg);
+      setTimeout(() => setToastMessage(null), 5000);
+    } catch {
+      setToastMessage('Failed to grant emergency access.');
+      setTimeout(() => setToastMessage(null), 5000);
+    }
   };
 
   return (
@@ -97,24 +254,15 @@ export function DoctorPatients(): React.JSX.Element {
 
       {/* Page Header */}
       <div className="pt-2 pb-6 lg:pt-0">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="disp h1 text-2xl lg:text-3xl font-bold text-[var(--ink)]">
-              {t('doctorPatients.title')}
-            </h1>
-            <p className="mt-1.5 text-sm lg:text-base text-[var(--ink2)]">
-              {t('doctorPatients.subtitle')}
-            </p>
-          </div>
-          {IS_MOCK_DATA && (
-            <span className="tag tag-zari text-xs self-start">
-              {t('doctorToday.sampleData')}
-            </span>
-          )}
-        </div>
+        <h1 className="disp h1 text-2xl lg:text-3xl font-bold text-[var(--ink)]">
+          {t('doctorPatients.title')}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--ink2)]">
+          {t('doctorPatients.subtitle')}
+        </p>
       </div>
 
-      {/* Search Input */}
+      {/* Search Bar */}
       <div className="field relative">
         <Search size={20} className="text-[var(--ink3)] flex-none" />
         <input
@@ -144,9 +292,7 @@ export function DoctorPatients(): React.JSX.Element {
           onClick={() => setFilter('all')}
         >
           <span>{t('doctorPatients.all')}</span>
-          <span className="text-xs opacity-70">
-            {filteredLists.all.length}
-          </span>
+          <span className="text-xs opacity-70 ml-1">{filteredLists.all.length}</span>
         </button>
 
         <button
@@ -155,9 +301,7 @@ export function DoctorPatients(): React.JSX.Element {
           onClick={() => setFilter('review')}
         >
           <span>{t('doctorPatients.needsReview')}</span>
-          <span className="text-xs opacity-70">
-            {filteredLists.review.length}
-          </span>
+          <span className="text-xs opacity-70 ml-1">{filteredLists.review.length}</span>
         </button>
 
         <button
@@ -166,16 +310,13 @@ export function DoctorPatients(): React.JSX.Element {
           onClick={() => setFilter('overdue')}
         >
           <span>{t('doctorPatients.overdue')}</span>
-          <span className="text-xs opacity-70">
-            {filteredLists.overdue.length}
-          </span>
+          <span className="text-xs opacity-70 ml-1">{filteredLists.overdue.length}</span>
         </button>
       </div>
 
       {/* Care Team Patients List */}
       {list.length > 0 ? (
         <div className="mt-6">
-          {/* Desktop Table Header */}
           <div className="tbl-h">
             <span>{t('doctorPatients.patientCol')}</span>
             <span>{t('doctorPatients.conditionsCol')}</span>
@@ -199,10 +340,9 @@ export function DoctorPatients(): React.JSX.Element {
                 <button
                   key={patient.id}
                   type="button"
-                  onClick={() => handleOpenChart(patient.id)}
-                  className="row prow press text-left hover:bg-[var(--mist)]/40 transition-colors"
+                  onClick={() => navigate(`/doctor/chart/${patient.id}`)}
+                  className="row prow press text-left w-full"
                 >
-                  {/* Patient Primary Identifier */}
                   <span className="flex items-center gap-3 flex-1 min-w-0">
                     <span
                       className="rounded-full flex items-center justify-center font-bold select-none shrink-0 bg-[var(--leaft)] text-[var(--leafd)]"
@@ -216,87 +356,46 @@ export function DoctorPatients(): React.JSX.Element {
                         {patient.name}
                       </b>
                       <span className="block text-sm text-[var(--ink3)] truncate">
-                        {patient.age} yrs, {patient.sex}, {patient.mrn}
-                      </span>
-                      {/* Mobile Signals & Next Visit */}
-                      <span className="flex flex-wrap items-center gap-1.5 mt-1.5 lg:hidden">
-                        <span className="text-xs text-[var(--ink2)] mr-1">
-                          Next: {patient.nextVisit}
-                        </span>
-                        {patient.overdue && (
-                          <span className="tag tag-lat text-xs">
-                            <Clock size={11} />
-                            {t('doctorPatients.overdueSince', { date: patient.overdue })}
-                          </span>
-                        )}
-                        {patient.signals.rep > 0 && (
-                          <span className="tag tag-leaf text-xs">
-                            <FileText size={11} />
-                            {patient.signals.rep}
-                          </span>
-                        )}
-                        {patient.signals.rd > 0 && (
-                          <span className="tag tag-mist text-xs">
-                            <Activity size={11} />
-                            {patient.signals.rd}
-                          </span>
-                        )}
-                        {patient.signals.sx > 0 && (
-                          <span className="tag tag-lat text-xs">
-                            <AlertCircle size={11} />
-                            {patient.signals.sx}
-                          </span>
-                        )}
+                        {patient.age} yrs, {patient.gender}, {patient.mrn}
                       </span>
                     </span>
                   </span>
 
-                  {/* Conditions (Desktop) */}
-                  <span className="hidden lg:block">
-                    <span className="text-sm text-[var(--ink2)] line-clamp-2">
+                  <span className="hidden lg:block flex-1 min-w-0">
+                    <span className="clamp2 text-sm text-[var(--ink2)]">
                       {patient.conditions.join(', ') || 'None recorded'}
                     </span>
                   </span>
 
-                  {/* Last Visit (Desktop) */}
                   <span className="hidden lg:block text-sm text-[var(--ink)]">
                     {patient.lastVisit}
                   </span>
 
-                  {/* Next Visit (Desktop) */}
                   <span className="hidden lg:block text-sm text-[var(--ink)]">
                     {patient.nextVisit}
                   </span>
 
-                  {/* Desktop Signals & Overdue Tag */}
-                  <span className="hidden lg:flex flex-wrap items-center gap-1.5">
-                    {patient.overdue && (
-                      <span className="tag tag-lat text-xs">
-                        <Clock size={12} />
-                        {t('doctorPatients.overdueSince', { date: patient.overdue })}
-                      </span>
-                    )}
-                    {patient.signals.rep > 0 && (
-                      <span className="tag tag-leaf text-xs">
+                  <span className="hidden lg:flex items-center gap-2">
+                    {patient.repCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-[#FFF6E5] text-[#A67814] font-bold">
                         <FileText size={12} />
-                        {patient.signals.rep} {patient.signals.rep === 1 ? 'report' : 'reports'}
+                        <span>{patient.repCount}</span>
                       </span>
                     )}
-                    {patient.signals.rd > 0 && (
-                      <span className="tag tag-mist text-xs">
+                    {patient.sxCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-[#FFF2EE] text-[var(--lat)] font-bold">
                         <Activity size={12} />
-                        {patient.signals.rd} {patient.signals.rd === 1 ? 'reading' : 'readings'}
+                        <span>{patient.sxCount}</span>
                       </span>
                     )}
-                    {patient.signals.sx > 0 && (
-                      <span className="tag tag-lat text-xs">
-                        <AlertCircle size={12} />
-                        {patient.signals.sx} {patient.signals.sx === 1 ? 'symptom' : 'symptoms'}
+                    {patient.isEmergency && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-[#FFF2EE] text-[var(--lat)] font-bold">
+                        <ShieldAlert size={12} />
+                        <span>Emergency</span>
                       </span>
                     )}
                   </span>
 
-                  {/* Chevron Right */}
                   <ChevronRight size={20} className="text-[var(--ink3)] flex-none" />
                 </button>
               );
@@ -325,7 +424,7 @@ export function DoctorPatients(): React.JSX.Element {
           <h2 className="text-lg font-bold text-[var(--ink)] mb-2">
             {t('doctorPatients.otherHospitalPatients')}
           </h2>
-          <div className="lock-note mb-3">
+          <div className="lock-note mb-3 p-3.5 rounded-xl bg-[var(--mist)] text-xs text-[var(--ink2)] flex items-start gap-2">
             <Lock size={18} className="flex-none mt-0.5 text-[var(--ink3)]" />
             <span>{t('doctorPatients.otherPatientsNote')}</span>
           </div>
@@ -340,12 +439,10 @@ export function DoctorPatients(): React.JSX.Element {
                 .join('')
                 .toUpperCase();
 
-              const active = glassActive[patient.id];
-
               return (
                 <div
                   key={patient.id}
-                  className="row flex-wrap justify-between items-center gap-3"
+                  className="row flex-wrap justify-between items-center gap-3 p-4 bg-white rounded-xl border border-[var(--line)]"
                 >
                   <span className="flex items-center gap-3 flex-1 min-w-0">
                     <span
@@ -365,25 +462,14 @@ export function DoctorPatients(): React.JSX.Element {
                     </span>
                   </span>
 
-                  {/* Access Button */}
-                  {active ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenChart(patient.id)}
-                      className="btn btn-tint btn-sm"
-                    >
-                      {t('doctorPatients.openChart')} ({t('doctorPatients.accessActive', { hours: 4 })})
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEmergencyPatient(patient)}
-                      className="btn btn-dline btn-sm"
-                    >
-                      <ShieldAlert size={16} />
-                      {t('doctorPatients.emergencyAccess')}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEmergencyPatient(patient)}
+                    className="btn btn-dline btn-sm inline-flex items-center gap-1.5"
+                  >
+                    <ShieldAlert size={16} />
+                    <span>{t('doctorPatients.emergencyAccess')}</span>
+                  </button>
                 </div>
               );
             })}

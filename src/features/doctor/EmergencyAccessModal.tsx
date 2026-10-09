@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Timer, X } from 'lucide-react';
-import { DirectoryPatient, GLASS_QUICK_REASONS } from './mock';
+import { GLASS_QUICK_REASONS } from './mock';
 
 export interface EmergencyAccessModalProps {
-  patient: DirectoryPatient;
+  patient: {
+    id: string;
+    name: string;
+    mrn: string;
+    phone?: string;
+    owner?: string;
+    dept?: string;
+  };
   isOpen: boolean;
   onClose: () => void;
   onGrant: (patientId: string, reason: string) => void;

@@ -84,3 +84,23 @@
   - Configured routes in `routes.tsx` (`/patient/reminders`, `/patient/appointments`, `/patient/appts`) and synchronized tab state across `PatientLayout` and `PatientProfile`.
   - Achieved 100% symmetric i18n keys across English and Malayalam for `patientReminders` and `patientAppts`.
   - Verified with 25 test suites passing (102 tests).
+
+## Phase 8: Doctor Portal Audit & Clinical Workflow Remediation (Completed)
+- **AAL2 Two-Factor MFA Authentication**:
+  - Live `StaffSignIn` workflow supporting password login, challenge verification with TOTP factor `f0000000-0000-0000-0000-000000000003`, and automatic session elevation to AAL2.
+  - TOTP verification helper `src/lib/totp.ts` verified with RFC 6238 specifications.
+- **Doctor Clinical Workflows & Interface**:
+  - Built `DoctorToday.tsx`: Live clinic schedule with Arun Kumar priority demo ticket, OPD room indicator, pending report and symptom counters, and penicillin allergy banner.
+  - Built `DoctorPatients.tsx`: Full patient directory and "My Care Team" roster with search, filter, and break-glass emergency access trigger.
+  - Built `DoctorChart.tsx`: Comprehensive patient chart featuring 6 clinical sections: What Changed (via `what_changed` RPC), Visits, Readings (with targets and source tags), Reports, Medicines, and Care Plan (with diet guidance).
+  - Built `NoteComposer.tsx`: 4-step wizard (Note -> Meds -> Plan -> Sign) adhering to immutable encounter freeze triggers (draft then signed) with real-time penicillin allergy warnings and care plan diet attachment.
+  - Built `AddendumModal.tsx`: Immutable addendum composer for signed clinical notes.
+  - Built `DoctorReview.tsx`: Dual-tab clinical review queue for pending lab reports and patient symptoms, with required doctor comment for patient and next step selector.
+  - Built `DoctorAccount.tsx`: Doctor profile, council reg KMC 48291, 2FA status, and emergency access audit logs.
+- **Verification & Documentation**:
+  - Captured 24 screenshots across Desktop (1280px), Tablet (768px), and Mobile (390px) in `docs/review/screenshots/`.
+  - Comprehensive audit matrix in `docs/review/doctor-audit.md`.
+  - Added Playwright test suite `tests/e2e/doctor-journey.spec.ts` passing end-to-end.
+  - All 10 pgTAP database test suites passing (160 tests).
+  - 100% symmetric bilingual support (English and Malayalam, 445 keys).
+

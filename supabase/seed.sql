@@ -33,19 +33,33 @@ on conflict (id) do nothing;
 
 -- 3. Auth Users & Verified TOTP Factors
 -- Password for all demo accounts: DemoPassword123!
-insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, confirmation_token, recovery_token, email_change_token_new, email_change, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   -- Staff
-  ('a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"admin"}', now() - interval '1 year', now()),
-  ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'desk@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"front_desk"}', now() - interval '1 year', now()),
-  ('a0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.rahul@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
-  ('a0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.anjali@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
-  ('a0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.thomas@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
-  ('a0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.kavitha@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"admin"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'desk@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"front_desk"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.rahul@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.anjali@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.thomas@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
+  ('a0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'dr.kavitha@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"doctor"}', now() - interval '1 year', now()),
   -- Patients
-  ('c0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'arun@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now()),
-  ('c0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'mother@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now()),
-  ('c0000000-0000-0000-0000-000000000099', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'stranger@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now())
+  ('c0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'arun@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now()),
+  ('c0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'mother@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now()),
+  ('c0000000-0000-0000-0000-000000000099', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'stranger@example.com', extensions.crypt('DemoPassword123!', extensions.gen_salt('bf', 10)), now(), '', '', '', '', '{"provider":"email","providers":["email"]}', '{"role":"patient"}', now() - interval '1 year', now())
+on conflict (id) do nothing;
+
+-- Deterministic Auth Identities for Email Login
+insert into auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+values
+  ('a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000001', 'email', 'admin@example.com'), 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000002', 'email', 'desk@example.com'), 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000003', 'email', 'dr.rahul@example.com'), 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000004', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000004', 'email', 'dr.anjali@example.com'), 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000005', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000005', 'email', 'dr.thomas@example.com'), 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000006', jsonb_build_object('sub', 'a0000000-0000-0000-0000-000000000006', 'email', 'dr.kavitha@example.com'), 'email', now(), now(), now()),
+  ('c0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', jsonb_build_object('sub', 'c0000000-0000-0000-0000-000000000001', 'email', 'arun@example.com'), 'email', now(), now(), now()),
+  ('c0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', jsonb_build_object('sub', 'c0000000-0000-0000-0000-000000000002', 'email', 'mother@example.com'), 'email', now(), now(), now()),
+  ('c0000000-0000-0000-0000-000000000099', 'c0000000-0000-0000-0000-000000000099', 'c0000000-0000-0000-0000-000000000099', jsonb_build_object('sub', 'c0000000-0000-0000-0000-000000000099', 'email', 'stranger@example.com'), 'email', now(), now(), now())
 on conflict (id) do nothing;
 
 -- Deterministic TOTP Authenticator factors (RFC 4648 Base32 secrets)
@@ -216,6 +230,8 @@ on conflict do nothing;
 -- 16. Appointments (Today's Bookings & Cardiology Referral)
 insert into public.appointments (id, patient_id, doctor_id, department_id, appointment_date, status, notes)
 values
+  -- Arun Kumar follow-up consultation with Dr. Rahul today
+  ('aa000000-0000-0000-0000-000000000000', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', ((date_trunc('day', now() at time zone 'Asia/Kolkata') + interval '9 hours 30 minutes') at time zone 'Asia/Kolkata'), 'booked', 'Follow-up for uncontrolled sugar and fatigue; cardiology referral review'),
   -- Arun Kumar referral visit with Dr. Anjali today
   ('aa000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', now() + interval '2 hours', 'booked', 'Referred by Dr. Rahul for cardiac evaluation and exertional palpitations'),
   -- Today's other appointments across departments

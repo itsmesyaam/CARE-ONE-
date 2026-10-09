@@ -51,7 +51,7 @@ export const MOCK_DOCTOR: DoctorProfile = {
   id: 'doc-1',
   name: 'Dr. Rahul Nair',
   dept: 'General Medicine',
-  email: 'dr.rahul@abchospital.example',
+  email: 'dr.rahul@example.com',
   reg: 'KMC 48291',
   room: 'OP Block B, Room 12',
 };

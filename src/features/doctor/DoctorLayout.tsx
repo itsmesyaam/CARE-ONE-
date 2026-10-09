@@ -11,7 +11,8 @@ import {
   Timer,
   Languages,
 } from 'lucide-react';
-import { MOCK_DOCTOR, MOCK_WAITING_REPORTS, MOCK_WAITING_SYMPTOMS } from './mock';
+import { useQuery } from '@tanstack/react-query';
+import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
 import { supabase } from '../../lib/supabase';
 
@@ -38,7 +39,32 @@ export function DoctorLayout(): React.JSX.Element {
   };
 
   const lastActiveRef = useRef<number>(0);
-  const reviewCount = MOCK_WAITING_REPORTS.length + MOCK_WAITING_SYMPTOMS.length;
+
+  const { data: pendingDocsCount = 0 } = useQuery({
+    queryKey: ['doctor', 'layout', 'pending_docs_count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('review_status', 'pending');
+      if (error) return 0;
+      return count || 0;
+    },
+  });
+
+  const { data: pendingSymptomsCount = 0 } = useQuery({
+    queryKey: ['doctor', 'layout', 'pending_symptoms_count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('symptom_reports')
+        .select('*', { count: 'exact', head: true })
+        .is('reviewed_at', null);
+      if (error) return 0;
+      return count || 0;
+    },
+  });
+
+  const reviewCount = pendingDocsCount + pendingSymptomsCount;
 
   const currentTab = location.pathname.includes('/patients')
     ? 'patients'
@@ -263,11 +289,7 @@ export function DoctorLayout(): React.JSX.Element {
                 key={item.key}
                 type="button"
                 onClick={() => {
-                  if (item.key === 'account') {
-                    void handleDoctorSignOut();
-                  } else {
-                    navigate(item.path);
-                  }
+                  navigate(item.path);
                 }}
                 className={`bn ${isActive ? 'on' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
