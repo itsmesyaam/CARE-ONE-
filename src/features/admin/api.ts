@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/api-client';
 import type {
   Department,
   StaffMember,
@@ -10,141 +10,121 @@ import type {
 } from './types';
 
 export async function fetchDepartments(): Promise<Department[]> {
-  const { data, error } = await supabase
-    .from('departments')
-    .select('id, name, code, archived_at, created_at')
-    .order('name');
-
-  if (error) throw error;
-  return data || [];
+  const res = await apiFetch<{ departments: Department[] }>('/api/admin/departments');
+  return res.departments || [];
 }
 
 export async function createDepartment(payload: DepartmentFormData): Promise<Department> {
-  const { data, error } = await supabase
-    .from('departments')
-    .insert({
+  const res = await apiFetch<{ success: boolean; department: Department }>('/api/admin/departments', {
+    method: 'POST',
+    body: JSON.stringify({
       name: payload.name.trim(),
       code: payload.code.trim().toUpperCase(),
-    })
-    .select('id, name, code, archived_at, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
+    }),
+  });
+  return res.department;
 }
 
 export async function updateDepartment(
   id: string,
   payload: DepartmentFormData
 ): Promise<Department> {
-  const { data, error } = await supabase
-    .from('departments')
-    .update({
+  const res = await apiFetch<{ success: boolean; department: Department }>(`/api/admin/departments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
       name: payload.name.trim(),
       code: payload.code.trim().toUpperCase(),
-    })
-    .eq('id', id)
-    .select('id, name, code, archived_at, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
+    }),
+  });
+  return res.department;
 }
 
 export async function toggleArchiveDepartment(
   id: string,
-  isArchived: boolean
+  isArchived?: boolean
 ): Promise<Department> {
-  const { data, error } = await supabase
-    .from('departments')
-    .update({
-      archived_at: isArchived ? null : new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select('id, name, code, archived_at, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
+  const res = await apiFetch<{ success: boolean; department: Department }>(`/api/admin/departments/${id}/archive`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isArchived }),
+  });
+  return res.department;
 }
 
 export async function fetchStaff(): Promise<StaffMember[]> {
-  const { data, error } = await supabase
-    .from('staff')
-    .select(
-      `
-      id,
-      user_id,
-      full_name,
-      role,
-      department_id,
-      departments (name),
-      phone,
-      is_active,
-      created_at,
-      deleted_at
-    `
-    )
-    .is('deleted_at', null)
-    .order('full_name');
-
-  if (error) throw error;
-  return (data as unknown as StaffMember[]) || [];
+  const res = await apiFetch<{ staff: Array<Record<string, unknown>> }>('/api/admin/staff');
+  return (res.staff || []).map((s) => ({
+    id: String(s.id),
+    user_id: String(s.user_id || ''),
+    full_name: String(s.full_name || ''),
+    role: s.role as 'doctor' | 'front_desk' | 'admin',
+    department_id: (s.department_id as string) || null,
+    departments: s.department_name ? { name: String(s.department_name) } : null,
+    phone: (s.phone as string) || null,
+    is_active: Boolean(s.is_active),
+    created_at: String(s.created_at || ''),
+    deleted_at: null,
+  }));
 }
 
 export async function toggleStaffActive(
   id: string,
-  currentIsActive: boolean
+  currentIsActive?: boolean
 ): Promise<StaffMember> {
-  const { data, error } = await supabase
-    .from('staff')
-    .update({
-      is_active: !currentIsActive,
-    })
-    .eq('id', id)
-    .select(
-      `
-      id,
-      user_id,
-      full_name,
-      role,
-      department_id,
-      departments (name),
-      phone,
-      is_active,
-      created_at,
-      deleted_at
-    `
-    )
-    .single();
-
-  if (error) throw error;
-  return data as unknown as StaffMember;
+  const res = await apiFetch<{ success: boolean; staff: Record<string, unknown> }>(`/api/admin/staff/${id}/active`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive: currentIsActive !== undefined ? !currentIsActive : undefined }),
+  });
+  const s = res.staff;
+  return {
+    id: String(s.id),
+    user_id: String(s.user_id || ''),
+    full_name: String(s.full_name || ''),
+    role: s.role as 'doctor' | 'front_desk' | 'admin',
+    department_id: (s.department_id as string) || null,
+    departments: s.department_name ? { name: String(s.department_name) } : null,
+    phone: (s.phone as string) || null,
+    is_active: Boolean(s.is_active),
+    created_at: String(s.created_at || ''),
+    deleted_at: null,
+  };
 }
 
 export async function inviteStaff(payload: InviteStaffFormData): Promise<{ user_id: string }> {
-  const { data, error } = await supabase.functions.invoke('invite-staff', {
-    body: payload,
+  const res = await apiFetch<{ success: boolean; user_id: string }>('/api/admin/staff/invite', {
+    method: 'POST',
+    body: JSON.stringify({
+      fullName: payload.full_name,
+      role: payload.role,
+      email: payload.email,
+      phone: payload.phone || null,
+      departmentId: payload.department_id || null,
+    }),
   });
-
-  if (error) throw error;
-  return data;
+  return { user_id: res.user_id };
 }
 
 export async function fetchAdminDashboardCounts(): Promise<AdminDashboardCounts> {
-  const { data, error } = await supabase.rpc('get_admin_dashboard_counts');
+  const res = await apiFetch<{
+    metrics: {
+      appointmentsToday?: number;
+      reportsWaitingReview?: number;
+      activePatients?: number;
+      activeCarePlans?: number;
+      consultationsThisMonth?: number;
+      followUpsDueToday?: number;
+    };
+  }>('/api/admin/dashboard-counts');
 
-  if (error) throw error;
-  const row = (data?.[0] || {}) as Partial<AdminDashboardCounts>;
+  const m = res.metrics || {};
   return {
-    today_appointments: Number(row.today_appointments || 0),
-    follow_ups_due: Number(row.follow_ups_due || 0),
-    reports_waiting_review: Number(row.reports_waiting_review || 0),
-    patients_overdue_follow_up: Number(row.patients_overdue_follow_up || 0),
-    consultations_this_month: Number(row.consultations_this_month || 0),
-    active_patients_30d: Number(row.active_patients_30d || 0),
-    invited_patients: Number(row.invited_patients || 0),
-    active_patient_share: Number(row.active_patient_share || 0),
+    today_appointments: m.appointmentsToday || 0,
+    follow_ups_due: m.followUpsDueToday || 0,
+    reports_waiting_review: m.reportsWaitingReview || 0,
+    patients_overdue_follow_up: 0,
+    consultations_this_month: m.consultationsThisMonth || 0,
+    active_patients_30d: m.activePatients || 0,
+    invited_patients: m.activePatients || 0,
+    active_patient_share: 100,
   };
 }
 
@@ -153,15 +133,13 @@ export async function fetchAdminAuditLogs(
   limit = 50,
   offset = 0
 ): Promise<AuditLogEntry[]> {
-  const { data, error } = await supabase.rpc('get_admin_audit_logs', {
-    p_start_date: filter.startDate || undefined,
-    p_end_date: filter.endDate || undefined,
-    p_staff_id: filter.staffId || undefined,
-    p_action: filter.action ? filter.action.trim().toUpperCase() : undefined,
-    p_limit: limit,
-    p_offset: offset,
-  });
-
-  if (error) throw error;
-  return (data || []) as AuditLogEntry[];
+  const query = new URLSearchParams();
+  if (filter.staffId) query.set('staffId', filter.staffId);
+  if (filter.action) query.set('action', filter.action);
+  if (filter.startDate) query.set('startDate', filter.startDate);
+  if (filter.endDate) query.set('endDate', filter.endDate);
+  query.set('limit', String(limit));
+  query.set('offset', String(offset));
+  const res = await apiFetch<{ logs: AuditLogEntry[] }>(`/api/admin/audit-logs?${query.toString()}`);
+  return res.logs || [];
 }

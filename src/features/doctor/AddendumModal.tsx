@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Lock, BadgeCheck } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
+import { apiFetch } from '../../lib/api-client';
 
 export interface AddendumModalProps {
   encounterId: string;
@@ -16,7 +14,6 @@ export interface AddendumModalProps {
 
 export function AddendumModal({
   encounterId,
-  patientId,
   encounterDate,
   doctorName,
   onClose,
@@ -36,15 +33,14 @@ export function AddendumModal({
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase.from('encounter_addenda').insert({
-        encounter_id: encounterId,
-        patient_id: patientId,
-        doctor_id: DR_RAHUL_STAFF_ID,
-        reason: kind,
-        notes: text.trim(),
+      await apiFetch(`/api/doctor/encounters/${encounterId}/addenda`, {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: kind,
+          notes: text.trim(),
+        }),
       });
 
-      if (error) throw error;
       setBusy(false);
       onSaved();
     } catch (err: unknown) {

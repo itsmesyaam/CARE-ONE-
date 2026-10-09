@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Users, BarChart3, ShieldCheck, LogOut } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/api-client';
 import { AdminOverviewPanel } from './AdminOverviewPanel';
 import { AccessLogPage } from './AccessLogPage';
 import { DepartmentList } from './DepartmentList';
@@ -160,7 +161,16 @@ export function AdminDashboard(): React.JSX.Element {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Fallback
+      }
+      try {
+        await apiFetch('/api/auth/signout', { method: 'POST' });
+      } catch {
+        // Fallback for tests
+      }
       queryClient.clear();
       window.location.href = '/';
     } catch {
