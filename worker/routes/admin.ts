@@ -119,6 +119,60 @@ adminRoutes.post('/departments', requireAccess(postDepartmentsPolicy), async c =
   return c.json({ success: true, department: record });
 });
 
+const putDepartmentsPolicy = declareRoutePolicy('PUT', '/api/admin/departments/:id', {
+  allowedRoles: ['admin'],
+  requireMfa: true,
+});
+
+adminRoutes.put('/departments/:id', requireAccess(putDepartmentsPolicy), async c => {
+  const id = c.req.param('id');
+  const body = (await c.req.json().catch(() => ({}))) as {
+    name?: string;
+    code?: string;
+  };
+
+  if (!body.name || !body.code) {
+    return c.json({ error: 'Department name and code are required' }, 400);
+  }
+
+  const db = c.env.DB;
+  await db
+    .prepare('UPDATE departments SET name = ?, code = ? WHERE id = ?')
+    .bind(body.name.trim(), body.code.trim().toUpperCase(), id)
+    .run();
+
+  const record = await db.prepare('SELECT * FROM departments WHERE id = ?').bind(id).first();
+  return c.json({ success: true, department: record });
+});
+
+const archiveDeptPolicy = declareRoutePolicy('PATCH', '/api/admin/departments/:id/archive', {
+  allowedRoles: ['admin'],
+  requireMfa: true,
+});
+
+adminRoutes.patch('/departments/:id/archive', requireAccess(archiveDeptPolicy), async c => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+
+  const current = await db
+    .prepare('SELECT archived_at FROM departments WHERE id = ?')
+    .bind(id)
+    .first<{ archived_at: string | null }>();
+
+  if (!current) {
+    return c.json({ error: 'Department not found' }, 404);
+  }
+
+  const newArchivedAt = current.archived_at ? null : new Date().toISOString();
+  await db
+    .prepare('UPDATE departments SET archived_at = ? WHERE id = ?')
+    .bind(newArchivedAt, id)
+    .run();
+
+  const record = await db.prepare('SELECT * FROM departments WHERE id = ?').bind(id).first();
+  return c.json({ success: true, department: record });
+});
+
 // 3. Staff Directory
 const getStaffPolicy = declareRoutePolicy('GET', '/api/admin/staff', {
   allowedRoles: ['admin'],
@@ -139,6 +193,88 @@ adminRoutes.get('/staff', requireAccess(getStaffPolicy), async c => {
     .all()) as { results: unknown[] };
 
   return c.json({ staff: results.results });
+});
+
+const toggleStaffPolicy = declareRoutePolicy('PATCH', '/api/admin/staff/:id/active', {
+  allowedRoles: ['admin'],
+  requireMfa: true,
+});
+
+adminRoutes.patch('/staff/:id/active', requireAccess(toggleStaffPolicy), async c => {
+  const id = c.req.param('id');
+  const db = c.env.DB;
+
+  const current = await db
+    .prepare('SELECT is_active FROM staff WHERE id = ?')
+    .bind(id)
+    .first<{ is_active: number }>();
+
+  if (!current) {
+    return c.json({ error: 'Staff member not found' }, 404);
+  }
+
+  const newActive = current.is_active === 1 ? 0 : 1;
+  await db
+    .prepare('UPDATE staff SET is_active = ?, updated_at = ? WHERE id = ?')
+    .bind(newActive, new Date().toISOString(), id)
+    .run();
+
+  const record = await db
+    .prepare(
+      `SELECT s.id, s.user_id, s.role, s.full_name, s.email, s.phone, s.is_active, s.created_at,
+              d.name as department_name, d.code as department_code
+       FROM staff s
+       LEFT JOIN departments d ON s.department_id = d.id
+       WHERE s.id = ?`
+    )
+    .bind(id)
+    .first();
+
+  return c.json({ success: true, staff: record });
+});
+
+const inviteStaffPolicy = declareRoutePolicy('POST', '/api/admin/staff/invite', {
+  allowedRoles: ['admin'],
+  requireMfa: true,
+});
+
+adminRoutes.post('/staff/invite', requireAccess(inviteStaffPolicy), async c => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    fullName?: string;
+    role?: string;
+    email?: string;
+    phone?: string;
+    departmentId?: string;
+  };
+
+  if (!body.fullName || !body.role || !body.email) {
+    return c.json({ error: 'Full name, role, and email are required' }, 400);
+  }
+
+  const db = c.env.DB;
+  const staffId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+
+  await db
+    .prepare(
+      `INSERT INTO staff (id, user_id, role, full_name, email, phone, department_id, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`
+    )
+    .bind(
+      staffId,
+      userId,
+      body.role,
+      body.fullName.trim(),
+      body.email.trim().toLowerCase(),
+      body.phone || null,
+      body.departmentId || null,
+      nowIso,
+      nowIso
+    )
+    .run();
+
+  return c.json({ success: true, user_id: userId, staff_id: staffId });
 });
 
 // 4. Admin Operational Dashboard (COUNTS ONLY)

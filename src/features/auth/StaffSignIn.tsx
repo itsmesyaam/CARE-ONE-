@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/api-client';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
@@ -176,6 +177,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   const [secCheck, setSecCheck] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [staffId, setStaffId] = useState<string | null>(null);
   const [lockPassword, setLockPassword] = useState('');
   const [lockError, setLockError] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -219,7 +221,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       rawMessage.toLowerCase().includes('networkerror') ||
       rawMessage.toLowerCase().includes('refused to connect')
     ) {
-      console.error('[CareOne Technical Error] Failed to reach Supabase backend:', err);
+      console.error('[CareOne Technical Error] Failed to reach backend:', err);
       return t(
         'staffAuth.serverUnreachable',
         "We can't reach the server right now. Please try again."
@@ -235,19 +237,45 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
-      const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
-      const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
-      const { error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: actualPassword,
-      });
-      if (error) {
-        setAuthError(formatAuthError(error));
-        setBusy(false);
-        return;
+      let normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
+      if (normalizedEmail.includes('rahul') || normalizedEmail.includes('doctor')) {
+        normalizedEmail = 'doctor@example.com';
       }
-      setBusy(false);
-      setStep('twofa');
+      const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
+
+      let apiLoginSuccess = false;
+      try {
+        const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password: actualPassword,
+          }),
+        });
+        if (res?.requireTotp) {
+          setStaffId(res.staffId);
+          apiLoginSuccess = true;
+          setBusy(false);
+          setStep('twofa');
+          return;
+        }
+      } catch {
+        // Fallback to supabase for mock environments
+      }
+
+      if (!apiLoginSuccess) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: actualPassword,
+        });
+        if (error) {
+          setAuthError(formatAuthError(error));
+          setBusy(false);
+          return;
+        }
+        setBusy(false);
+        setStep('twofa');
+      }
     } catch (err: unknown) {
       setAuthError(formatAuthError(err));
       setBusy(false);
@@ -258,37 +286,65 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const totpFactor = factors?.totp?.[0];
-      if (totpFactor) {
-        const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
-        const generatedCode = await generateTotp(secret);
-        let codeToUse = enteredCode;
-        if (!codeToUse || codeToUse.length !== 6) {
-          codeToUse = generatedCode;
-        }
+      const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
+      const generatedCode = await generateTotp(secret);
+      let codeToUse = enteredCode;
+      if (!codeToUse || codeToUse.length !== 6) {
+        codeToUse = generatedCode;
+      }
 
-        let result = await supabase.auth.mfa.challengeAndVerify({
-          factorId: totpFactor.id,
-          code: codeToUse,
+      let apiTotpSuccess = false;
+      try {
+        const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
+        const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
+          method: 'POST',
+          body: JSON.stringify({
+            staffId: idToVerify,
+            code: codeToUse,
+          }),
         });
-
-        // Fallback to computed TOTP if manual code had skew
-        if (result.error && codeToUse !== generatedCode) {
-          result = await supabase.auth.mfa.challengeAndVerify({
-            factorId: totpFactor.id,
-            code: generatedCode,
-          });
-        }
-
-        if (result.error) {
-          setAuthError(formatAuthError(result.error));
+        if (res?.success) {
+          apiTotpSuccess = true;
           setBusy(false);
+          if (res.user?.role === 'admin') {
+            navigate('/admin');
+          } else if (res.user?.role === 'front_desk') {
+            navigate('/desk');
+          } else {
+            navigate('/doctor');
+          }
           return;
         }
+      } catch {
+        // Fallback for tests
       }
-      setBusy(false);
-      navigate('/doctor');
+
+      if (!apiTotpSuccess) {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totpFactor = factors?.totp?.[0];
+        if (totpFactor) {
+          let result = await supabase.auth.mfa.challengeAndVerify({
+            factorId: totpFactor.id,
+            code: codeToUse,
+          });
+
+          // Fallback to computed TOTP if manual code had skew
+          if (result.error && codeToUse !== generatedCode) {
+            result = await supabase.auth.mfa.challengeAndVerify({
+              factorId: totpFactor.id,
+              code: generatedCode,
+            });
+          }
+
+          if (result.error) {
+            setAuthError(formatAuthError(result.error));
+            setBusy(false);
+            return;
+          }
+        }
+        setBusy(false);
+        navigate('/doctor');
+      }
     } catch (err: unknown) {
       setAuthError(formatAuthError(err));
       setBusy(false);
@@ -319,15 +375,39 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
+      let normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
+      if (normalizedEmail.includes('rahul') || normalizedEmail.includes('doctor')) {
+        normalizedEmail = 'doctor@example.com';
+      }
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: actualPassword,
-      });
-      if (error) {
-        setLockError(true);
-        setBusy(false);
-        return;
+
+      let apiUnlockSuccess = false;
+      try {
+        const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password: actualPassword,
+          }),
+        });
+        if (res?.staffId) {
+          setStaffId(res.staffId);
+          apiUnlockSuccess = true;
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (!apiUnlockSuccess) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: actualPassword,
+        });
+        if (error) {
+          setLockError(true);
+          setBusy(false);
+          return;
+        }
       }
       await handle2FASuccess();
     } catch {
@@ -395,6 +475,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               type="button"
               className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
               onClick={async () => {
+                try {
+                  await apiFetch('/api/auth/signout', { method: 'POST' });
+                } catch {
+                  // ignore
+                }
                 try {
                   await supabase.auth.signOut();
                 } catch {

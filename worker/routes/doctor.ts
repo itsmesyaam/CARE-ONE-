@@ -490,3 +490,508 @@ doctorRoutes.post(
     });
   }
 );
+
+// 10. Symptoms Review Queue
+const symptomsReviewPolicy = declareRoutePolicy('GET', '/api/doctor/symptoms/review-queue', {
+  allowedRoles: ['doctor'],
+  requireMfa: true,
+});
+
+interface SymptomReviewRow {
+  id: string;
+  patient_id: string;
+  description: string;
+  severity: string;
+  reported_at: string;
+  reviewed_at: string | null;
+  patient_name: string;
+  patient_uhid: string;
+  patient_dob: string;
+  patient_gender: string;
+  patient_phone: string;
+}
+
+doctorRoutes.get('/symptoms/review-queue', requireAccess(symptomsReviewPolicy), async c => {
+  const db = c.env.DB;
+  const query = `
+    SELECT sr.id, sr.patient_id, sr.description, sr.severity, sr.reported_at, sr.reviewed_at,
+           p.full_name as patient_name, p.uhid as patient_uhid, p.dob as patient_dob,
+           p.gender as patient_gender, p.phone as patient_phone
+    FROM symptom_reports sr
+    JOIN patients p ON sr.patient_id = p.id
+    ORDER BY sr.reported_at DESC
+  `;
+  const result = await db.prepare(query).all<SymptomReviewRow>();
+  const symptoms = (result.results || []).map(r => ({
+    id: r.id,
+    patient_id: r.patient_id,
+    description: r.description,
+    severity: r.severity,
+    reported_at: r.reported_at,
+    reviewed_at: r.reviewed_at,
+    patients: {
+      id: r.patient_id,
+      full_name: r.patient_name,
+      uhid: r.patient_uhid,
+      dob: r.patient_dob,
+      gender: r.patient_gender,
+      phone: r.patient_phone,
+    },
+  }));
+  return c.json({ success: true, symptoms });
+});
+
+// 11. Mark Symptom Reviewed
+const symptomReviewPolicy = declareRoutePolicy('POST', '/api/doctor/symptoms/:id/review', {
+  allowedRoles: ['doctor'],
+  requireMfa: true,
+});
+
+doctorRoutes.post('/symptoms/:id/review', requireAccess(symptomReviewPolicy), async c => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
+
+  await db
+    .prepare('UPDATE symptom_reports SET reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ?')
+    .bind(user.staffId, nowIso, nowIso, id)
+    .run();
+
+  return c.json({ success: true });
+});
+
+// 12. Doctor Care Team List
+const careTeamPolicy = declareRoutePolicy('GET', '/api/doctor/care-team', {
+  allowedRoles: ['doctor'],
+  requireMfa: true,
+});
+
+doctorRoutes.get('/care-team', requireAccess(careTeamPolicy), async c => {
+  const user = c.get('user');
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
+
+  const rows = await db
+    .prepare(
+      `SELECT patient_id, expires_at FROM care_team
+       WHERE staff_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > ?)`
+    )
+    .bind(user.staffId, nowIso)
+    .all<{ patient_id: string; expires_at: string | null }>();
+
+  return c.json({ success: true, careTeam: rows.results || [] });
+});
+
+// 13. Active Emergency Access List
+const emergencyListPolicy = declareRoutePolicy('GET', '/api/doctor/emergency-access', {
+  allowedRoles: ['doctor'],
+  requireMfa: true,
+});
+
+interface EmergencyAccessItemRow {
+  id: string;
+  patient_id: string;
+  reason: string;
+  expires_at: string;
+  created_at: string;
+  patient_name: string;
+  patient_uhid: string;
+}
+
+doctorRoutes.get('/emergency-access', requireAccess(emergencyListPolicy), async c => {
+  const user = c.get('user');
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
+
+  const rows = await db
+    .prepare(
+      `SELECT ea.id, ea.patient_id, ea.reason, ea.expires_at, ea.created_at,
+              p.full_name as patient_name, p.uhid as patient_uhid
+       FROM emergency_access ea
+       JOIN patients p ON ea.patient_id = p.id
+       WHERE ea.staff_id = ? AND ea.expires_at > ?
+       ORDER BY ea.created_at DESC`
+    )
+    .bind(user.staffId, nowIso)
+    .all<EmergencyAccessItemRow>();
+
+  const list = (rows.results || []).map(r => ({
+    id: r.id,
+    patient_id: r.patient_id,
+    reason: r.reason,
+    expires_at: r.expires_at,
+    created_at: r.created_at,
+    patients: {
+      full_name: r.patient_name,
+      uhid: r.patient_uhid,
+    },
+  }));
+
+  return c.json({ success: true, emergencyAccess: list });
+});
+
+// 14. Doctor Chart Overview for Patient
+const doctorPatientChartPolicy = declareRoutePolicy('GET', '/api/doctor/patients/:patientId/chart', {
+  allowedRoles: ['doctor'],
+  patientScoped: true,
+  allowEmergencyAccess: true,
+  requireMfa: true,
+});
+
+interface EncounterWithStaffRow {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  department_id: string | null;
+  status: string;
+  sensitivity: string;
+  chief_complaint: string | null;
+  clinical_notes: string | null;
+  diagnosis: string | null;
+  signed_at: string | null;
+  created_at: string;
+  staff_name: string | null;
+  department_name: string | null;
+}
+
+interface EncounterAddendumRow {
+  id: string;
+  encounter_id: string;
+  patient_id: string;
+  doctor_id: string;
+  reason: string;
+  notes: string;
+  created_at: string;
+}
+
+interface CarePlanItemJoinedRow {
+  id: string;
+  care_plan_id: string;
+  patient_id: string;
+  kind: string;
+  detail: string;
+  timing: string | null;
+  due_date: string | null;
+  diet_guide_id: string | null;
+  doctor_note: string | null;
+  status: string;
+  completed_at: string | null;
+  title_en: string | null;
+  title_ml: string | null;
+  eat_more_en: string | null;
+  eat_more_ml: string | null;
+  eat_less_en: string | null;
+  eat_less_ml: string | null;
+  avoid_en: string | null;
+  avoid_ml: string | null;
+  tips_en: string | null;
+  tips_ml: string | null;
+}
+
+doctorRoutes.get('/patients/:patientId/chart', requireAccess(doctorPatientChartPolicy), async c => {
+  const patientId = c.req.param('patientId');
+  const user = c.get('user');
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
+
+  // Audit log chart view
+  await db
+    .prepare(
+      `INSERT INTO audit_log (id, at, actor_id, action, table_name, record_id, patient_id, reason)
+       VALUES (?, ?, ?, 'VIEWED_CHART', 'patients', ?, ?, 'Doctor clinical chart review')`
+    )
+    .bind(crypto.randomUUID(), nowIso, user.id, patientId, patientId)
+    .run();
+
+  const patient = await db
+    .prepare('SELECT id, uhid, full_name, dob, gender, blood_group, phone, created_at FROM patients WHERE id = ?')
+    .bind(patientId)
+    .first();
+
+  const allergies = (await db
+    .prepare('SELECT id, substance, reaction, severity FROM allergies WHERE patient_id = ?')
+    .bind(patientId)
+    .all()).results;
+
+  const conditions = (await db
+    .prepare('SELECT id, name, status, diagnosed_date FROM conditions WHERE patient_id = ?')
+    .bind(patientId)
+    .all()).results;
+
+  const encountersQuery = `
+    SELECT e.id, e.patient_id, e.doctor_id, e.department_id, e.status, e.sensitivity,
+           e.chief_complaint, e.clinical_notes, e.diagnosis, e.signed_at, e.created_at,
+           s.full_name as staff_name, d.name as department_name
+    FROM encounters e
+    LEFT JOIN staff s ON e.doctor_id = s.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    WHERE e.patient_id = ?
+    ORDER BY e.created_at DESC
+  `;
+  const encounterRows = (await db.prepare(encountersQuery).bind(patientId).all<EncounterWithStaffRow>()).results;
+
+  const addenda = (await db
+    .prepare('SELECT id, encounter_id, patient_id, doctor_id, reason, notes, created_at FROM encounter_addenda WHERE patient_id = ? ORDER BY created_at ASC')
+    .bind(patientId)
+    .all<EncounterAddendumRow>()).results;
+
+  const addendaMap = new Map<string, EncounterAddendumRow[]>();
+  for (const a of addenda) {
+    const list = addendaMap.get(a.encounter_id) || [];
+    list.push(a);
+    addendaMap.set(a.encounter_id, list);
+  }
+
+  const encounters = encounterRows.map(e => ({
+    ...e,
+    staff: e.staff_name ? { full_name: e.staff_name } : null,
+    departments: e.department_name ? { name: e.department_name } : null,
+    encounter_addenda: addendaMap.get(e.id) || [],
+  }));
+
+  const observations = (await db
+    .prepare('SELECT id, kind, value_text, unit, source, out_of_range, measured_at FROM observations WHERE patient_id = ? ORDER BY measured_at DESC')
+    .bind(patientId)
+    .all()).results;
+
+  const documents = (await db
+    .prepare('SELECT id, patient_id, storage_path, type, title, report_date, source, review_status, reviewed_at FROM documents WHERE patient_id = ? ORDER BY report_date DESC')
+    .bind(patientId)
+    .all()).results;
+
+  const medications = (await db
+    .prepare('SELECT id, drug, dose, timing, instructions, status, created_at, stopped_at FROM medications WHERE patient_id = ? ORDER BY created_at DESC')
+    .bind(patientId)
+    .all()).results;
+
+  const carePlans = (await db
+    .prepare('SELECT id, patient_id, status, review_date, created_at FROM care_plans WHERE patient_id = ? AND status = "active"')
+    .bind(patientId)
+    .all<{ id: string; patient_id: string; status: string; review_date: string | null; created_at: string }>()).results;
+
+  const planItems = (await db
+    .prepare(`
+      SELECT cpi.id, cpi.care_plan_id, cpi.patient_id, cpi.kind, cpi.detail, cpi.timing,
+             cpi.due_date, cpi.diet_guide_id, cpi.doctor_note, cpi.status, cpi.completed_at,
+             dg.title_en, dg.title_ml, dg.eat_more_en, dg.eat_more_ml,
+             dg.eat_less_en, dg.eat_less_ml, dg.avoid_en, dg.avoid_ml, dg.tips_en, dg.tips_ml
+      FROM care_plan_items cpi
+      LEFT JOIN diet_guides dg ON cpi.diet_guide_id = dg.id
+      WHERE cpi.patient_id = ?
+    `)
+    .bind(patientId)
+    .all<CarePlanItemJoinedRow>()).results;
+
+  const itemsMap = new Map<string, Array<CarePlanItemJoinedRow & { diet_guides: Record<string, unknown> | null }>>();
+  for (const item of planItems) {
+    const list = itemsMap.get(item.care_plan_id) || [];
+    const dietGuides = item.diet_guide_id ? {
+      id: item.diet_guide_id,
+      title_en: item.title_en || '',
+      title_ml: item.title_ml || '',
+      eat_more_en: item.eat_more_en || '',
+      eat_more_ml: item.eat_more_ml || '',
+      eat_less_en: item.eat_less_en || '',
+      eat_less_ml: item.eat_less_ml || '',
+      avoid_en: item.avoid_en || '',
+      avoid_ml: item.avoid_ml || '',
+      tips_en: item.tips_en || '',
+      tips_ml: item.tips_ml || '',
+    } : null;
+    list.push({
+      ...item,
+      diet_guides: dietGuides,
+    });
+    itemsMap.set(item.care_plan_id, list);
+  }
+
+  const enrichedCarePlans = carePlans.map(cp => ({
+    ...cp,
+    care_plan_items: itemsMap.get(cp.id) || [],
+  }));
+
+  return c.json({
+    success: true,
+    patient,
+    allergies,
+    conditions,
+    encounters,
+    observations,
+    documents,
+    medications,
+    carePlans: enrichedCarePlans,
+  });
+});
+
+// 15. Sign Complete Consultation Note atomically
+const consultationPolicy = declareRoutePolicy('POST', '/api/doctor/patients/:patientId/consultation', {
+  allowedRoles: ['doctor'],
+  patientScoped: true,
+  allowEmergencyAccess: true,
+  requireMfa: true,
+});
+
+interface ConsultationPrescriptionInput {
+  name?: string;
+  drug?: string;
+  dose: string;
+  timing?: Record<string, boolean>;
+  food?: 'after_food' | 'before_food';
+  instructions?: string;
+}
+
+interface ConsultationBodyInput {
+  reason?: string;
+  chiefComplaint?: string;
+  clinicalNotes?: string;
+  diagnoses?: string[];
+  vitals?: { sys?: string; dia?: string; pulse?: string; wt?: string };
+  prescriptions?: ConsultationPrescriptionInput[];
+  selectedDietGuide?: string;
+  dietNote?: string;
+  departmentId?: string;
+}
+
+doctorRoutes.post('/patients/:patientId/consultation', requireAccess(consultationPolicy), async c => {
+  const patientId = c.req.param('patientId');
+  const user = c.get('user');
+  const body = (await c.req.json().catch(() => ({}))) as ConsultationBodyInput;
+  const db = c.env.DB;
+  const nowIso = new Date().toISOString();
+
+  const encounterId = crypto.randomUUID();
+  const chiefComplaint = body.reason || body.chiefComplaint || '';
+  const clinicalNotes = body.clinicalNotes || '';
+  const diagnoses = (body.diagnoses || []).join(', ');
+
+  // 1. Insert signed encounter
+  await db
+    .prepare(
+      `INSERT INTO encounters (
+        id, patient_id, doctor_id, department_id, status, sensitivity,
+        chief_complaint, clinical_notes, diagnosis, signed_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, 'signed', 'normal', ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      encounterId,
+      patientId,
+      user.staffId,
+      body.departmentId || null,
+      chiefComplaint,
+      clinicalNotes,
+      diagnoses,
+      nowIso,
+      nowIso,
+      nowIso
+    )
+    .run();
+
+  // 2. Insert vitals observations
+  if (body.vitals) {
+    const { sys, dia, wt } = body.vitals;
+    if (sys && dia) {
+      await db
+        .prepare(
+          `INSERT INTO observations (
+            id, patient_id, kind, value_text, unit, source, out_of_range, measured_at, recorded_by, created_at
+          ) VALUES (?, ?, 'Blood Pressure', ?, 'mmHg', 'clinic', ?, ?, ?, ?)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          patientId,
+          `${sys}/${dia}`,
+          parseInt(sys, 10) >= 140 || parseInt(dia, 10) >= 90 ? 1 : 0,
+          nowIso,
+          user.staffId,
+          nowIso
+        )
+        .run();
+    }
+    if (wt) {
+      await db
+        .prepare(
+          `INSERT INTO observations (
+            id, patient_id, kind, value_text, unit, source, out_of_range, measured_at, recorded_by, created_at
+          ) VALUES (?, ?, 'Weight', ?, 'kg', 'clinic', 0, ?, ?, ?)`
+        )
+        .bind(crypto.randomUUID(), patientId, String(wt), nowIso, user.staffId, nowIso)
+        .run();
+    }
+  }
+
+  // 3. Insert prescriptions
+  if (Array.isArray(body.prescriptions)) {
+    for (const rx of body.prescriptions) {
+      const instructions = rx.instructions || (rx.food === 'after_food' ? 'Take after meals' : 'Take before food');
+      await db
+        .prepare(
+          `INSERT INTO medications (
+            id, patient_id, doctor_id, department_id, drug, dose, timing, instructions, status, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          patientId,
+          user.staffId,
+          body.departmentId || null,
+          rx.name || rx.drug || 'Medication',
+          rx.dose,
+          JSON.stringify(rx.timing || { morning: true, afternoon: false, night: true }),
+          instructions,
+          nowIso,
+          nowIso
+        )
+        .run();
+    }
+  }
+
+  // 4. Attach diet guidance to active care plan
+  if (body.selectedDietGuide) {
+    const plan = (await db
+      .prepare('SELECT id FROM care_plans WHERE patient_id = ? AND status = "active" LIMIT 1')
+      .bind(patientId)
+      .first()) as { id: string } | null;
+
+    let planId = plan?.id;
+    if (!planId) {
+      planId = crypto.randomUUID();
+      await db
+        .prepare(
+          `INSERT INTO care_plans (id, patient_id, doctor_id, encounter_id, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'active', ?, ?)`
+        )
+        .bind(planId, patientId, user.staffId, encounterId, nowIso, nowIso)
+        .run();
+    }
+
+    await db
+      .prepare(
+        `INSERT INTO care_plan_items (
+          id, care_plan_id, patient_id, kind, detail, diet_guide_id, doctor_note, status, created_at, updated_at
+        ) VALUES (?, ?, ?, 'diet', 'Diet guidance: follow hospital nutritional recommendations.', ?, ?, 'pending', ?, ?)`
+      )
+      .bind(
+        crypto.randomUUID(),
+        planId,
+        patientId,
+        body.selectedDietGuide,
+        body.dietNote || null,
+        nowIso,
+        nowIso
+      )
+      .run();
+  }
+
+  // 5. Audit log
+  await db
+    .prepare(
+      `INSERT INTO audit_log (id, at, actor_id, action, table_name, record_id, patient_id, reason)
+       VALUES (?, ?, ?, 'SIGNED_CONSULTATION', 'encounters', ?, ?, 'Consultation note completed')`
+    )
+    .bind(crypto.randomUUID(), nowIso, user.id, encounterId, patientId)
+    .run();
+
+  return c.json({ success: true, encounterId });
+});
+

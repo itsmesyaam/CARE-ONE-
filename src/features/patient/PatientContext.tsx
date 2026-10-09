@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/api-client';
 import { SAMPLE_PEOPLE, createSampleSeed, PatientPerson, PatientRecordData } from './mock';
 
 export interface PatientSheetConfig {
@@ -320,6 +321,11 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
   };
 
   const signOut = async (msg?: string) => {
+    try {
+      await apiFetch('/api/auth/signout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
     try {
       await supabase.auth.signOut();
     } catch {
