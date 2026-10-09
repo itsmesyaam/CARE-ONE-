@@ -16,7 +16,6 @@
     "staffTag": "CLINICAL STAFF · MFA 2FA",
     "staffTitle": "Doctor & Staff Console",
     "staffDesc": "Consultation notes, clinical timeline, and 'What Changed Since Last Visit' with two-factor security.",
-    "enterPortal": "Enter Portal",
     "complianceBadge": "DPDP-compliant: Health records protected by strict access control."
   },
   "common": {
@@ -138,14 +137,7 @@
     "home": "Home",
     "signIn": "Sign In",
     "admin": "Admin Dashboard",
-    "language": "Language",
-    "switchToEnglish": "English",
-    "switchToMalayalam": "മലയാളം"
-  },
-  "config": {
-    "noticeTitle": "Environment Configuration Notice",
-    "noticeMessage": "System running in local preview mode.",
-    "noticeInstructions": "All services are managed locally."
+    "language": "Language"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -173,7 +165,6 @@
     "totpPlaceholder": "Enter 6-digit MFA code",
     "verifyTotp": "Verify MFA & Sign In",
     "demoAccounts": "Demo Accounts",
-    "useDemo": "Use Demo: {{name}}",
     "signInSuccess": "Signed in successfully",
     "invalidOtp": "Invalid or expired code. Please try again.",
     "authError": "Sign-in failed. Please verify your credentials."
@@ -271,12 +262,9 @@
     "todaysClinic": "Today's clinic",
     "bookedCount": "{{count}} booked",
     "waitingForYou": "Waiting for you",
-    "labReports": "Lab reports",
-    "reportedSymptoms": "Reported symptoms",
     "daysWaiting": "{{count}}d wait",
     "urgent": "Urgent",
     "severe": "Severe",
-    "sampleData": "Sample data",
     "lock": "Lock",
     "signOut": "Sign out",
     "today": "Today",
@@ -302,10 +290,7 @@
     "otherHospitalPatients": "Other patients at ABC Hospital",
     "otherPatientsNote": "Not in your care team, so you see contact details only. Opening a chart needs a reason, lasts 4 hours and alerts the admin.",
     "emergencyAccess": "Emergency access",
-    "openChart": "Open chart",
-    "accessActive": "Active ({{hours}}h left)",
-    "overdueSince": "Overdue since {{date}}",
-    "draftNote": "Draft note"
+    "openChart": "Open chart"
   },
   "emergencyModal": {
     "title": "Emergency access",
@@ -313,7 +298,6 @@
     "reason": "Reason",
     "reasonPh": "For example: in casualty with chest pain, need medication history",
     "reasonHint": "At least 10 characters. The admin reads this.",
-    "quickReasons": "Common reasons",
     "endsAt": "Access ends at {{time}}, 4 hours from now.",
     "ackCheckbox": "I understand this access is logged and reviewed.",
     "submitBtn": "Open chart for 4 hours",
@@ -355,22 +339,14 @@
     "completed": "Completed",
     "missed": "Missed",
     "bookNote": "To book or change an appointment, call the front desk on 0484 000 1234.",
-    "callDesk": "Call front desk",
-    "deskPhone": "0484 000 1234"
+    "callDesk": "Call front desk"
   },
   "doctorChart": {
     "back": "Back",
     "startNote": "Start today's note",
-    "continueNote": "Continue today's note",
-    "signedToday": "Note signed today at {{time}}",
     "lastVisit": "Last visit {{date}}",
     "nextVisit": "Next visit: {{date}}",
-    "newPatient": "New patient",
     "allergicTo": "Allergic to {{allergies}}",
-    "noAllergies": "No known drug allergies",
-    "emergencyActive": "Emergency access until {{time}}",
-    "emergencyDesc": "Reason: {{reason}}. Admin alerted. View only.",
-    "endEmergency": "End access now",
     "tabChanges": "What changed",
     "tabVisits": "Visits",
     "tabReadings": "Readings",
@@ -392,7 +368,6 @@
     "noReports": "No reports yet.",
     "waitingReview": "Waiting for review",
     "reviewed": "Reviewed",
-    "viewReport": "View report",
     "reviewNow": "Review now",
     "noReadings": "No readings yet.",
     "inTarget": "In target",
@@ -408,15 +383,13 @@
     "avoid": "Avoid",
     "tips": "Tips",
     "instructions": "Instructions",
-    "tests": "Tests",
-    "homeReadings": "Home readings"
+    "tests": "Tests"
   },
   "doctorReview": {
     "title": "Review",
     "subtitle": "Reports and symptoms your patients sent between visits, oldest first.",
     "reportsTab": "Reports",
     "symptomsTab": "Symptoms",
-    "waitingDays": "Waiting {{days}} days",
     "reviewedToday": "Reviewed today",
     "seenToday": "Seen today",
     "allReportsReviewed": "All reports reviewed",
@@ -431,7 +404,6 @@
     "contactHospital": "Contact the hospital",
     "markReviewed": "Mark reviewed",
     "reviewSaved": "Report marked reviewed and notification sent.",
-    "symptomReported": "Patient reported: {{text}}",
     "markSeen": "Mark seen",
     "whatDidYouDo": "What did you do?",
     "noteForChart": "Note for the chart (optional)",
@@ -450,8 +422,6 @@
     "twoFaOn": "On",
     "screenLock": "Screen lock",
     "screenLockSub": "After 10 idle minutes, set by the hospital",
-    "lockNow": "Lock now",
-    "lockNowSub": "Before you step away from a shared computer",
     "emergencyAccessLog": "Your emergency access",
     "noEmergencyAccess": "You haven't used emergency access. Each use is listed here and sent to the admin.",
     "signOut": "Sign out",
@@ -461,7 +431,6 @@
   },
   "doctorComposer": {
     "todaysNote": "Today's note",
-    "draftSavedAt": "Draft saved at {{time}}",
     "discard": "Discard",
     "back": "Back",
     "next": "Next: {{step}}",
@@ -477,30 +446,20 @@
     "weight": "Weight",
     "reasonForVisit": "Reason for visit",
     "findings": "Findings",
-    "addHomeReadings": "Add home readings",
     "diagnoses": "Diagnoses",
     "addDiagnosis": "Add a diagnosis",
-    "planInWords": "Plan, in your words",
     "currentMedicines": "Current medicines",
     "addMedicine": "Add a medicine",
-    "medicineName": "Medicine name",
     "dose": "Dose",
-    "whenToTake": "When to take",
     "withFood": "With food",
     "beforeFood": "Before food",
     "afterFood": "After food",
-    "withFoodItem": "With food",
     "allergyAlert": "Patient is allergic to {{substance}} ({{reaction}}). Remove this unless checked safe.",
     "duplicateAlert": "Already taking {{drug}} {{dose}}. Change that one instead of adding it twice.",
-    "targets": "Targets",
     "testsBeforeNext": "Tests before the next visit",
     "instructions": "Instructions",
     "followUp": "Follow-up",
     "theNote": "The note",
-    "whatPatientSees": "What the patient will see",
-    "restrictedNote": "Restricted note",
-    "restrictedDesc": "Only doctors in your department and the patient can read it.",
-    "signConfirmation": "I confirm this consultation note is accurate and complete.",
-    "noteSignedSuccess": "Consultation note signed successfully."
+    "signConfirmation": "I confirm this consultation note is accurate and complete."
   }
 }
