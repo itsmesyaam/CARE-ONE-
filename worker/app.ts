@@ -7,6 +7,7 @@ import { deskRoutes } from './routes/desk';
 import { adminRoutes } from './routes/admin';
 import { dietRoutes } from './routes/diet';
 import { documentsRoutes } from './routes/documents';
+import { notificationRoutes } from './routes/notifications';
 import { declareRoutePolicy, requireAccess, type AccessVariables } from './middleware/access';
 
 // Declare standard system policies
@@ -70,6 +71,7 @@ export function createApp(): Hono<{ Bindings: WorkerEnv; Variables: AccessVariab
   app.route('/api/admin', adminRoutes);
   app.route('/api/diet', dietRoutes);
   app.route('/api/documents', documentsRoutes);
+  app.route('/api/notifications', notificationRoutes);
 
   // Scoped Patient Chart Endpoints
   app.get(
