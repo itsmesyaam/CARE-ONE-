@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { usePatient, isReadingHigh } from './PatientContext';
 import { PatientReportItem } from './mock';
+import { optimizePhotoForUpload } from '../../lib/image-optimizer';
 
 interface KindInfo {
   icon: React.ElementType;
@@ -280,7 +281,23 @@ export function UploadSheetModal({
       return;
     }
     setErr('');
-    setFile({ name: f.name, size: f.size, img: f.type !== 'application/pdf' });
+
+    if (f.type !== 'application/pdf') {
+      optimizePhotoForUpload(f)
+        .then(optFile => {
+          setFile({ name: optFile.name, size: optFile.size, img: true });
+          setName(optFile.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
+          setStepState('details');
+        })
+        .catch(() => {
+          setFile({ name: f.name, size: f.size, img: true });
+          setName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
+          setStepState('details');
+        });
+      return;
+    }
+
+    setFile({ name: f.name, size: f.size, img: false });
     setName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60));
     setStepState('details');
   };
