@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, ChevronLeft, Eye, EyeOff, Copy, Check, Languages } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  ShieldCheck,
+  Lock,
+  ChevronLeft,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Languages,
+  Stethoscope,
+} from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
 import { apiFetch } from '../../lib/api-client';
+import { BuildStamp } from '../../components/BuildStamp';
 
-type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
+export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
 interface StaffSignInProps {
   initialStep?: StaffAuthStep;
@@ -201,7 +212,8 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
 
   const formatAuthError = (err: unknown): string => {
     const rawMessage =
-      (err as { message?: string })?.message || (err instanceof Error ? err.message : String(err));
+      (err as { message?: string })?.message ||
+      (err instanceof Error ? err.message : String(err));
 
     if (!rawMessage) return t('staffAuth.signInFailed', 'Sign-in failed. Please try again.');
 
@@ -232,16 +244,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
 
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>(
-        '/api/auth/staff/login',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: actualPassword,
-          }),
-        }
-      );
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: actualPassword,
+        }),
+      });
       if (res?.requireTotp) {
         setStaffId(res.staffId);
         setBusy(false);
@@ -264,21 +273,14 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         codeToUse = generatedCode;
       }
 
-      const idToVerify =
-        staffId ||
-        (email.includes('admin')
-          ? 'b0000000-0000-0000-0000-000000000001'
-          : 'b0000000-0000-0000-0000-000000000003');
-      const res = await apiFetch<{ success: boolean; user?: { role: string } }>(
-        '/api/auth/staff/verify-totp',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            staffId: idToVerify,
-            code: codeToUse,
-          }),
-        }
-      );
+      const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
+      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
+        method: 'POST',
+        body: JSON.stringify({
+          staffId: idToVerify,
+          code: codeToUse,
+        }),
+      });
       setBusy(false);
       if (res?.user?.role === 'admin') {
         navigate('/admin');
@@ -323,16 +325,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       }
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
 
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>(
-        '/api/auth/staff/login',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: normalizedEmail,
-            password: actualPassword,
-          }),
-        }
-      );
+      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: actualPassword,
+        }),
+      });
       if (res?.staffId) {
         setStaffId(res.staffId);
       }
@@ -354,7 +353,9 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               <Lock size={32} />
             </span>
             <h1 className="disp h1 text-center text-white">{t('staffAuth.lockTitle')}</h1>
-            <p className="mt-3 text-center text-white/75 text-base">{t('staffAuth.lockSub')}</p>
+            <p className="mt-3 text-center text-white/75 text-base">
+              {t('staffAuth.lockSub')}
+            </p>
 
             <form onSubmit={handleUnlockSubmit} className="mt-8 w-full" noValidate>
               <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/10 border border-white/15">
@@ -430,11 +431,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   }
 
   return (
-    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)]">
+    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)] overflow-x-hidden w-full">
       <div className="zari-band" />
 
       {/* Top bar with Branding & Language Switcher */}
-      <header className="flex items-center justify-between gap-3 px-5 lg:px-10 pt-4">
+      <header className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 pt-4">
         {step !== 'signin' ? (
           <button
             type="button"
@@ -445,20 +446,27 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
             {t('staffAuth.back')}
           </button>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <span className="logo" aria-hidden="true">
-              ABC
-            </span>
-            <span className="text-sm font-semibold text-[var(--ink3)]">
-              {t('staffAuth.forStaff')}
-            </span>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0" aria-label="CareOne Home">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-sm sm:text-base text-[var(--ink)] leading-none tracking-tight truncate">
+                  CareOne
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--ink3)] leading-tight truncate">
+                  {t('staffAuth.forStaff')}
+                </span>
+              </div>
+            </Link>
           </div>
         )}
 
         <button
           type="button"
           onClick={toggleLanguage}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
           aria-label="Toggle language"
         >
           <Languages size={15} />
@@ -504,9 +512,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                   type="button"
                   className="p-1.5 text-[var(--ink3)] hover:text-[var(--ink)] transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={
-                    showPassword ? t('staffAuth.hidePassword') : t('staffAuth.showPassword')
-                  }
+                  aria-label={showPassword ? t('staffAuth.hidePassword') : t('staffAuth.showPassword')}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -598,7 +604,9 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               <span>{t('staffAuth.recordsHiddenNote')}</span>
             </div>
 
-            <p className="mt-5 text-sm text-[var(--ink3)]">{t('staffAuth.lostPhone')}</p>
+            <p className="mt-5 text-sm text-[var(--ink3)]">
+              {t('staffAuth.lostPhone')}
+            </p>
 
             <button
               type="button"
@@ -653,7 +661,10 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                 <div className="min-w-0 flex-1">
                   <h2 className="h3 text-[var(--ink)]">{t('staffAuth.step3Title')}</h2>
                   <div className="mt-3">
-                    <CodeBoxes label={t('staffAuth.codeFromApp')} onOk={handleEnrollSuccess} />
+                    <CodeBoxes
+                      label={t('staffAuth.codeFromApp')}
+                      onOk={handleEnrollSuccess}
+                    />
                   </div>
                 </div>
               </li>
@@ -669,6 +680,8 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           {toastMsg}
         </div>
       )}
+
+      <BuildStamp />
     </div>
   );
 }
