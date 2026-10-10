@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { usePatient } from './PatientContext';
 import { SAMPLE_PEOPLE, PatientPerson } from './mock';
+import { BuildStamp } from '../../components/BuildStamp';
 
 function LangSwitch() {
   const { lang, setLang } = usePatient();
@@ -689,8 +690,11 @@ export function PatientSignIn(): React.JSX.Element {
   }
 
   return (
-    <div className={`patient-theme ${lang === 'ml' ? 'ml' : ''} min-h-screen bg-[var(--paper)]`}>
-      {body}
+    <div className={`patient-theme ${lang === 'ml' ? 'ml' : ''} min-h-screen bg-[var(--paper)] flex flex-col justify-between overflow-x-hidden w-full`}>
+      <div className="flex-1">
+        {body}
+      </div>
+      <BuildStamp />
     </div>
   );
 }

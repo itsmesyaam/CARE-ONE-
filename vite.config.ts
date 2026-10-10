@@ -32,6 +32,19 @@ export default defineConfig({
     __APP_BUILD_TIME__: JSON.stringify(buildTime),
   },
   plugins: [
+    {
+      name: 'validate-backend-url',
+      buildStart() {
+        if (process.env.STRICT_PROD_CHECK === 'true' || process.env.CF_PAGES || process.env.CLOUDFLARE_BUILD) {
+          const supabaseUrl = process.env.VITE_SUPABASE_URL;
+          if (!supabaseUrl || supabaseUrl.includes('localhost') || supabaseUrl.includes('127.0.0.1') || supabaseUrl.includes('YOUR-PROJECT')) {
+            throw new Error(
+              `[Production Build Blocked] Missing or invalid VITE_SUPABASE_URL: "${supabaseUrl}". Must be configured with a remote URL like https://kndkohgpbnbbndvtgqvx.supabase.co.`
+            );
+          }
+        }
+      },
+    },
     tailwindcss(),
     react(),
     VitePWA({
@@ -66,7 +79,7 @@ export default defineConfig({
           if (id.includes('node_modules/recharts')) {
             return 'vendor-charts';
           }
-          if (id.includes('node_modules/@tanstack')) {
+          if (id.includes('node_modules/@supabase') || id.includes('node_modules/@tanstack')) {
             return 'vendor-query';
           }
           if (

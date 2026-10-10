@@ -1,5 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
-import { apiFetch } from '../lib/api-client';
+import { supabase } from '../lib/supabase';
 import { useTranslation } from 'react-i18next';
 
 export function AdminRouteGuard({ children }: { children: ReactNode }): React.JSX.Element {
@@ -8,24 +8,10 @@ export function AdminRouteGuard({ children }: { children: ReactNode }): React.JS
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await apiFetch<{ authenticated?: boolean; user?: unknown }>('/api/auth/session');
-        if (active) {
-          setHasSession(Boolean(res?.authenticated || res?.user));
-          setChecked(true);
-        }
-      } catch {
-        if (active) {
-          setHasSession(false);
-          setChecked(true);
-        }
-      }
-    })();
-    return () => {
-      active = false;
-    };
+    supabase.auth.getSession().then(({ data }) => {
+      setHasSession(!!data.session);
+      setChecked(true);
+    });
   }, []);
 
   if (!checked) {

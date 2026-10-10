@@ -37,7 +37,7 @@ To strictly follow DPDP safety rules and user constraints:
 
 | Element | Data Source | Status / Implementation |
 | :--- | :--- | :--- |
-| **User Authentication & Session** | Real API Auth | Session check and route guards via `src/features/auth/` |
+| **User Authentication & Session** | Real Supabase Auth | Session check and route guards via `src/features/auth/` |
 | **Language Toggle (EN / ML)** | Real client state | Integrated with `i18next` and scoped `.ml` typography |
 | **Emergency Casualty & Help Contacts** | Real / Settings Schema | Links directly to 112 / casualty contact lines |
 | **Appointment Ticket (Dr. Rahul Nair)** | `src/features/patient/mock.ts` | **Sample** (`SAMPLE` badge displayed on header & card) |
@@ -231,7 +231,7 @@ To strictly follow DPDP safety rules and user constraints:
 | **Text Size Selector** | DOM `fontSize` Control | Segmented control (`Default`, `Large`, `Larger`) scaling root font size (`16px`, `17.5px`, `19px`). |
 | **Push & Email Notification Switches** | Client State (`push`, `mail`) | Semantic switches (`role="switch"`, `.sw`, `.on`) toggling alerts with toast feedback. |
 | **Portal Shortcuts** | Client State / Navigation | Direct links to Privacy & your data notice, Reminders view, and Appointments view. |
-| **Sign Out Action** | Session Signout API | Trigger button opening `ConfirmSheetModal` with clear device data warning, Cancel action, and confirmed sign out redirect. |
+| **Sign Out Action** | Supabase Auth / Session | Trigger button opening `ConfirmSheetModal` with clear device data warning, Cancel action, and confirmed sign out redirect. |
 
 ### B. Visual Evidence & Side-by-Side Comparison (Screen 5)
 
@@ -260,7 +260,7 @@ To strictly follow DPDP safety rules and user constraints:
 - `npm test` (`vitest run`): **PASSED** (21 test files, 85 unit tests)
 - `npm run i18n:check`: **PASSED** (181 keys verified with 100% symmetry)
 - `npm run build`: **PASSED** (Clean bundle, PWA service worker generated in 577ms)
-- `npm run demo:reset`: **PASSED** (Database reset and demo seed loaded)
+- `npx supabase test db`: **PASSED** (9 test files, 144 pgTAP tests passed)
 
 ---
 

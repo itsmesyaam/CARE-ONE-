@@ -143,9 +143,9 @@
     "switchToMalayalam": "മലയാളം"
   },
   "config": {
-    "noticeTitle": "Environment Configuration Notice",
-    "noticeMessage": "System running in local preview mode.",
-    "noticeInstructions": "All services are managed locally."
+    "noticeTitle": "Supabase Environment Pending",
+    "noticeMessage": "VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are not configured in this environment. The application is running in static preview mode.",
+    "noticeInstructions": "To enable database features, configure these variables in the hosting provider dashboard."
   },
   "errorBoundary": {
     "title": "Something went wrong",

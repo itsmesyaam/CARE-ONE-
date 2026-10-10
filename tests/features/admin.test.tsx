@@ -142,12 +142,12 @@ describe('Admin Feature: Department Management & Staff Directory', () => {
   it('renders a sign-out button in AdminDashboard header and triggers signOut', async () => {
     const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
     const { AdminDashboard } = await import('../../src/features/admin/AdminDashboard');
-    const apiClient = await import('../../src/lib/api-client');
+    const { supabase } = await import('../../src/lib/supabase');
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const signOutSpy = vi.spyOn(apiClient, 'apiFetch').mockResolvedValue({ success: true } as never);
+    const signOutSpy = vi.spyOn(supabase.auth, 'signOut').mockResolvedValue({ error: null });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -159,9 +159,6 @@ describe('Admin Feature: Department Management & Staff Directory', () => {
     expect(signOutBtn).toBeInTheDocument();
 
     fireEvent.click(signOutBtn);
-    expect(signOutSpy).toHaveBeenCalledWith(
-      '/api/auth/signout',
-      expect.objectContaining({ method: 'POST' })
-    );
+    expect(signOutSpy).toHaveBeenCalled();
   });
 });

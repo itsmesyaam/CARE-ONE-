@@ -12,7 +12,10 @@ import {
   Clock,
   BadgeCheck,
 } from 'lucide-react';
-import { apiFetch } from '../../lib/api-client';
+import { supabase } from '../../lib/supabase';
+
+// Doctor Rahul staff ID
+const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 interface AppointmentRow {
   id: string;
@@ -47,54 +50,30 @@ export function DoctorToday(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // 1. Fetch Today's Appointments for Doctor
+  // 1. Fetch Today's Appointments for Dr. Rahul
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['doctor-today-appointments'],
     queryFn: async () => {
-      const data = await apiFetch<{
-        appointments: Array<{
-          id: string;
-          patient_id: string;
-          doctor_id: string;
-          appointment_date: string;
-          status: 'booked' | 'arrived' | 'in_consultation' | 'completed' | 'cancelled';
-          notes: string | null;
-          patient?: AppointmentRow['patient'];
-          patient_name?: string;
-          uhid?: string;
-          dob?: string;
-          gender?: string;
-          phone?: string;
-        }>;
-      }>('/api/doctor/today');
-      return (data.appointments || []).map((a) => ({
-        ...a,
-        patient: a.patient || {
-          id: a.patient_id,
-          uhid: a.uhid || '',
-          full_name: a.patient_name || '',
-          dob: a.dob || '',
-          gender: a.gender || '',
-          phone: a.phone || '',
-        },
-      })) as AppointmentRow[];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, patient:patients(*)')
+        .eq('doctor_id', DR_RAHUL_STAFF_ID)
+        .order('appointment_date', { ascending: true });
+      if (error) throw error;
+      return (data || []) as AppointmentRow[];
     },
   });
 
-  // 2. Fetch Pending Reports Count for Doctor's patients
+  // 2. Fetch Pending Reports Count for Dr. Rahul's patients
   const { data: pendingReports = [] } = useQuery({
     queryKey: ['doctor-pending-reports'],
     queryFn: async () => {
-      const data = await apiFetch<{
-        reports: Array<{
-          id: string;
-          title: string;
-          patient_id: string;
-          report_date: string;
-          patients?: { full_name: string; uhid: string };
-        }>;
-      }>('/api/documents/review-queue');
-      return data.reports || [];
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, title, patient_id, report_date, patient:patients(full_name, uhid)')
+        .eq('review_status', 'pending');
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -102,16 +81,12 @@ export function DoctorToday(): React.JSX.Element {
   const { data: pendingSymptoms = [] } = useQuery({
     queryKey: ['doctor-pending-symptoms'],
     queryFn: async () => {
-      const data = await apiFetch<{
-        symptoms: Array<{
-          id: string;
-          description: string;
-          severity: string;
-          reported_at: string;
-          patients?: { full_name: string };
-        }>;
-      }>('/api/doctor/symptoms/review-queue');
-      return data.symptoms || [];
+      const { data, error } = await supabase
+        .from('symptom_reports')
+        .select('id, description, severity, reported_at, patient:patients(full_name)')
+        .order('reported_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -119,14 +94,12 @@ export function DoctorToday(): React.JSX.Element {
   const { data: arunAllergies = [] } = useQuery({
     queryKey: ['patient-allergies-arun'],
     queryFn: async () => {
-      const data = await apiFetch<{
-        allergies: Array<{
-          substance: string;
-          reaction: string;
-          severity: string;
-        }>;
-      }>('/api/doctor/patients/e0000000-0000-0000-0000-000000000001/chart');
-      return data.allergies || [];
+      const { data, error } = await supabase
+        .from('allergies')
+        .select('substance, reaction, severity')
+        .eq('patient_id', 'e0000000-0000-0000-0000-000000000001');
+      if (error) throw error;
+      return data || [];
     },
   });
 
