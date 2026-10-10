@@ -12,8 +12,10 @@ import {
   Activity,
   Check,
 } from 'lucide-react';
-import { apiFetch } from '../../lib/api-client';
+import { supabase } from '../../lib/supabase';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
+
+const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 interface DbPatient {
   id: string;
@@ -57,12 +59,9 @@ export function DoctorPatients(): React.JSX.Element {
   const { data: patients = [] } = useQuery<DbPatient[]>({
     queryKey: ['doctor', 'patients', 'all'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ patients: DbPatient[] }>('/api/doctor/patients');
-        return res.patients || [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase.from('patients').select('*').order('full_name');
+      if (error) return [];
+      return data || [];
     },
   });
 
@@ -70,12 +69,13 @@ export function DoctorPatients(): React.JSX.Element {
   const { data: careTeam = [], refetch: refetchCareTeam } = useQuery({
     queryKey: ['doctor', 'patients', 'care_team'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ careTeam: Array<{ patient_id: string; expires_at: string | null }> }>('/api/doctor/care-team');
-        return res.careTeam || [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase
+        .from('care_team')
+        .select('patient_id, expires_at')
+        .eq('staff_id', DR_RAHUL_STAFF_ID)
+        .is('revoked_at', null);
+      if (error) return [];
+      return data || [];
     },
   });
 
@@ -83,67 +83,68 @@ export function DoctorPatients(): React.JSX.Element {
   const { data: emergencyAccesses = [], refetch: refetchEmergency } = useQuery({
     queryKey: ['doctor', 'patients', 'emergency_access'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ emergencyAccess: Array<{ patient_id: string; expires_at: string; reason: string }> }>('/api/doctor/emergency-access');
-        return res.emergencyAccess || [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase
+        .from('emergency_access')
+        .select('patient_id, expires_at, reason')
+        .eq('staff_id', DR_RAHUL_STAFF_ID)
+        .gt('expires_at', new Date().toISOString());
+      if (error) return [];
+      return data || [];
     },
   });
 
-interface DbCondition {
-  patient_id: string;
-  name: string;
-  status: string;
-}
-
-interface DbPendingDoc {
-  patient_id: string;
-}
-
-interface DbPendingSymptom {
-  patient_id: string;
-}
-
-interface DbEncounter {
-  patient_id: string;
-  signed_at: string | null;
-}
-
-interface DbAppointment {
-  patient_id: string;
-  appointment_date: string;
-}
-
   // 4. Fetch Conditions
-  const { data: conditions = [] } = useQuery<DbCondition[]>({
+  const { data: conditions = [] } = useQuery({
     queryKey: ['doctor', 'patients', 'conditions'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('conditions').select('patient_id, name, status');
+      if (error) return [];
+      return data || [];
+    },
   });
 
   // 5. Fetch Pending Documents (for Needs Review signal)
-  const { data: pendingDocs = [] } = useQuery<DbPendingDoc[]>({
+  const { data: pendingDocs = [] } = useQuery({
     queryKey: ['doctor', 'patients', 'pending_docs'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('documents').select('patient_id').eq('review_status', 'pending');
+      if (error) return [];
+      return data || [];
+    },
   });
 
   // 6. Fetch Pending Symptoms (for Needs Review signal)
-  const { data: pendingSymptoms = [] } = useQuery<DbPendingSymptom[]>({
+  const { data: pendingSymptoms = [] } = useQuery({
     queryKey: ['doctor', 'patients', 'pending_symptoms'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('symptom_reports').select('patient_id').is('reviewed_at', null);
+      if (error) return [];
+      return data || [];
+    },
   });
 
   // 7. Fetch Encounters for last visit
-  const { data: encounters = [] } = useQuery<DbEncounter[]>({
+  const { data: encounters = [] } = useQuery({
     queryKey: ['doctor', 'patients', 'encounters'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('encounters').select('patient_id, signed_at').eq('status', 'signed');
+      if (error) return [];
+      return data || [];
+    },
   });
 
   // 8. Fetch Upcoming Appointments for next visit
-  const { data: appointments = [] } = useQuery<DbAppointment[]>({
+  const { data: appointments = [] } = useQuery({
     queryKey: ['doctor', 'patients', 'appointments'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('patient_id, appointment_date')
+        .gte('appointment_date', new Date().toISOString())
+        .order('appointment_date', { ascending: true });
+      if (error) return [];
+      return data || [];
+    },
   });
 
   const carePatientIds = new Set(careTeam.map((ct) => ct.patient_id));
@@ -217,19 +218,23 @@ interface DbAppointment {
 
   const handleGrantGlass = async (targetPid: string, reason: string) => {
     try {
-      await apiFetch('/api/doctor/emergency-access', {
-        method: 'POST',
-        body: JSON.stringify({ patientId: targetPid, reason }),
+      const { error } = await supabase.rpc('request_emergency_access', {
+        p_patient_id: targetPid,
+        p_reason: reason,
       });
+      if (error) {
+        setToastMessage(error.message);
+        setTimeout(() => setToastMessage(null), 5000);
+        return;
+      }
       setSelectedEmergencyPatient(null);
       await refetchEmergency();
       await refetchCareTeam();
       const msg = t('emergencyModal.grantedToast', { time: '4 hours' });
       setToastMessage(msg);
       setTimeout(() => setToastMessage(null), 5000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to grant emergency access.';
-      setToastMessage(msg);
+    } catch {
+      setToastMessage('Failed to grant emergency access.');
       setTimeout(() => setToastMessage(null), 5000);
     }
   };

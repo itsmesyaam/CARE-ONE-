@@ -5,14 +5,14 @@ node_modules/
 .env
 .env*
 .env.local
-!.env.example
 .dev.vars
-.dev.vars*
+!.env.example
 
-# Cloudflare Wrangler
+# Cloudflare & local state
 .wrangler/
 
-# Build output
+# Build and test output
 dist/
+coverage/
 test-results/
 playwright-report/

@@ -7,7 +7,7 @@ import { PatientProfile } from '../../src/features/patient/PatientProfile';
 import { PatientReminders } from '../../src/features/patient/PatientReminders';
 import { PatientAppointments } from '../../src/features/patient/PatientAppointments';
 import { PatientLayout } from '../../src/features/patient/PatientLayout';
-import * as apiClient from '../../src/lib/api-client';
+import { supabase } from '../../src/lib/supabase';
 
 describe('Patient Reminders & Appointments Feature', () => {
   beforeEach(async () => {
@@ -104,8 +104,8 @@ describe('Patient Reminders & Appointments Feature', () => {
     });
   });
 
-  it('signs out user completely by calling /api/auth/signout and clearing session', async () => {
-    const signOutSpy = vi.spyOn(apiClient, 'apiFetch').mockResolvedValue({ success: true } as never);
+  it('signs out user completely by calling supabase.auth.signOut and clearing session', async () => {
+    const signOutSpy = vi.spyOn(supabase.auth, 'signOut').mockResolvedValue({ error: null } as never);
 
     render(
       <MemoryRouter initialEntries={['/patient/profile']}>
@@ -133,7 +133,7 @@ describe('Patient Reminders & Appointments Feature', () => {
     }
 
     await waitFor(() => {
-      expect(signOutSpy).toHaveBeenCalledWith('/api/auth/signout', expect.objectContaining({ method: 'POST' }));
+      expect(signOutSpy).toHaveBeenCalled();
     });
   });
 });

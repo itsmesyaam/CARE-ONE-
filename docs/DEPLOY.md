@@ -1,152 +1,94 @@
 # CareOne Deployment Guide 🚀
 
-This document details the exact, step-by-step production deployment procedure for the **CareOne Healthcare Platform** on **Cloudflare Workers**. Follow these steps to configure your infrastructure via the Cloudflare Dashboard and GitHub integration.
+This document outlines the exact deployment procedures for hosting the CareOne single-page application on either **Vercel** or **Cloudflare Pages**, and linking with your remote Supabase project.
 
 ---
 
-## Official Cloudflare Documentation References
-Before starting, review the official Cloudflare guides:
-- **Workers Builds & Git Integration**: [https://developers.cloudflare.com/workers/ci-cd/builds/](https://developers.cloudflare.com/workers/ci-cd/builds/)
-- **Workers Configuration & Bindings**: [https://developers.cloudflare.com/workers/configuration/bindings/](https://developers.cloudflare.com/workers/configuration/bindings/)
-- **Workers Secrets & Environment Variables**: [https://developers.cloudflare.com/workers/configuration/secrets/](https://developers.cloudflare.com/workers/configuration/secrets/)
-- **Cloudflare D1 Relational Database**: [https://developers.cloudflare.com/d1/get-started/](https://developers.cloudflare.com/d1/get-started/)
-- **Cloudflare D1 Migrations Workflow**: [https://developers.cloudflare.com/d1/reference/migrations/](https://developers.cloudflare.com/d1/reference/migrations/)
-- **Cloudflare R2 Object Storage**: [https://developers.cloudflare.com/r2/get-started/](https://developers.cloudflare.com/r2/get-started/)
-- **Cloudflare Cron Triggers**: [https://developers.cloudflare.com/workers/configuration/cron-triggers/](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+## 1. Hosting Option A: Deploying on Vercel
+
+CareOne is configured with [`vercel.json`](../vercel.json) to handle Single-Page Application (SPA) client-side routing and enforce strict HTTP security headers matching our architecture specification.
+
+### Vercel Project Configuration Reference
+- [Vercel Project Configuration: Rewrites & Headers](https://vercel.com/docs/projects/project-configuration#headers)
+
+### Steps to Deploy on Vercel (Perform in Vercel Dashboard)
+1. **Import Repository**:
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New...** → **Project**.
+   - Select your GitHub repository (`CARE-ONE-`).
+2. **Configure Project Settings**:
+   - **Framework Preset**: Select `Vite`.
+   - **Root Directory**: `./` (default).
+   - **Build Command**: `npm run build` (or leave default Vite build command).
+   - **Output Directory**: `dist` (default).
+3. **Environment Variables**:
+   Under **Environment Variables**, add only the public client credentials:
+   - `VITE_SUPABASE_URL`: Your remote Supabase project URL (e.g. `https://<project-ref>.supabase.co`).
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`: Your Supabase publishable (anon) key.
+   *(Note: The client also accepts `VITE_SUPABASE_ANON_KEY`. Never add the service-role key or any database passwords to Vercel).*
+4. **Deploy**:
+   - Click **Deploy**. Vercel will build the Vite bundle and deploy it with the security headers defined in `vercel.json`.
+5. **Update Supabase Auth Configuration**:
+   - Once deployment completes, copy your Vercel URL (e.g. `https://care-one.vercel.app`).
+   - In your [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **URL Configuration**:
+     - Set **Site URL** to `https://<your-project>.vercel.app`.
+     - In **Redirect URLs**, add `https://<your-project>.vercel.app/**`.
 
 ---
 
-## Step 1: Connect GitHub Repository to Cloudflare Workers Builds
-*Official Documentation: [Cloudflare Workers CI/CD Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)*
+## 2. Hosting Option B: Deploying on Cloudflare Pages
 
-1. Log into your [Cloudflare Dashboard](https://dash.cloudflare.com/).
-2. In the left navigation, select **Compute (Workers) > Workers & Pages**.
-3. Click **Create Application** > **Workers** tab > **Connect to Git**.
-4. Authorize Cloudflare to access your GitHub account and select the repository: `CARE-ONE-`.
-5. Configure deployment settings:
-   - **Production branch**: `main`
-   - **Framework preset**: None
-   - **Build command**: `npx wrangler d1 migrations apply care-one-d1 --remote && npm run build`
-   - **Deploy command**: `wrangler deploy`
-   - **Root directory**: `/`
-6. Click **Save and Deploy**. (The initial build may pause pending Step 2 database & storage provisioning).
+CareOne includes [`public/_headers`](../public/_headers), which Cloudflare Pages automatically picks up from `dist/_headers` on build.
 
----
-
-## Step 2: Create D1 Database and R2 Storage Bucket in Dashboard
-*Official Documentation: [D1 Getting Started](https://developers.cloudflare.com/d1/get-started/) & [R2 Getting Started](https://developers.cloudflare.com/r2/get-started/)*
-
-### A. Create D1 Relational Database
-1. In Cloudflare Dashboard, navigate to **Storage & Databases > D1 SQL Database**.
-2. Click **Create database**.
-3. Enter database details:
-   - **Database name**: `care-one-d1`
-4. Click **Create**.
-5. Once created, note the unique **Database ID** UUID shown in the database dashboard.
-6. Link the database to your Worker:
-   - Go to **Workers & Pages > care-one > Settings > Bindings**.
-   - Click **Add binding** > Select **D1 Database**.
-   - Set **Variable name**: `DB`
-   - Set **D1 Database**: select `care-one-d1`.
-   - Click **Deploy / Save**.
-
-### B. Create Private R2 Storage Bucket
-1. In Cloudflare Dashboard, navigate to **Storage & Databases > R2 Object Storage**.
-2. Click **Create bucket**.
-3. Enter bucket details:
-   - **Bucket name**: `care-one-documents`
-   - **Location hint**: Automatic or APAC / India
-4. Click **Create bucket**.
-5. **Security check**: Ensure Public Development URL / Custom Domain is **Disabled** (bucket must remain strictly private).
-6. Link the bucket to your Worker:
-   - Go to **Workers & Pages > care-one > Settings > Bindings**.
-   - Click **Add binding** > Select **R2 Bucket**.
-   - Set **Variable name**: `BUCKET`
-   - Set **R2 Bucket**: select `care-one-documents`.
-   - Click **Deploy / Save**.
+### Steps to Deploy on Cloudflare Pages (Perform in Cloudflare Dashboard)
+1. **Create Project**:
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
+   - Select the repository.
+2. **Build Settings**:
+   - **Framework Preset**: `Vite`.
+   - **Build command**: `npm run build`.
+   - **Build output directory**: `dist`.
+3. **Environment Variables**:
+   - `VITE_SUPABASE_URL`: `https://<project-ref>.supabase.co`.
+   - `VITE_SUPABASE_ANON_KEY`: `<publishable-anon-key>`.
+4. **Update Supabase Auth Configuration**:
+   - In Supabase Dashboard → **Authentication** → **URL Configuration**:
+     - Set **Site URL** to `https://<your-project>.pages.dev`.
+     - Add `https://<your-project>.pages.dev/**` to **Redirect URLs**.
 
 ---
 
-## Step 3: Apply Remote Database Migrations Automatically
-*Official Documentation: [Cloudflare D1 Migrations](https://developers.cloudflare.com/d1/reference/migrations/)*
+## 3. Remote Supabase Setup & Migrations (CLI)
 
-All database schema, immutability triggers, and constraints are maintained under the `migrations/` directory.
+Run these commands in your local terminal to initialize the remote database schema and deploy Edge Functions:
 
-### Automated CI/CD Execution
-In your Cloudflare Workers Builds settings (configured in Step 1), the build command executes migrations before packaging:
 ```bash
-npx wrangler d1 migrations apply care-one-d1 --remote && npm run build
+# 1. Login to Supabase CLI
+npx supabase login
+
+# 2. Link your local repository to your remote project
+npx supabase link --project-ref <YOUR_PROJECT_ID>
+
+# 3. Apply all database migrations
+npx supabase db push
+
+# 4. Set Edge Function production secrets
+npx supabase secrets set ALLOWED_ORIGIN="https://<your-app-domain>" ENVIRONMENT="production"
+
+# 5. Deploy Edge Functions
+npx supabase functions deploy invite-staff
+npx supabase functions deploy invite-patient
+npx supabase functions deploy send-reminders
 ```
 
-### Manual CLI Execution (If Needed)
-You can also run or verify migrations directly from your local terminal:
-```bash
-npx wrangler d1 migrations apply care-one-d1 --remote
-```
-Cloudflare will prompt:
-`✔ About to apply N migrations on care-one-d1. Continue? ... yes`
-
 ---
 
-## Step 4: Add Secrets in the Cloudflare Dashboard
-*Official Documentation: [Workers Secrets & Variables](https://developers.cloudflare.com/workers/configuration/secrets/)*
+## 4. Security Verification Checklist
 
-> [!IMPORTANT]
-> Never put secret values in `wrangler.jsonc`, frontend code, or git commits. Enter values exclusively in the Cloudflare Dashboard.
-
-Navigate to **Workers & Pages > care-one > Settings > Variables and Secrets**. Under **Secrets**, click **Add** for each:
-
-| Secret Name | Purpose | Source / Notes |
-|---|---|---|
-| `RESEND_API_KEY` | Transactional email delivery for patient 6-digit OTP codes and overdue notifications. | [resend.com/api-keys](https://resend.com/api-keys) |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile bot verification secret for patient OTP login endpoints. | Cloudflare Dashboard > **Turnstile** > Add site > Site Secret |
-| `SESSION_SECRET` | 32-byte cryptographically secure random string used for session cookie integrity. | Generate using `openssl rand -hex 32` |
-| `VAPID_PRIVATE_KEY` | Web Push notification signing key (ECDSA P-256). | Private key generated by standard Web Push generator |
-| `VAPID_PUBLIC_KEY` | Web Push notification public application key. | Companion public key configured for client push subscriptions |
-
-Click **Save and deploy** to activate the secrets.
-
----
-
-## Step 5: Load Demo Data
-*Official Documentation: [Querying D1 Remote Databases](https://developers.cloudflare.com/d1/get-started/#4-query-your-database)*
-
-To seed staging or demo environments with realistic Malayalam/English test accounts, departments, and clinical encounters:
-
-Run the following commands from your deployment terminal:
-```bash
-# 1. Apply core demo data (patients, doctors, appointments, encounters)
-npx wrangler d1 execute care-one-d1 --remote --file=./migrations/0002_seed_demo_data.sql
-
-# 2. Seed staff authentication credentials (PBKDF2 hashes & TOTP secrets)
-npx wrangler d1 execute care-one-d1 --remote --file=./migrations/0003_staff_auth_credentials.sql
-```
-
-The remote database is now fully initialized with:
-- **Admin**: `admin@example.com` (Password: `Admin@CareOne2026!`, TOTP: `123456`)
-- **Doctor**: `doctor@example.com` (Password: `Doctor@CareOne2026!`, TOTP: `123456`)
-- **Front Desk**: `desk@example.com` (Password: `Desk@CareOne2026!`, TOTP: `123456`)
-- **Patient**: `arun@example.com` (OTP code via Resend)
-
----
-
-## Step 6: Live Verification Checklist
-*Official Documentation: [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)*
-
-After Cloudflare deploys the application, verify the live deployment:
-
-1. **Build Stamp Verification**:
-   - Access the live site footer and confirm the displayed build stamp (`commit <hash>`) matches your latest GitHub commit on `main`.
-2. **Security Headers**:
-   - Inspect response headers in browser DevTools:
-     - `Content-Security-Policy`: contains `connect-src 'self'`
-     - `Strict-Transport-Security`: `max-age=31536000; includeSubDomains`
-     - `X-Frame-Options`: `DENY`
-     - `X-Content-Type-Options`: `nosniff`
-3. **Role Sign-in Verification**:
-   - **Admin**: Sign in at `/staff/signin` using password + TOTP; verify operational metrics dashboard.
-   - **Doctor**: Sign in at `/staff/signin`; verify patient list, "What Changed" panel, and encounter note composer.
-   - **Front Desk**: Sign in at `/staff/signin`; verify patient registration and appointments schedule.
-   - **Patient**: Sign in at `/patient/signin`; receive 6-digit OTP code, verify timeline and prescriptions.
-4. **Cron Reminders Background Runner**:
-   - In Cloudflare Dashboard, verify **Workers & Pages > care-one > Triggers** shows the automated 5-minute schedule: `*/5 * * * *`.
+After deploying to either Vercel or Cloudflare:
+- [ ] Verify that opening any deep link (e.g., `/admin`) rewrites correctly to `index.html` without a 404 error.
+- [ ] Inspect response headers using browser DevTools or `curl -I https://<your-app-domain>`:
+  - `Content-Security-Policy` is present and active.
+  - `Strict-Transport-Security` enforces 1-year HSTS (`max-age=31536000`).
+  - `X-Frame-Options: DENY` prevents framing/clickjacking.
+  - `X-Content-Type-Options: nosniff` is enforced.
+- [ ] Confirm staff sign-ins require TOTP two-factor authentication (AAL2).

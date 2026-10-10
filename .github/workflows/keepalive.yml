@@ -1,0 +1,51 @@
+name: Keepalive Supabase Free Project
+
+# ==============================================================================
+# Supabase Free Tier Keepalive Workflow
+#
+# Context & Limitations:
+# - Free Supabase projects automatically pause after 7 consecutive days of inactivity
+#   (defined as no API requests or Dashboard activity).
+# - Unpausing a paused project via the Dashboard takes 1-2 minutes, which disrupts live demos.
+# - This workflow performs a lightweight anonymous read against public hospital settings
+#   every 4 days to ensure the database remains warm and unpaused.
+# - SECURITY REQUIREMENT:
+#   Use ONLY the public publishable anon key (SUPABASE_ANON_KEY).
+#   NEVER store or use the service_role key in GitHub Actions secrets.
+# ==============================================================================
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every 4 days (well within the 7-day auto-pause window)
+    - cron: '0 6 */4 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  ping:
+    name: Ping Database REST API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Public Settings Endpoint
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_ANON_KEY secret."
+            echo "Please set repository secrets SUPABASE_URL and SUPABASE_ANON_KEY in GitHub repository settings."
+            exit 1
+          fi
+
+          echo "Pinging public hospital settings endpoint..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${SUPABASE_URL}/rest/v1/hospital_settings?select=id" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "HTTP response status: $STATUS"
+
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+            echo "Supabase free project is warm and responsive."
+          else
+            echo "::warning::Unexpected HTTP status $STATUS received from Supabase."
+            exit 1
+          fi

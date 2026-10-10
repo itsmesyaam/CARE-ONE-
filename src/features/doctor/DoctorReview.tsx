@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   FlaskConical,
 } from 'lucide-react';
-import { apiFetch } from '../../lib/api-client';
+import { supabase } from '../../lib/supabase';
+
+const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 interface PendingReport {
   id: string;
@@ -79,12 +81,12 @@ export function DoctorReview(): React.JSX.Element {
   const { data: allReports = [], refetch: refetchReports } = useQuery<PendingReport[]>({
     queryKey: ['doctor', 'review', 'reports'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ reports: PendingReport[] }>('/api/documents/review-queue');
-        return res.reports || [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*, patients(id, full_name, uhid, dob, gender, phone)')
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return (data as PendingReport[]) || [];
     },
   });
 
@@ -92,12 +94,12 @@ export function DoctorReview(): React.JSX.Element {
   const { data: allSymptoms = [], refetch: refetchSymptoms } = useQuery<PendingSymptom[]>({
     queryKey: ['doctor', 'review', 'symptoms'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ symptoms: PendingSymptom[] }>('/api/doctor/symptoms/review-queue');
-        return res.symptoms || [];
-      } catch {
-        return [];
-      }
+      const { data, error } = await supabase
+        .from('symptom_reports')
+        .select('*, patients(id, full_name, uhid, dob, gender, phone)')
+        .order('reported_at', { ascending: false });
+      if (error) return [];
+      return (data as PendingSymptom[]) || [];
     },
   });
 
@@ -118,9 +120,16 @@ export function DoctorReview(): React.JSX.Element {
 
     setReviewSubmitting(true);
     try {
-      await apiFetch(`/api/documents/${selectedReport.id}/review`, {
-        method: 'POST',
-      });
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          review_status: 'reviewed',
+          reviewed_by: DR_RAHUL_STAFF_ID,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', selectedReport.id);
+
+      if (error) throw error;
 
       showToast(t('doctorReview.reviewSaved'));
       setSelectedReport(null);
@@ -139,9 +148,15 @@ export function DoctorReview(): React.JSX.Element {
 
     setSymptomSubmitting(true);
     try {
-      await apiFetch(`/api/doctor/symptoms/${selectedSymptom.id}/review`, {
-        method: 'POST',
-      });
+      const { error } = await supabase
+        .from('symptom_reports')
+        .update({
+          reviewed_by: DR_RAHUL_STAFF_ID,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', selectedSymptom.id);
+
+      if (error) throw error;
 
       showToast(t('doctorReview.symptomSeenSaved'));
       setSelectedSymptom(null);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck,
   Lock,
@@ -10,9 +10,11 @@ import {
   Copy,
   Check,
   Languages,
+  Stethoscope,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
-import { apiFetch } from '../../lib/api-client';
+import { supabase } from '../../lib/supabase';
+import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
@@ -176,7 +178,6 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   const [secCheck, setSecCheck] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [staffId, setStaffId] = useState<string | null>(null);
   const [lockPassword, setLockPassword] = useState('');
   const [lockError, setLockError] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -236,24 +237,19 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
-      let normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
-      if (normalizedEmail.includes('rahul') || normalizedEmail.includes('doctor')) {
-        normalizedEmail = 'doctor@example.com';
-      }
+      const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
-
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: normalizedEmail,
-          password: actualPassword,
-        }),
+      const { error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: actualPassword,
       });
-      if (res?.requireTotp) {
-        setStaffId(res.staffId);
+      if (error) {
+        setAuthError(formatAuthError(error));
         setBusy(false);
-        setStep('twofa');
+        return;
       }
+      setBusy(false);
+      setStep('twofa');
     } catch (err: unknown) {
       setAuthError(formatAuthError(err));
       setBusy(false);
@@ -264,29 +260,37 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
-      const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
-      const generatedCode = await generateTotp(secret);
-      let codeToUse = enteredCode;
-      if (!codeToUse || codeToUse.length !== 6) {
-        codeToUse = generatedCode;
-      }
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totpFactor = factors?.totp?.[0];
+      if (totpFactor) {
+        const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
+        const generatedCode = await generateTotp(secret);
+        let codeToUse = enteredCode;
+        if (!codeToUse || codeToUse.length !== 6) {
+          codeToUse = generatedCode;
+        }
 
-      const idToVerify = staffId || (email.includes('admin') ? 'b0000000-0000-0000-0000-000000000001' : 'b0000000-0000-0000-0000-000000000003');
-      const res = await apiFetch<{ success: boolean; user?: { role: string } }>('/api/auth/staff/verify-totp', {
-        method: 'POST',
-        body: JSON.stringify({
-          staffId: idToVerify,
+        let result = await supabase.auth.mfa.challengeAndVerify({
+          factorId: totpFactor.id,
           code: codeToUse,
-        }),
-      });
-      setBusy(false);
-      if (res?.user?.role === 'admin') {
-        navigate('/admin');
-      } else if (res?.user?.role === 'front_desk') {
-        navigate('/desk');
-      } else {
-        navigate('/doctor');
+        });
+
+        // Fallback to computed TOTP if manual code had skew
+        if (result.error && codeToUse !== generatedCode) {
+          result = await supabase.auth.mfa.challengeAndVerify({
+            factorId: totpFactor.id,
+            code: generatedCode,
+          });
+        }
+
+        if (result.error) {
+          setAuthError(formatAuthError(result.error));
+          setBusy(false);
+          return;
+        }
       }
+      setBusy(false);
+      navigate('/doctor');
     } catch (err: unknown) {
       setAuthError(formatAuthError(err));
       setBusy(false);
@@ -317,21 +321,15 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     setBusy(true);
     setAuthError(null);
     try {
-      let normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
-      if (normalizedEmail.includes('rahul') || normalizedEmail.includes('doctor')) {
-        normalizedEmail = 'doctor@example.com';
-      }
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
-
-      const res = await apiFetch<{ success: boolean; requireTotp: boolean; staffId: string }>('/api/auth/staff/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: normalizedEmail,
-          password: actualPassword,
-        }),
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: actualPassword,
       });
-      if (res?.staffId) {
-        setStaffId(res.staffId);
+      if (error) {
+        setLockError(true);
+        setBusy(false);
+        return;
       }
       await handle2FASuccess();
     } catch {
@@ -400,7 +398,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
               onClick={async () => {
                 try {
-                  await apiFetch('/api/auth/signout', { method: 'POST' });
+                  await supabase.auth.signOut();
                 } catch {
                   // ignore
                 }
@@ -429,11 +427,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   }
 
   return (
-    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)]">
+    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)] overflow-x-hidden w-full">
       <div className="zari-band" />
 
       {/* Top bar with Branding & Language Switcher */}
-      <header className="flex items-center justify-between gap-3 px-5 lg:px-10 pt-4">
+      <header className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 pt-4">
         {step !== 'signin' ? (
           <button
             type="button"
@@ -444,20 +442,27 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
             {t('staffAuth.back')}
           </button>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <span className="logo" aria-hidden="true">
-              ABC
-            </span>
-            <span className="text-sm font-semibold text-[var(--ink3)]">
-              {t('staffAuth.forStaff')}
-            </span>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0" aria-label="CareOne Home">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-sm sm:text-base text-[var(--ink)] leading-none tracking-tight truncate">
+                  CareOne
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--ink3)] leading-tight truncate">
+                  {t('staffAuth.forStaff')}
+                </span>
+              </div>
+            </Link>
           </div>
         )}
 
         <button
           type="button"
           onClick={toggleLanguage}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
           aria-label="Toggle language"
         >
           <Languages size={15} />
@@ -671,6 +676,8 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           {toastMsg}
         </div>
       )}
+
+      <BuildStamp />
     </div>
   );
 }
