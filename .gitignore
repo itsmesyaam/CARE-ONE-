@@ -5,9 +5,14 @@ node_modules/
 .env
 .env*
 .env.local
+.dev.vars
 !.env.example
 
-# Build output
+# Cloudflare & local state
+.wrangler/
+
+# Build and test output
 dist/
+coverage/
 test-results/
 playwright-report/

@@ -231,6 +231,7 @@
     "done": "Done",
     "signInBtn": "Sign in",
     "signingIn": "Signing in",
+    "serverUnreachable": "We can't reach the server right now. Please try again.",
     "forgotPassword": "Forgot your password? The hospital admin can reset it.",
     "patientApp": "Looking for the patient portal?",
     "back": "Back",
