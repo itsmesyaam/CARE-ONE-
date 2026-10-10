@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck,
   Lock,
@@ -10,9 +10,11 @@ import {
   Copy,
   Check,
   Languages,
+  Stethoscope,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
 import { apiFetch } from '../../lib/api-client';
+import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
 
@@ -429,11 +431,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   }
 
   return (
-    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)]">
+    <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)] overflow-x-hidden w-full">
       <div className="zari-band" />
 
       {/* Top bar with Branding & Language Switcher */}
-      <header className="flex items-center justify-between gap-3 px-5 lg:px-10 pt-4">
+      <header className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 pt-4">
         {step !== 'signin' ? (
           <button
             type="button"
@@ -444,20 +446,27 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
             {t('staffAuth.back')}
           </button>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <span className="logo" aria-hidden="true">
-              ABC
-            </span>
-            <span className="text-sm font-semibold text-[var(--ink3)]">
-              {t('staffAuth.forStaff')}
-            </span>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0" aria-label="CareOne Home">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
+                <Stethoscope className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-sm sm:text-base text-[var(--ink)] leading-none tracking-tight truncate">
+                  CareOne
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--ink3)] leading-tight truncate">
+                  {t('staffAuth.forStaff')}
+                </span>
+              </div>
+            </Link>
           </div>
         )}
 
         <button
           type="button"
           onClick={toggleLanguage}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--ink2)] shadow-2xs hover:bg-[var(--leaft)] transition-colors"
           aria-label="Toggle language"
         >
           <Languages size={15} />
@@ -671,6 +680,8 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           {toastMsg}
         </div>
       )}
+
+      <BuildStamp />
     </div>
   );
 }
