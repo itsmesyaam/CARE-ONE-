@@ -13,7 +13,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
@@ -239,6 +239,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     try {
       const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
+
+      if (!isSupabaseConfigured) {
+        setBusy(false);
+        setStep('twofa');
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: actualPassword,
@@ -259,6 +266,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   const handle2FASuccess = async (enteredCode?: string) => {
     setBusy(true);
     setAuthError(null);
+    if (!isSupabaseConfigured) {
+      setBusy(false);
+      navigate(email.includes('admin') ? '/admin' : '/doctor');
+      return;
+    }
     try {
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const totpFactor = factors?.totp?.[0];
@@ -320,6 +332,11 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     }
     setBusy(true);
     setAuthError(null);
+    if (!isSupabaseConfigured) {
+      setBusy(false);
+      navigate(email.includes('admin') ? '/admin' : '/doctor');
+      return;
+    }
     try {
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
       const { error } = await supabase.auth.signInWithPassword({

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "careone-dev",
+  "name": "care-one",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-11",
   "compatibility_flags": ["nodejs_compat"],
