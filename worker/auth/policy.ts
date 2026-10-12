@@ -86,6 +86,39 @@ function extractToken(c: Context<{ Bindings: WorkerEnv }>): string | null {
 }
 
 /**
+ * Generates and signs a JWT using Web Crypto API (HMAC SHA-256).
+ */
+export async function signJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const encoder = new TextEncoder();
+
+  const b64Url = (str: string) =>
+    btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const headerB64 = b64Url(JSON.stringify(header));
+  const payloadB64 = b64Url(JSON.stringify(payload));
+  const data = `${headerB64}.${payloadB64}`;
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const sigBuf = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+  const sigBytes = new Uint8Array(sigBuf);
+  let binStr = '';
+  for (let i = 0; i < sigBytes.length; i++) {
+    binStr += String.fromCharCode(sigBytes[i]!);
+  }
+  const sigB64 = b64Url(binStr);
+
+  return `${data}.${sigB64}`;
+}
+
+/**
  * Resolves Principal from JWT or test headers, re-checking active status in D1.
  */
 export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promise<Principal | null> {
@@ -94,6 +127,7 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
   let actorId = c.req.header('x-actor-id');
   let role = (c.req.header('x-actor-role') || '') as UserRole;
   let aal = (c.req.header('x-actor-aal') || 'aal2') as 'aal1' | 'aal2';
+  let tokenVersion: number | undefined;
 
   if (token && c.env.JWT_SECRET) {
     const payload = await verifyJwt(token, c.env.JWT_SECRET);
@@ -101,6 +135,11 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
       actorId = (payload.sub || payload.id) as string;
       role = (payload.role || role) as UserRole;
       aal = (payload.aal || aal) as 'aal1' | 'aal2';
+      if (typeof payload.token_version === 'number') {
+        tokenVersion = payload.token_version;
+      }
+    } else {
+      return null;
     }
   }
 
@@ -111,12 +150,12 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
   // Check active status in D1 database
   if (role === 'doctor' || role === 'specialist' || role === 'front_desk' || role === 'admin') {
     const staffRow = await c.env.DB.prepare(
-      `SELECT id, user_id, role, department_id, is_active
+      `SELECT *
        FROM staff
        WHERE (id = ? OR user_id = ?) AND deleted_at IS NULL`
     )
       .bind(actorId, actorId)
-      .first<{ id: string; user_id: string; role: string; department_id: string | null; is_active: number }>();
+      .first<{ id: string; user_id: string; role: string; department_id: string | null; is_active: number; token_version?: number }>();
 
     if (!staffRow || staffRow.is_active !== 1) {
       return {
@@ -127,6 +166,10 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
         departmentId: staffRow?.department_id || null,
         isActive: false,
       };
+    }
+
+    if (tokenVersion !== undefined && staffRow.token_version !== undefined && staffRow.token_version !== tokenVersion) {
+      return null;
     }
 
     return {
@@ -143,10 +186,14 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
   if (role === 'patient' || role === 'guardian') {
     // Check if patient exists in DB
     const patientRow = await c.env.DB.prepare(
-      `SELECT id FROM patients WHERE id = ? AND deleted_at IS NULL`
+      `SELECT * FROM patients WHERE id = ? AND deleted_at IS NULL`
     )
       .bind(actorId)
-      .first<{ id: string }>();
+      .first<{ id: string; token_version?: number }>();
+
+    if (tokenVersion !== undefined && patientRow?.token_version !== undefined && patientRow.token_version !== tokenVersion) {
+      return null;
+    }
 
     const accessRow = await c.env.DB.prepare(
       `SELECT user_id FROM patient_access WHERE (patient_id = ? OR user_id = ?) AND revoked_at IS NULL`
@@ -238,9 +285,6 @@ export function withPolicy(
     const principal = await loadPrincipal(c);
 
     if (!principal) {
-      if (options.isClinical) {
-        return c.json({ error: 'Not Found' }, 404);
-      }
       return c.json({ error: 'unauthorized', code: 'UNAUTHORIZED' }, 401);
     }
 

@@ -76,6 +76,10 @@ describe('Step 1: Auth Security & OTP Hardening Invariants', () => {
     if (fs.existsSync(schemaOtpsPath)) {
       dbSqlite.exec(fs.readFileSync(schemaOtpsPath, 'utf8'));
     }
+    const schemaSessionsPath = path.resolve(__dirname, '../../migrations/0008_sessions.sql');
+    if (fs.existsSync(schemaSessionsPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaSessionsPath, 'utf8'));
+    }
 
     mockEnv = {
       DB: createD1Mock(dbSqlite),

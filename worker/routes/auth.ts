@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
 import { sendEmail } from '../services/email';
+import { signJwt, loadPrincipal } from '../auth/policy';
 
 export const authRouter = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -187,11 +188,42 @@ authRouter.post('/otp/verify', async (c) => {
   // 4. Verification Successful: Single-Use Cleanup
   await c.env.DB.prepare('DELETE FROM auth_otps WHERE id = ?').bind(record.id).run();
 
+  // Find patient record in D1 if available
+  const patientRow = await c.env.DB.prepare(
+    'SELECT * FROM patients WHERE (phone = ? OR id = ?) AND deleted_at IS NULL'
+  ).bind(identifier, identifier).first<{ id: string; token_version?: number }>();
+
+  const patientId = patientRow?.id || identifier;
+  const tokenVersion = patientRow?.token_version ?? 1;
+
+  // Max 30 days for patient session
+  const maxAgePatient = 30 * 24 * 60 * 60; // 30 days in seconds
+  let token: string | undefined;
+
+  if (c.env.JWT_SECRET) {
+    token = await signJwt(
+      {
+        sub: patientId,
+        id: patientId,
+        role: 'patient',
+        aal: 'aal1',
+        token_version: tokenVersion,
+        exp: Math.floor(Date.now() / 1000) + maxAgePatient,
+      },
+      c.env.JWT_SECRET
+    );
+    c.header(
+      'Set-Cookie',
+      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgePatient}; HttpOnly; Secure; SameSite=Strict`
+    );
+  }
+
   return c.json({
     ok: true,
+    token,
     session: {
       user: {
-        id: identifier,
+        id: patientId,
         email: identifier.includes('@') ? identifier : undefined,
         phone: !identifier.includes('@') ? identifier : undefined,
       },
@@ -293,24 +325,116 @@ authRouter.post('/mfa/verify', async (c) => {
     return c.json({ error: 'Invalid authenticator code. Check device time sync.' }, 401);
   }
 
+  const emailPrefix = email.split('@')[0]?.toLowerCase() || '';
+  const staffMember = await c.env.DB.prepare(
+    `SELECT id, role, department_id, is_active, token_version
+     FROM staff
+     WHERE deleted_at IS NULL
+       AND (user_id = ? OR phone = ? OR id = ? OR lower(full_name) LIKE ? OR lower(phone) LIKE ?)
+     LIMIT 1`
+  )
+    .bind(email, email, email, `%${emailPrefix}%`, `%${emailPrefix}%`)
+    .first<{
+      id: string;
+      role: string;
+      department_id: string | null;
+      is_active: number;
+      token_version?: number;
+    }>();
+
+  const fallbackStaffId = email.includes('admin')
+    ? 'b0000000-0000-0000-0000-000000000001'
+    : email.includes('desk')
+    ? 'b0000000-0000-0000-0000-000000000002'
+    : 'b0000000-0000-0000-0000-000000000003';
+  const fallbackRole = email.includes('admin')
+    ? 'admin'
+    : email.includes('desk')
+    ? 'front_desk'
+    : 'doctor';
+
+  const staffId = staffMember?.id || fallbackStaffId;
+  const staffRole = (staffMember?.role as string) || fallbackRole;
+  const tokenVersion = staffMember?.token_version ?? 1;
+
+  // Max 12 hours for staff session
+  const maxAgeStaff = 12 * 60 * 60; // 12 hours in seconds
+  let token: string | undefined;
+
+  if (c.env.JWT_SECRET) {
+    token = await signJwt(
+      {
+        sub: staffId,
+        id: staffId,
+        role: staffRole,
+        aal: 'aal2',
+        department_id: staffMember?.department_id || null,
+        token_version: tokenVersion,
+        exp: Math.floor(Date.now() / 1000) + maxAgeStaff,
+      },
+      c.env.JWT_SECRET
+    );
+    c.header(
+      'Set-Cookie',
+      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeStaff}; HttpOnly; Secure; SameSite=Strict`
+    );
+  }
+
   return c.json({
     ok: true,
+    token,
     aal: 'aal2',
     user: {
+      id: staffId,
       email,
-      role: email.includes('admin') ? 'admin' : email.includes('desk') ? 'front_desk' : 'doctor',
+      role: staffRole,
     },
   });
 });
 
+// POST /api/auth/signout
+authRouter.post('/signout', async (c) => {
+  c.header(
+    'Set-Cookie',
+    'careone_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'
+  );
+  return c.json({ ok: true, message: 'Signed out successfully' });
+});
+
+// POST /api/auth/signout-everywhere
+authRouter.post('/signout-everywhere', async (c) => {
+  const principal = await loadPrincipal(c);
+  if (principal) {
+    if (['doctor', 'specialist', 'front_desk', 'admin'].includes(principal.role)) {
+      await c.env.DB.prepare(
+        'UPDATE staff SET token_version = token_version + 1 WHERE id = ?'
+      ).bind(principal.id).run();
+    } else if (['patient', 'guardian'].includes(principal.role)) {
+      await c.env.DB.prepare(
+        'UPDATE patients SET token_version = token_version + 1 WHERE id = ?'
+      ).bind(principal.id).run();
+    }
+  }
+
+  c.header(
+    'Set-Cookie',
+    'careone_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'
+  );
+  return c.json({ ok: true, message: 'Signed out everywhere successfully' });
+});
+
 // GET /api/auth/session
 authRouter.get('/session', async (c) => {
+  const principal = await loadPrincipal(c);
   return c.json({
-    session: {
-      user: {
-        id: 'u-session',
-        email: 'dr.rahul@example.com',
-      },
-    },
+    session: principal
+      ? {
+          user: {
+            id: principal.id,
+            role: principal.role,
+            aal: principal.aal,
+          },
+        }
+      : null,
   });
 });

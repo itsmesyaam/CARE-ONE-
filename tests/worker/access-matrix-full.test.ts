@@ -88,6 +88,10 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
     if (fs.existsSync(schemaOtpsPath)) {
       dbSqlite.exec(fs.readFileSync(schemaOtpsPath, 'utf8'));
     }
+    const schemaSessionsPath = path.resolve(__dirname, '../../migrations/0008_sessions.sql');
+    if (fs.existsSync(schemaSessionsPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaSessionsPath, 'utf8'));
+    }
     if (fs.existsSync(seedPath)) {
       dbSqlite.exec(fs.readFileSync(seedPath, 'utf8'));
     }
