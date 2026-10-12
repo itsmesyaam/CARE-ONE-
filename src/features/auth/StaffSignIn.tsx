@@ -13,7 +13,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { client, isConfigured } from '../../lib/client';
 import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
@@ -240,13 +240,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
       const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
       const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
 
-      if (!isSupabaseConfigured) {
+      if (!isConfigured) {
         setBusy(false);
         setStep('twofa');
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await client.auth.signInWithPassword({
         email: normalizedEmail,
         password: actualPassword,
       });
@@ -266,13 +266,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   const handle2FASuccess = async (enteredCode?: string) => {
     setBusy(true);
     setAuthError(null);
-    if (!isSupabaseConfigured) {
+    if (!isConfigured) {
       setBusy(false);
       navigate(email.includes('admin') ? '/admin' : '/doctor');
       return;
     }
     try {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const { data: factors } = await client.auth.mfa.listFactors();
       const totpFactor = factors?.totp?.[0];
       if (totpFactor) {
         const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
@@ -282,14 +282,14 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           codeToUse = generatedCode;
         }
 
-        let result = await supabase.auth.mfa.challengeAndVerify({
+        let result = await client.auth.mfa.challengeAndVerify({
           factorId: totpFactor.id,
           code: codeToUse,
         });
 
         // Fallback to computed TOTP if manual code had skew
         if (result.error && codeToUse !== generatedCode) {
-          result = await supabase.auth.mfa.challengeAndVerify({
+          result = await client.auth.mfa.challengeAndVerify({
             factorId: totpFactor.id,
             code: generatedCode,
           });
@@ -332,14 +332,14 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
     }
     setBusy(true);
     setAuthError(null);
-    if (!isSupabaseConfigured) {
+    if (!isConfigured) {
       setBusy(false);
       navigate(email.includes('admin') ? '/admin' : '/doctor');
       return;
     }
     try {
       const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await client.auth.signInWithPassword({
         email: email.trim(),
         password: actualPassword,
       });
@@ -415,7 +415,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
               onClick={async () => {
                 try {
-                  await supabase.auth.signOut();
+                  await client.auth.signOut();
                 } catch {
                   // ignore
                 }

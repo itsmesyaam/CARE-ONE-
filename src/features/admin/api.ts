@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import type {
   Department,
   StaffMember,
@@ -10,17 +10,17 @@ import type {
 } from './types';
 
 export async function fetchDepartments(): Promise<Department[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('departments')
     .select('id, name, code, archived_at, created_at')
     .order('name');
 
   if (error) throw error;
-  return data || [];
+  return (data as unknown as Department[]) || [];
 }
 
 export async function createDepartment(payload: DepartmentFormData): Promise<Department> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('departments')
     .insert({
       name: payload.name.trim(),
@@ -30,14 +30,14 @@ export async function createDepartment(payload: DepartmentFormData): Promise<Dep
     .single();
 
   if (error) throw error;
-  return data;
+  return data as unknown as Department;
 }
 
 export async function updateDepartment(
   id: string,
   payload: DepartmentFormData
 ): Promise<Department> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('departments')
     .update({
       name: payload.name.trim(),
@@ -48,14 +48,14 @@ export async function updateDepartment(
     .single();
 
   if (error) throw error;
-  return data;
+  return data as unknown as Department;
 }
 
 export async function toggleArchiveDepartment(
   id: string,
   isArchived: boolean
 ): Promise<Department> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('departments')
     .update({
       archived_at: isArchived ? null : new Date().toISOString(),
@@ -65,11 +65,11 @@ export async function toggleArchiveDepartment(
     .single();
 
   if (error) throw error;
-  return data;
+  return data as unknown as Department;
 }
 
 export async function fetchStaff(): Promise<StaffMember[]> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('staff')
     .select(
       `
@@ -96,7 +96,7 @@ export async function toggleStaffActive(
   id: string,
   currentIsActive: boolean
 ): Promise<StaffMember> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('staff')
     .update({
       is_active: !currentIsActive,
@@ -123,19 +123,20 @@ export async function toggleStaffActive(
 }
 
 export async function inviteStaff(payload: InviteStaffFormData): Promise<{ user_id: string }> {
-  const { data, error } = await supabase.functions.invoke('invite-staff', {
+  const { data, error } = await client.functions.invoke('invite-staff', {
     body: payload,
   });
 
   if (error) throw error;
-  return data;
+  return data as unknown as { user_id: string };
 }
 
 export async function fetchAdminDashboardCounts(): Promise<AdminDashboardCounts> {
-  const { data, error } = await supabase.rpc('get_admin_dashboard_counts');
+  const { data, error } = await client.rpc('get_admin_dashboard_counts');
 
   if (error) throw error;
-  const row = (data?.[0] || {}) as Partial<AdminDashboardCounts>;
+  const rows = (data as unknown as Partial<AdminDashboardCounts>[]) || [];
+  const row = rows[0] || {};
   return {
     today_appointments: Number(row.today_appointments || 0),
     follow_ups_due: Number(row.follow_ups_due || 0),
@@ -153,7 +154,7 @@ export async function fetchAdminAuditLogs(
   limit = 50,
   offset = 0
 ): Promise<AuditLogEntry[]> {
-  const { data, error } = await supabase.rpc('get_admin_audit_logs', {
+  const { data, error } = await client.rpc('get_admin_audit_logs', {
     p_start_date: filter.startDate || undefined,
     p_end_date: filter.endDate || undefined,
     p_staff_id: filter.staffId || undefined,
@@ -163,5 +164,5 @@ export async function fetchAdminAuditLogs(
   });
 
   if (error) throw error;
-  return (data || []) as AuditLogEntry[];
+  return (data as unknown as AuditLogEntry[]) || [];
 }

@@ -14,7 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 
 export function DoctorLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
@@ -26,7 +26,7 @@ export function DoctorLayout(): React.JSX.Element {
 
   const handleDoctorSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
     } catch {
       // ignore
     }
@@ -43,7 +43,7 @@ export function DoctorLayout(): React.JSX.Element {
   const { data: pendingDocsCount = 0 } = useQuery({
     queryKey: ['doctor', 'layout', 'pending_docs_count'],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { count, error } = await client
         .from('documents')
         .select('*', { count: 'exact', head: true })
         .eq('review_status', 'pending');
@@ -55,7 +55,7 @@ export function DoctorLayout(): React.JSX.Element {
   const { data: pendingSymptomsCount = 0 } = useQuery({
     queryKey: ['doctor', 'layout', 'pending_symptoms_count'],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { count, error } = await client
         .from('symptom_reports')
         .select('*', { count: 'exact', head: true })
         .is('reviewed_at', null);

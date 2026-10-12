@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   FlaskConical,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 
 const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
@@ -81,7 +81,7 @@ export function DoctorReview(): React.JSX.Element {
   const { data: allReports = [], refetch: refetchReports } = useQuery<PendingReport[]>({
     queryKey: ['doctor', 'review', 'reports'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('documents')
         .select('*, patients(id, full_name, uhid, dob, gender, phone)')
         .order('created_at', { ascending: false });
@@ -94,7 +94,7 @@ export function DoctorReview(): React.JSX.Element {
   const { data: allSymptoms = [], refetch: refetchSymptoms } = useQuery<PendingSymptom[]>({
     queryKey: ['doctor', 'review', 'symptoms'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('symptom_reports')
         .select('*, patients(id, full_name, uhid, dob, gender, phone)')
         .order('reported_at', { ascending: false });
@@ -120,7 +120,7 @@ export function DoctorReview(): React.JSX.Element {
 
     setReviewSubmitting(true);
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('documents')
         .update({
           review_status: 'reviewed',
@@ -148,7 +148,7 @@ export function DoctorReview(): React.JSX.Element {
 
     setSymptomSubmitting(true);
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('symptom_reports')
         .update({
           reviewed_by: DR_RAHUL_STAFF_ID,

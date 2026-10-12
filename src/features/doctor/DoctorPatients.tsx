@@ -12,7 +12,7 @@ import {
   Activity,
   Check,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
 
 const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
@@ -59,91 +59,91 @@ export function DoctorPatients(): React.JSX.Element {
   const { data: patients = [] } = useQuery<DbPatient[]>({
     queryKey: ['doctor', 'patients', 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('patients').select('*').order('full_name');
+      const { data, error } = await client.from('patients').select('*').order('full_name');
       if (error) return [];
-      return data || [];
+      return (data as unknown as DbPatient[]) || [];
     },
   });
 
   // 2. Fetch Doctor's Care Team
-  const { data: careTeam = [], refetch: refetchCareTeam } = useQuery({
+  const { data: careTeam = [], refetch: refetchCareTeam } = useQuery<Array<{ patient_id: string; expires_at: string | null }>>({
     queryKey: ['doctor', 'patients', 'care_team'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('care_team')
         .select('patient_id, expires_at')
         .eq('staff_id', DR_RAHUL_STAFF_ID)
         .is('revoked_at', null);
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string; expires_at: string | null }>;
     },
   });
 
   // 3. Fetch Active Emergency Accesses
-  const { data: emergencyAccesses = [], refetch: refetchEmergency } = useQuery({
+  const { data: emergencyAccesses = [], refetch: refetchEmergency } = useQuery<Array<{ patient_id: string; expires_at: string; reason: string }>>({
     queryKey: ['doctor', 'patients', 'emergency_access'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('emergency_access')
         .select('patient_id, expires_at, reason')
         .eq('staff_id', DR_RAHUL_STAFF_ID)
         .gt('expires_at', new Date().toISOString());
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string; expires_at: string; reason: string }>;
     },
   });
 
   // 4. Fetch Conditions
-  const { data: conditions = [] } = useQuery({
+  const { data: conditions = [] } = useQuery<Array<{ patient_id: string; name: string; status: string }>>({
     queryKey: ['doctor', 'patients', 'conditions'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('conditions').select('patient_id, name, status');
+      const { data, error } = await client.from('conditions').select('patient_id, name, status');
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string; name: string; status: string }>;
     },
   });
 
   // 5. Fetch Pending Documents (for Needs Review signal)
-  const { data: pendingDocs = [] } = useQuery({
+  const { data: pendingDocs = [] } = useQuery<Array<{ patient_id: string }>>({
     queryKey: ['doctor', 'patients', 'pending_docs'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('documents').select('patient_id').eq('review_status', 'pending');
+      const { data, error } = await client.from('documents').select('patient_id').eq('review_status', 'pending');
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string }>;
     },
   });
 
   // 6. Fetch Pending Symptoms (for Needs Review signal)
-  const { data: pendingSymptoms = [] } = useQuery({
+  const { data: pendingSymptoms = [] } = useQuery<Array<{ patient_id: string }>>({
     queryKey: ['doctor', 'patients', 'pending_symptoms'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('symptom_reports').select('patient_id').is('reviewed_at', null);
+      const { data, error } = await client.from('symptom_reports').select('patient_id').is('reviewed_at', null);
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string }>;
     },
   });
 
   // 7. Fetch Encounters for last visit
-  const { data: encounters = [] } = useQuery({
+  const { data: encounters = [] } = useQuery<Array<{ patient_id: string; signed_at: string | null }>>({
     queryKey: ['doctor', 'patients', 'encounters'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('encounters').select('patient_id, signed_at').eq('status', 'signed');
+      const { data, error } = await client.from('encounters').select('patient_id, signed_at').eq('status', 'signed');
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string; signed_at: string | null }>;
     },
   });
 
   // 8. Fetch Upcoming Appointments for next visit
-  const { data: appointments = [] } = useQuery({
+  const { data: appointments = [] } = useQuery<Array<{ patient_id: string; appointment_date: string }>>({
     queryKey: ['doctor', 'patients', 'appointments'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('appointments')
         .select('patient_id, appointment_date')
         .gte('appointment_date', new Date().toISOString())
         .order('appointment_date', { ascending: true });
       if (error) return [];
-      return data || [];
+      return (data || []) as Array<{ patient_id: string; appointment_date: string }>;
     },
   });
 
@@ -218,7 +218,7 @@ export function DoctorPatients(): React.JSX.Element {
 
   const handleGrantGlass = async (targetPid: string, reason: string) => {
     try {
-      const { error } = await supabase.rpc('request_emergency_access', {
+      const { error } = await client.rpc('request_emergency_access', {
         p_patient_id: targetPid,
         p_reason: reason,
       });

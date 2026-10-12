@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
+import versionData from '../public/version.json';
 
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -22,13 +23,16 @@ app.get('/api/health', async (c) => {
   try {
     const result = await c.env.DB.prepare('SELECT 1 as ok').first<{ ok: number }>();
     return c.json({
+      ok: true,
+      db: result?.ok === 1 ? 'ok' : 'error',
+      commit: versionData.commit,
       status: 'ok',
       service: 'care-one-api',
       d1: result?.ok === 1,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return c.json({ status: 'error', error: message }, 500);
+    return c.json({ ok: false, db: 'error', error: message, status: 'error' }, 500);
   }
 });
 

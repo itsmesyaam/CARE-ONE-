@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Lock, BadgeCheck } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 
 const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
@@ -36,7 +36,7 @@ export function AddendumModal({
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase.from('encounter_addenda').insert({
+      const { error } = await client.from('encounter_addenda').insert({
         encounter_id: encounterId,
         patient_id: patientId,
         doctor_id: DR_RAHUL_STAFF_ID,

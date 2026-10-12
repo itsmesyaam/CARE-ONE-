@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import { SAMPLE_PEOPLE, createSampleSeed, PatientPerson, PatientRecordData } from './mock';
 
 export interface PatientSheetConfig {
@@ -321,7 +321,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
 
   const signOut = async (msg?: string) => {
     try {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
     } catch {
       // ignore
     }

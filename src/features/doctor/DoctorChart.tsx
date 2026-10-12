@@ -19,7 +19,7 @@ import {
   Eye,
   CheckCircle2,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import { NoteComposer } from './NoteComposer';
 import { AddendumModal } from './AddendumModal';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
@@ -197,23 +197,23 @@ export function DoctorChart(): React.JSX.Element {
     queryKey: ['doctor', 'patient', patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('patients')
         .select('*')
         .eq('id', patientId)
         .single();
       if (error) throw error;
-      return data;
+      return (data as unknown as PatientRecord) || null;
     },
     enabled: Boolean(patientId),
   });
 
   // 2. Check Care Team Link
-  const { data: careTeamLink, refetch: refetchCareTeam } = useQuery({
+  const { data: careTeamLink, refetch: refetchCareTeam } = useQuery<Record<string, unknown> | null>({
     queryKey: ['doctor', 'care_team_check', patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('care_team')
         .select('*')
         .eq('patient_id', patientId)
@@ -221,17 +221,17 @@ export function DoctorChart(): React.JSX.Element {
         .is('revoked_at', null)
         .maybeSingle();
       if (error) return null;
-      return data;
+      return (data as unknown as Record<string, unknown>) || null;
     },
     enabled: Boolean(patientId),
   });
 
   // 3. Check Active Emergency Access
-  const { data: activeEmergency, refetch: refetchEmergency } = useQuery({
+  const { data: activeEmergency, refetch: refetchEmergency } = useQuery<{ id: string; expires_at: string; reason: string } | null>({
     queryKey: ['doctor', 'emergency_check', patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('emergency_access')
         .select('*')
         .eq('patient_id', patientId)
@@ -241,7 +241,7 @@ export function DoctorChart(): React.JSX.Element {
         .limit(1)
         .maybeSingle();
       if (error) return null;
-      return data;
+      return (data as unknown as { id: string; expires_at: string; reason: string }) || null;
     },
     enabled: Boolean(patientId),
   });
@@ -253,7 +253,7 @@ export function DoctorChart(): React.JSX.Element {
     if (patientId && hasAccess) {
       void (async () => {
         try {
-          await supabase.rpc('log_chart_view', { p_patient_id: patientId });
+          await client.rpc('log_chart_view', { p_patient_id: patientId });
         } catch {
           // silent catch
         }
@@ -265,7 +265,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: allergiesData } = useQuery({
     queryKey: ['doctor', 'allergies', patientId],
     queryFn: async (): Promise<AllergyRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('allergies')
         .select('*')
         .eq('patient_id', patientId!);
@@ -279,7 +279,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: conditionsData } = useQuery({
     queryKey: ['doctor', 'conditions', patientId],
     queryFn: async (): Promise<ConditionRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('conditions')
         .select('*')
         .eq('patient_id', patientId!);
@@ -293,7 +293,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: encountersData, refetch: refetchEncounters } = useQuery({
     queryKey: ['doctor', 'encounters', patientId],
     queryFn: async (): Promise<EncounterRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('encounters')
         .select('*, staff:doctor_id(full_name), departments:department_id(name), encounter_addenda(*)')
         .eq('patient_id', patientId!)
@@ -308,11 +308,11 @@ export function DoctorChart(): React.JSX.Element {
   const { data: whatChangedData, refetch: refetchWhatChanged } = useQuery({
     queryKey: ['doctor', 'what_changed', patientId],
     queryFn: async (): Promise<WhatChangedItem[]> => {
-      const { data, error } = await supabase.rpc('what_changed', {
+      const { data, error } = await client.rpc('what_changed', {
         p_patient_id: patientId!,
       });
       if (error) return [];
-      return (data as WhatChangedItem[]) || [];
+      return (data as unknown as WhatChangedItem[]) || [];
     },
     enabled: Boolean(patientId && hasAccess),
   });
@@ -321,7 +321,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: observationsData } = useQuery({
     queryKey: ['doctor', 'observations', patientId],
     queryFn: async (): Promise<ObservationRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('observations')
         .select('*')
         .eq('patient_id', patientId!)
@@ -336,7 +336,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: documentsData, refetch: refetchDocuments } = useQuery({
     queryKey: ['doctor', 'documents', patientId],
     queryFn: async (): Promise<DocumentRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('documents')
         .select('*')
         .eq('patient_id', patientId!)
@@ -351,7 +351,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: medicationsData, refetch: refetchMedications } = useQuery({
     queryKey: ['doctor', 'medications', patientId],
     queryFn: async (): Promise<MedicationRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('medications')
         .select('*')
         .eq('patient_id', patientId!)
@@ -366,7 +366,7 @@ export function DoctorChart(): React.JSX.Element {
   const { data: carePlansData, refetch: refetchCarePlans } = useQuery({
     queryKey: ['doctor', 'care_plans', patientId],
     queryFn: async (): Promise<CarePlanRecord[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('care_plans')
         .select('*, care_plan_items(*, diet_guides(*))')
         .eq('patient_id', patientId!)
@@ -392,7 +392,7 @@ export function DoctorChart(): React.JSX.Element {
   // Handle granting emergency access
   const handleGrantEmergency = async (targetPid: string, reason: string) => {
     try {
-      const { error } = await supabase.rpc('request_emergency_access', {
+      const { error } = await client.rpc('request_emergency_access', {
         p_patient_id: targetPid,
         p_reason: reason,
       });
@@ -413,7 +413,7 @@ export function DoctorChart(): React.JSX.Element {
   const handleEndEmergency = async () => {
     if (!activeEmergency) return;
     try {
-      await supabase
+      await client
         .from('emergency_access')
         .update({ expires_at: new Date().toISOString() })
         .eq('id', activeEmergency.id);
@@ -434,7 +434,7 @@ export function DoctorChart(): React.JSX.Element {
     }
     setDocReviewSubmitting(true);
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('documents')
         .update({
           review_status: 'reviewed',
@@ -463,7 +463,7 @@ export function DoctorChart(): React.JSX.Element {
     if (!symptomSheetItem) return;
     setSymptomSubmitting(true);
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('symptom_reports')
         .update({
           reviewed_by: DR_RAHUL_STAFF_ID,

@@ -10,7 +10,7 @@ import {
   Trash2,
   BadgeCheck,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 
 const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 const GEN_MED_DEPT_ID = 'd0000000-0000-0000-0000-000000000001';
@@ -149,13 +149,14 @@ export function NoteComposer({
       // 1. Determine active doctor and department ID
       let doctorId = DR_RAHUL_STAFF_ID;
       let deptId = GEN_MED_DEPT_ID;
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData } = await client.auth.getUser();
       if (authData?.user) {
-        const { data: staffRow } = await supabase
+        const { data: staffData } = await client
           .from('staff')
           .select('id, department_id')
           .eq('user_id', authData.user.id)
           .maybeSingle();
+        const staffRow = staffData as { id: string; department_id: string | null } | null;
         if (staffRow) {
           doctorId = staffRow.id;
           if (staffRow.department_id) deptId = staffRow.department_id;
@@ -172,7 +173,7 @@ export function NoteComposer({
         customPlan || 'Continue oral anti-diabetic and antihypertensive therapy with strict dietary adherence.'
       }`;
 
-      const { data: enc, error: encErr } = await supabase
+      const { data: encData, error: encErr } = await client
         .from('encounters')
         .insert({
           patient_id: patientId,
@@ -188,9 +189,10 @@ export function NoteComposer({
         .single();
 
       if (encErr) throw encErr;
+      const enc = encData as { id: string };
 
       // 3. Freeze & sign encounter
-      const { error: signErr } = await supabase
+      const { error: signErr } = await client
         .from('encounters')
         .update({
           status: 'signed',
@@ -202,7 +204,7 @@ export function NoteComposer({
 
       // 4. Insert newly prescribed medications
       for (const rx of prescriptions) {
-        await supabase.from('medications').insert({
+        await client.from('medications').insert({
           patient_id: patientId,
           doctor_id: doctorId,
           department_id: deptId,
@@ -216,7 +218,7 @@ export function NoteComposer({
 
       // 5. Insert Vitals observations if changed
       if (vitals.sys && vitals.dia) {
-        await supabase.from('observations').insert({
+        await client.from('observations').insert({
           patient_id: patientId,
           kind: 'Blood Pressure',
           value_text: `${vitals.sys}/${vitals.dia}`,
@@ -230,16 +232,17 @@ export function NoteComposer({
 
       // 6. Attach diet guidance to active care plan if selected
       if (selectedDietGuide) {
-        const { data: carePlans } = await supabase
+        const { data: carePlansData } = await client
           .from('care_plans')
           .select('id')
           .eq('patient_id', patientId)
           .eq('status', 'active')
           .limit(1);
 
+        const carePlans = carePlansData as Array<{ id: string }> | null;
         let planId = carePlans?.[0]?.id;
         if (!planId) {
-          const { data: newPlan } = await supabase
+          const { data: newPlanData } = await client
             .from('care_plans')
             .insert({
               patient_id: patientId,
@@ -249,11 +252,12 @@ export function NoteComposer({
             })
             .select()
             .single();
+          const newPlan = newPlanData as { id: string } | null;
           planId = newPlan?.id;
         }
 
         if (planId) {
-          await supabase.from('care_plan_items').insert({
+          await client.from('care_plan_items').insert({
             care_plan_id: planId,
             patient_id: patientId,
             kind: 'diet',

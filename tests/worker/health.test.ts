@@ -22,6 +22,9 @@ describe('Cloudflare Worker Shell: /api/health & Security Headers', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual({
+      ok: true,
+      db: 'ok',
+      commit: expect.any(String),
       status: 'ok',
       service: 'care-one-api',
       d1: true,
@@ -55,6 +58,8 @@ describe('Cloudflare Worker Shell: /api/health & Security Headers', () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data).toEqual({
+      ok: false,
+      db: 'error',
       status: 'error',
       error: 'D1 connection failure',
     });

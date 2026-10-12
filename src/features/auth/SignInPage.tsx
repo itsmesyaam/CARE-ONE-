@@ -14,7 +14,7 @@ import {
   Stethoscope,
   Shield,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { client, isConfigured } from '../../lib/client';
 import { ConfigBanner } from '../../components/ConfigBanner';
 import { BuildStamp } from '../../components/BuildStamp';
 
@@ -57,7 +57,7 @@ export function SignInPage(): React.JSX.Element {
 
     if (!patientEmail) return;
 
-    if (!isSupabaseConfigured) {
+    if (!isConfigured) {
       setOtpSent(true);
       setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
       return;
@@ -65,7 +65,7 @@ export function SignInPage(): React.JSX.Element {
 
     setPatientLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await client.auth.signInWithOtp({
         email: patientEmail,
         options: {
           shouldCreateUser: false,
@@ -91,7 +91,7 @@ export function SignInPage(): React.JSX.Element {
 
     if (!otpCode) return;
 
-    if (!isSupabaseConfigured) {
+    if (!isConfigured) {
       setPatientSuccess(t('auth.signInSuccess'));
       setTimeout(() => navigate('/'), 800);
       return;
@@ -99,7 +99,7 @@ export function SignInPage(): React.JSX.Element {
 
     setPatientLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { error } = await client.auth.verifyOtp({
         email: patientEmail,
         token: otpCode,
         type: 'email',
@@ -126,7 +126,7 @@ export function SignInPage(): React.JSX.Element {
 
     if (!staffEmail || !staffPassword) return;
 
-    if (!isSupabaseConfigured) {
+    if (!isConfigured) {
       setStaffSuccess(t('auth.signInSuccess'));
       setTimeout(() => navigate('/admin'), 800);
       return;
@@ -134,7 +134,7 @@ export function SignInPage(): React.JSX.Element {
 
     setStaffLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await client.auth.signInWithPassword({
         email: staffEmail,
         password: staffPassword,
       });
@@ -145,12 +145,12 @@ export function SignInPage(): React.JSX.Element {
       }
 
       // Check if MFA (TOTP) is required
-      const aalResult = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const aalResult = await client.auth.mfa.getAuthenticatorAssuranceLevel();
       if (
         aalResult.data?.nextLevel === 'aal2' &&
         aalResult.data?.currentLevel !== 'aal2'
       ) {
-        const factors = await supabase.auth.mfa.listFactors();
+        const factors = await client.auth.mfa.listFactors();
         const totpFactor = factors.data?.totp?.[0];
         if (totpFactor) {
           setMfaFactorId(totpFactor.id);
@@ -178,13 +178,13 @@ export function SignInPage(): React.JSX.Element {
 
     setStaffLoading(true);
     try {
-      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      const challenge = await client.auth.mfa.challenge({ factorId: mfaFactorId });
       if (challenge.error) {
         setStaffError(challenge.error.message);
         return;
       }
 
-      const verify = await supabase.auth.mfa.verify({
+      const verify = await client.auth.mfa.verify({
         factorId: mfaFactorId,
         challengeId: challenge.data.id,
         code: totpCode,
