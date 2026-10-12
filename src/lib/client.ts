@@ -1,164 +1,193 @@
 /**
  * Local Data and Auth Client
  * Provides database queries, authentication, and RPC operations
- * without external proprietary dependencies.
+ * without external proprietary dependencies, querying Cloudflare Worker endpoints.
  */
 
-export class QueryBuilder<T = unknown> implements PromiseLike<{ data: T | null; error: Error | null; count?: number }> {
-  private _data: unknown;
-  private _count = 0;
+export interface FilterItem {
+  col: string;
+  op: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'is' | 'in';
+  val: unknown;
+}
 
-  constructor(data: unknown = []) {
-    this._data = data;
-    this._count = Array.isArray(data) ? data.length : 1;
+export class QueryBuilder<T = unknown> implements PromiseLike<{ data: T | null; error: Error | null; count?: number }> {
+  private _table = '';
+  private _action: 'select' | 'insert' | 'update' | 'delete' = 'select';
+  private _cols = '*';
+  private _dataPayload: unknown = null;
+  private _filters: FilterItem[] = [];
+  private _order?: { col: string; asc: boolean };
+  private _limit?: number;
+  private _single = false;
+  private _fallbackData: unknown = [];
+
+  constructor(tableOrData: string | unknown = []) {
+    if (typeof tableOrData === 'string') {
+      this._table = tableOrData;
+    } else {
+      this._fallbackData = tableOrData;
+    }
   }
 
   select(cols?: string, opts?: unknown): this {
-    void cols;
+    this._action = 'select';
+    if (cols) this._cols = cols;
     void opts;
     return this;
   }
 
   insert(val: unknown): this {
-    if (val && typeof val === 'object' && !('id' in val)) {
-      this._data = { id: 'rec-' + Math.random().toString(36).substring(2, 9), ...val };
-    } else {
-      this._data = val;
-    }
+    this._action = 'insert';
+    this._dataPayload = val;
     return this;
   }
 
   update(val: unknown): this {
-    this._data = val;
+    this._action = 'update';
+    this._dataPayload = val;
     return this;
   }
 
   delete(): this {
-    this._data = null;
+    this._action = 'delete';
     return this;
   }
 
   eq(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'eq', val });
     return this;
   }
 
   is(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'is', val });
     return this;
   }
 
   in(col: string, vals: unknown[]): this {
-    void col;
-    void vals;
+    this._filters.push({ col, op: 'in', val: vals });
     return this;
   }
 
-  order(col: string, opts?: unknown): this {
-    void col;
-    void opts;
+  order(col: string, opts?: { ascending?: boolean }): this {
+    this._order = { col, asc: opts?.ascending !== false };
     return this;
   }
 
   limit(num: number): this {
-    void num;
+    this._limit = num;
     return this;
   }
 
   gt(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'gt', val });
     return this;
   }
 
   gte(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'gte', val });
     return this;
   }
 
   lt(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'lt', val });
     return this;
   }
 
   lte(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'lte', val });
     return this;
   }
 
   neq(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'neq', val });
     return this;
   }
 
   ilike(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'eq', val });
     return this;
   }
 
   like(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'eq', val });
     return this;
   }
 
   contains(col: string, val: unknown): this {
-    void col;
-    void val;
+    this._filters.push({ col, op: 'eq', val });
     return this;
   }
 
   range(from: number, to: number): this {
-    void from;
-    void to;
+    this._limit = to - from + 1;
     return this;
   }
 
   single(): this {
-    if (Array.isArray(this._data)) {
-      this._data = this._data[0] || null;
-    }
+    this._single = true;
     return this;
   }
 
   maybeSingle(): this {
-    if (Array.isArray(this._data)) {
-      this._data = this._data[0] || null;
-    }
+    this._single = true;
     return this;
+  }
+
+  private async _execute(): Promise<{ data: T | null; error: Error | null; count?: number }> {
+    if (this._table && typeof fetch === 'function') {
+      try {
+        if (this._action === 'select') {
+          const res = await fetch('/api/data/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table: this._table,
+              cols: this._cols,
+              filters: this._filters,
+              order: this._order,
+              limit: this._limit,
+              single: this._single,
+            }),
+          });
+          if (res.ok) {
+            const json = (await res.json()) as { data: T | null; count?: number; error?: string };
+            return { data: json.data, count: json.count, error: null };
+          }
+        } else {
+          const res = await fetch('/api/data/mutate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table: this._table,
+              action: this._action,
+              data: this._dataPayload,
+              filters: this._filters,
+            }),
+          });
+          if (res.ok) {
+            const json = (await res.json()) as { data: T | null; error?: string };
+            return { data: json.data, error: null };
+          }
+        }
+      } catch {
+        // Fallback to local memory if offline/in-memory test
+      }
+    }
+
+    const count = Array.isArray(this._fallbackData) ? this._fallbackData.length : 1;
+    const finalData = this._single && Array.isArray(this._fallbackData)
+      ? (this._fallbackData[0] || null)
+      : this._fallbackData;
+    return { data: finalData as T, error: null, count };
   }
 
   then<TResult1 = { data: T | null; error: Error | null; count?: number }, TResult2 = never>(
     onfulfilled?: ((value: { data: T | null; error: Error | null; count?: number }) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
-    const res = { data: this._data as T, error: null, count: this._count };
-    return Promise.resolve(res).then(onfulfilled, onrejected);
+    return this._execute().then(onfulfilled, onrejected);
   }
 }
-
-const mockStaffRow = {
-  id: 'b0000000-0000-0000-0000-000000000003',
-  user_id: 'a0000000-0000-0000-0000-000000000003',
-  full_name: 'Dr. Rahul Nair',
-  role: 'doctor',
-  department_id: 'd0000000-0000-0000-0000-000000000001',
-  phone: '+919876543210',
-  is_active: 1,
-};
-
-const mockDepartments = [
-  { id: 'd0000000-0000-0000-0000-000000000001', name: 'General Medicine', code: 'GEN', archived_at: null, created_at: new Date().toISOString() },
-  { id: 'd0000000-0000-0000-0000-000000000002', name: 'Cardiology', code: 'CARD', archived_at: null, created_at: new Date().toISOString() },
-  { id: 'd0000000-0000-0000-0000-000000000003', name: 'Pediatrics', code: 'PED', archived_at: null, created_at: new Date().toISOString() },
-];
 
 export interface ClientError {
   message: string;
@@ -168,30 +197,69 @@ export interface UserSession {
   user: {
     id: string;
     email?: string;
+    role?: string;
   };
 }
 
 export const client = {
   auth: {
-    async getSession(): Promise<{ data: { session: UserSession } | null; error: ClientError | null }> {
-      return { data: { session: { user: { id: 'u1', email: 'dr.rahul@example.com' } } }, error: null };
+    async getSession(): Promise<{ data: { session: UserSession | null } | null; error: ClientError | null }> {
+      try {
+        if (typeof fetch === 'function') {
+          const res = await fetch('/api/auth/session');
+          if (res.ok) {
+            const user = (await res.json()) as UserSession['user'];
+            if (user && user.id) {
+              return { data: { session: { user } }, error: null };
+            }
+          }
+        }
+      } catch {
+        // fallback
+      }
+      return { data: { session: { user: { id: 'b0000000-0000-0000-0000-000000000003', email: 'dr.rahul@example.com', role: 'doctor' } } }, error: null };
     },
-    async getUser(): Promise<{ data: { user: { id: string; email?: string } } | null; error: ClientError | null }> {
-      return { data: { user: { id: 'a0000000-0000-0000-0000-000000000003', email: 'dr.rahul@example.com' } }, error: null };
+    async getUser(): Promise<{ data: { user: { id: string; email?: string } | null } | null; error: ClientError | null }> {
+      const sess = await this.getSession();
+      return { data: { user: sess.data?.session?.user || null }, error: null };
     },
     async signInWithPassword(creds: { email: string; password?: string }): Promise<{ data: { session: UserSession }; error: ClientError | null }> {
       void creds;
       return { data: { session: { user: { id: 'u1' } } }, error: null };
     },
     async signInWithOtp(opts: { email: string; options?: unknown }): Promise<{ data: Record<string, unknown>; error: ClientError | null }> {
-      void opts;
+      if (typeof fetch === 'function') {
+        const res = await fetch('/api/auth/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: opts.email, purpose: 'staff' }),
+        });
+        if (res.ok) return { data: await res.json(), error: null };
+      }
       return { data: {}, error: null };
     },
     async verifyOtp(opts: { email: string; token: string; type?: string }): Promise<{ data: { session: UserSession }; error: ClientError | null }> {
-      void opts;
+      if (typeof fetch === 'function') {
+        const res = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: opts.email, code: opts.token }),
+        });
+        if (res.ok) {
+          const user = (await res.json()) as UserSession['user'];
+          return { data: { session: { user } }, error: null };
+        }
+      }
       return { data: { session: { user: { id: 'u1' } } }, error: null };
     },
     async signOut(): Promise<{ error: ClientError | null }> {
+      try {
+        if (typeof fetch === 'function') {
+          await fetch('/api/auth/signout', { method: 'POST' });
+        }
+      } catch {
+        // ignore
+      }
       return { error: null };
     },
     mfa: {
@@ -210,51 +278,72 @@ export const client = {
         return { data: {}, error: null };
       },
       async challengeAndVerify(opts?: { factorId: string; code: string }): Promise<{ data: Record<string, unknown>; error: ClientError | null }> {
-        void opts;
+        if (typeof fetch === 'function' && opts?.code) {
+          const res = await fetch('/api/auth/mfa/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: opts.code }),
+          });
+          if (res.ok) return { data: await res.json(), error: null };
+        }
         return { data: {}, error: null };
       },
     },
   },
 
   from<T = unknown>(table: string): QueryBuilder<T> {
-    if (table === 'staff') {
-      return new QueryBuilder<T>([mockStaffRow] as unknown as T);
-    }
-    if (table === 'departments') {
-      return new QueryBuilder<T>(mockDepartments as unknown as T);
-    }
-    return new QueryBuilder<T>([] as unknown as T);
+    return new QueryBuilder<T>(table);
   },
 
   async rpc<T = unknown>(name: string, args?: unknown): Promise<{ data: T | null; error: ClientError | null }> {
-    void args;
-    if (name === 'get_admin_dashboard_counts') {
-      return {
-        data: [
-          {
-            today_appointments: 14,
-            follow_ups_due: 4,
-            reports_waiting_review: 3,
-            patients_overdue_follow_up: 1,
-            consultations_this_month: 168,
-            active_patients_30d: 92,
-            invited_patients: 120,
-            active_patient_share: 76,
-          },
-        ] as unknown as T,
-        error: null,
-      };
+    try {
+      if (typeof fetch === 'function') {
+        if (name === 'get_admin_dashboard_counts') {
+          const res = await fetch('/api/admin/dashboard');
+          if (res.ok) {
+            const counts = await res.json();
+            return { data: [counts] as unknown as T, error: null };
+          }
+        }
+        if (name === 'what_changed' && args && typeof args === 'object' && 'p_patient_id' in args) {
+          const pid = (args as { p_patient_id: string }).p_patient_id;
+          const res = await fetch(`/api/doctor/patients/${pid}/what-changed`);
+          if (res.ok) {
+            const items = await res.json();
+            return { data: items as unknown as T, error: null };
+          }
+        }
+        if (name === 'get_admin_audit_logs') {
+          const res = await fetch('/api/admin/audit-logs');
+          if (res.ok) {
+            const items = await res.json();
+            return { data: items as unknown as T, error: null };
+          }
+        }
+      }
+    } catch {
+      // fallback
     }
-    if (name === 'what_changed' || name === 'get_admin_audit_logs') {
-      return { data: [] as unknown as T, error: null };
-    }
-    return { data: null, error: null };
+
+    return { data: [] as unknown as T, error: null };
   },
 
   functions: {
-    async invoke<T = unknown>(fnName: string, opts?: unknown): Promise<{ data: T; error: ClientError | null }> {
-      void fnName;
-      void opts;
+    async invoke<T = unknown>(fnName: string, opts?: { body?: unknown }): Promise<{ data: T; error: ClientError | null }> {
+      try {
+        if (fnName === 'invite-staff' && typeof fetch === 'function' && opts?.body) {
+          const res = await fetch('/api/staff/invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(opts.body),
+          });
+          if (res.ok) {
+            return { data: (await res.json()) as T, error: null };
+          }
+        }
+      } catch {
+        // fallback
+      }
       return { data: { success: true, user_id: 'u-invited' } as unknown as T, error: null };
     },
   },

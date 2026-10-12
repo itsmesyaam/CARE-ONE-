@@ -6,6 +6,11 @@ import { authRouter } from './routes/auth';
 import { processReminders } from './services/reminders';
 import { getEmailUsage } from './services/email';
 
+import { adminRouter, departmentsRouter, staffRouter } from './routes/admin';
+import { doctorRouter } from './routes/doctor';
+import { patientRouter } from './routes/patient';
+import { dataRouter } from './routes/data';
+
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
 // Security Headers Middleware applied to every response
@@ -50,6 +55,18 @@ app.get('/api/admin/email/usage', async (c) => {
   const usage = await getEmailUsage(c.env);
   return c.json(usage);
 });
+
+// Admin and Directory routes
+app.route('/api/admin', adminRouter);
+app.route('/api/departments', departmentsRouter);
+app.route('/api/staff', staffRouter);
+
+// Clinical Doctor and Patient routes
+app.route('/api/doctor', doctorRouter);
+app.route('/api/patient', patientRouter);
+
+// Database Query & Mutation router
+app.route('/api/data', dataRouter);
 
 // 404 handler for API routes
 app.notFound((c) => {

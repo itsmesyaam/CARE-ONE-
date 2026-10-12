@@ -237,6 +237,19 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
 
   const addReading = (k: string, v: number | [number, number], ctx?: string | null) => {
     const high = isReadingHigh(k, v);
+    try {
+      void fetch('/api/patient/readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: k,
+          value_text: Array.isArray(v) ? `${v[0]}/${v[1]}` : String(v),
+        }),
+      }).catch(() => {});
+    } catch {
+      // offline fallback
+    }
+
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;
       const currentReadings = target.readings[k as keyof typeof target.readings] || [];
@@ -294,6 +307,19 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
       txt.trim(),
     ].filter(Boolean);
     const text = parts.join('. ') || 'Reported symptom';
+
+    try {
+      void fetch('/api/patient/symptoms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: text,
+          severity: sev,
+        }),
+      }).catch(() => {});
+    } catch {
+      // offline fallback
+    }
 
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;

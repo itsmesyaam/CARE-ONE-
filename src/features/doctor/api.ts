@@ -1,14 +1,9 @@
-import { client } from '../../lib/client';
 import type { WhatChangedItem } from './types';
 
 export async function fetchWhatChanged(patientId: string): Promise<WhatChangedItem[]> {
-  const { data, error } = await client.rpc('what_changed', {
-    p_patient_id: patientId,
-  });
-
-  if (error) {
-    throw error;
+  const res = await fetch(`/api/doctor/patients/${patientId}/what-changed`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch what changed records');
   }
-
-  return (data as unknown as WhatChangedItem[]) || [];
+  return (await res.json()) || [];
 }
