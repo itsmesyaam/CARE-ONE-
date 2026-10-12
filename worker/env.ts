@@ -11,4 +11,6 @@ export interface WorkerEnv {
   };
   ASSETS?: Fetcher;
   APP_ENV?: string;
+  ENVIRONMENT?: string;
+  JWT_SECRET?: string;
 }

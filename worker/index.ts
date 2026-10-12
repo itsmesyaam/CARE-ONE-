@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
 import versionData from '../public/version.json';
 import { filesRouter, adminStorageHandler } from './routes/files';
+import { authRouter } from './routes/auth';
 import { processReminders } from './services/reminders';
+import { getEmailUsage } from './services/email';
 
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -38,9 +40,16 @@ app.get('/api/health', async (c) => {
   }
 });
 
+// Auth and OTP verification routes
+app.route('/api/auth', authRouter);
+
 // D1 File storage routes
 app.route('/api/files', filesRouter);
 app.get('/api/admin/storage', adminStorageHandler);
+app.get('/api/admin/email/usage', async (c) => {
+  const usage = await getEmailUsage(c.env);
+  return c.json(usage);
+});
 
 // 404 handler for API routes
 app.notFound((c) => {

@@ -1,6 +1,8 @@
 import type { WorkerEnv } from '../env';
 
 export const MAX_DAILY_EMAILS = 95;
+export const STAFF_RESERVED_SLOTS = 20;
+export const NON_STAFF_MAX_EMAILS = MAX_DAILY_EMAILS - STAFF_RESERVED_SLOTS; // 75
 export const DEFAULT_FROM = 'CareOne <noreply@careone.in>';
 
 export interface SendEmailOptions {
@@ -9,6 +11,7 @@ export interface SendEmailOptions {
   html?: string;
   text?: string;
   template?: string;
+  isStaffSignIn?: boolean;
 }
 
 export interface SendEmailResult {
@@ -65,18 +68,54 @@ async function hashRecipient(email: string): Promise<string> {
 }
 
 /**
+ * Returns operational email quota metrics and warns at 75% usage.
+ */
+export async function getEmailUsage(env: WorkerEnv): Promise<{
+  date: string;
+  count: number;
+  max: number;
+  reservedForStaff: number;
+  nonStaffLimit: number;
+  usagePercent: number;
+  warningBanner: boolean;
+}> {
+  const today = getKolkataDateString();
+  const row = await env.DB.prepare(
+    'SELECT count FROM email_daily_counts WHERE date = ?'
+  )
+    .bind(today)
+    .first<{ count: number }>();
+  const count = row?.count || 0;
+  const usagePercent = Math.round((count / MAX_DAILY_EMAILS) * 100);
+  const warningBanner = count >= 71;
+  return {
+    date: today,
+    count,
+    max: MAX_DAILY_EMAILS,
+    reservedForStaff: STAFF_RESERVED_SLOTS,
+    nonStaffLimit: NON_STAFF_MAX_EMAILS,
+    usagePercent,
+    warningBanner,
+  };
+}
+
+/**
  * Sends an email using Resend, enforcing the strict 95 emails/day quota in D1.
  * Blocks transmission and logs a warning when the quota is reached to keep the deployment on the free plan.
+ * Reserves the final 20 slots of each day strictly for staff sign-in codes.
  */
 export async function sendEmail(
   env: WorkerEnv,
-  options: SendEmailOptions
+  options: SendEmailOptions,
+  isStaff?: boolean
 ): Promise<SendEmailResult> {
   if (!validateEmailSubject(options.subject)) {
     throw new Error('Email subject cannot contain patient clinical data or identifiers');
   }
 
   const today = getKolkataDateString();
+  const isStaffSignIn = options.isStaffSignIn ?? isStaff;
+  const threshold = isStaffSignIn === false ? NON_STAFF_MAX_EMAILS : MAX_DAILY_EMAILS;
 
   interface CountRow {
     count: number;
@@ -92,24 +131,27 @@ export async function sendEmail(
      WHERE count < ?
      RETURNING count;`
   )
-    .bind(today, MAX_DAILY_EMAILS)
+    .bind(today, threshold)
     .first<CountRow>();
 
   const recipientHash = await hashRecipient(options.to);
   const logId = crypto.randomUUID();
 
-  // If row is undefined, the daily quota (95) has already been reached
+  // If row is undefined, the relevant quota has been reached
   if (!row) {
-    console.warn(
-      `[EMAIL_LIMIT] Daily email quota reached (95/day) for date ${today}. Stopping email delivery to preserve free plan.`
-    );
+    const errorMsg =
+      isStaffSignIn === false
+        ? 'Daily non-staff email limit reached (75/day). Remaining slots reserved for staff sign-in.'
+        : 'Daily email quota reached (95/day). Delivery stopped to stay within free plan.';
+
+    console.warn(`[EMAIL_LIMIT] ${errorMsg}`);
 
     try {
       await env.DB.prepare(
         `INSERT INTO email_logs (id, recipient_hash, template, subject, status, error_message)
-         VALUES (?, ?, ?, ?, 'rate_limited', 'Daily quota of 95 emails reached')`
+         VALUES (?, ?, ?, ?, 'rate_limited', ?)`
       )
-        .bind(logId, recipientHash, options.template || 'generic', options.subject)
+        .bind(logId, recipientHash, options.template || 'generic', options.subject, errorMsg)
         .run();
     } catch {
       // Non-blocking log insert
@@ -118,8 +160,8 @@ export async function sendEmail(
     return {
       success: false,
       rateLimited: true,
-      dailyCount: MAX_DAILY_EMAILS,
-      error: 'Daily email quota reached (95/day). Delivery stopped to stay within free plan.',
+      dailyCount: isStaffSignIn ? MAX_DAILY_EMAILS : NON_STAFF_MAX_EMAILS,
+      error: errorMsg,
     };
   }
 
