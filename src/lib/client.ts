@@ -1,193 +1,11 @@
 /**
  * Local Data and Auth Client
- * Provides database queries, authentication, and RPC operations
- * without external proprietary dependencies, querying Cloudflare Worker endpoints.
+ * Provides authentication and dedicated RPC operations
+ * querying Cloudflare Worker endpoints.
+ *
+ * NOTE: Generic query building has been completely removed in compliance
+ * with AGENTS.md rules 2–5. Every route has its own policy and dedicated domain endpoint.
  */
-
-export interface FilterItem {
-  col: string;
-  op: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'is' | 'in';
-  val: unknown;
-}
-
-export class QueryBuilder<T = unknown> implements PromiseLike<{ data: T | null; error: Error | null; count?: number }> {
-  private _table = '';
-  private _action: 'select' | 'insert' | 'update' | 'delete' = 'select';
-  private _cols = '*';
-  private _dataPayload: unknown = null;
-  private _filters: FilterItem[] = [];
-  private _order?: { col: string; asc: boolean };
-  private _limit?: number;
-  private _single = false;
-  private _fallbackData: unknown = [];
-
-  constructor(tableOrData: string | unknown = []) {
-    if (typeof tableOrData === 'string') {
-      this._table = tableOrData;
-    } else {
-      this._fallbackData = tableOrData;
-    }
-  }
-
-  select(cols?: string, opts?: unknown): this {
-    this._action = 'select';
-    if (cols) this._cols = cols;
-    void opts;
-    return this;
-  }
-
-  insert(val: unknown): this {
-    this._action = 'insert';
-    this._dataPayload = val;
-    return this;
-  }
-
-  update(val: unknown): this {
-    this._action = 'update';
-    this._dataPayload = val;
-    return this;
-  }
-
-  delete(): this {
-    this._action = 'delete';
-    return this;
-  }
-
-  eq(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'eq', val });
-    return this;
-  }
-
-  is(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'is', val });
-    return this;
-  }
-
-  in(col: string, vals: unknown[]): this {
-    this._filters.push({ col, op: 'in', val: vals });
-    return this;
-  }
-
-  order(col: string, opts?: { ascending?: boolean }): this {
-    this._order = { col, asc: opts?.ascending !== false };
-    return this;
-  }
-
-  limit(num: number): this {
-    this._limit = num;
-    return this;
-  }
-
-  gt(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'gt', val });
-    return this;
-  }
-
-  gte(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'gte', val });
-    return this;
-  }
-
-  lt(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'lt', val });
-    return this;
-  }
-
-  lte(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'lte', val });
-    return this;
-  }
-
-  neq(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'neq', val });
-    return this;
-  }
-
-  ilike(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'eq', val });
-    return this;
-  }
-
-  like(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'eq', val });
-    return this;
-  }
-
-  contains(col: string, val: unknown): this {
-    this._filters.push({ col, op: 'eq', val });
-    return this;
-  }
-
-  range(from: number, to: number): this {
-    this._limit = to - from + 1;
-    return this;
-  }
-
-  single(): this {
-    this._single = true;
-    return this;
-  }
-
-  maybeSingle(): this {
-    this._single = true;
-    return this;
-  }
-
-  private async _execute(): Promise<{ data: T | null; error: Error | null; count?: number }> {
-    if (this._table && typeof fetch === 'function') {
-      try {
-        if (this._action === 'select') {
-          const res = await fetch('/api/data/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              table: this._table,
-              cols: this._cols,
-              filters: this._filters,
-              order: this._order,
-              limit: this._limit,
-              single: this._single,
-            }),
-          });
-          if (res.ok) {
-            const json = (await res.json()) as { data: T | null; count?: number; error?: string };
-            return { data: json.data, count: json.count, error: null };
-          }
-        } else {
-          const res = await fetch('/api/data/mutate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              table: this._table,
-              action: this._action,
-              data: this._dataPayload,
-              filters: this._filters,
-            }),
-          });
-          if (res.ok) {
-            const json = (await res.json()) as { data: T | null; error?: string };
-            return { data: json.data, error: null };
-          }
-        }
-      } catch {
-        // Fallback to local memory if offline/in-memory test
-      }
-    }
-
-    const count = Array.isArray(this._fallbackData) ? this._fallbackData.length : 1;
-    const finalData = this._single && Array.isArray(this._fallbackData)
-      ? (this._fallbackData[0] || null)
-      : this._fallbackData;
-    return { data: finalData as T, error: null, count };
-  }
-
-  then<TResult1 = { data: T | null; error: Error | null; count?: number }, TResult2 = never>(
-    onfulfilled?: ((value: { data: T | null; error: Error | null; count?: number }) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-  ): Promise<TResult1 | TResult2> {
-    return this._execute().then(onfulfilled, onrejected);
-  }
-}
 
 export interface ClientError {
   message: string;
@@ -291,10 +109,6 @@ export const client = {
     },
   },
 
-  from<T = unknown>(table: string): QueryBuilder<T> {
-    return new QueryBuilder<T>(table);
-  },
-
   async rpc<T = unknown>(name: string, args?: unknown): Promise<{ data: T | null; error: ClientError | null }> {
     try {
       if (typeof fetch === 'function') {
@@ -318,6 +132,18 @@ export const client = {
           if (res.ok) {
             const items = await res.json();
             return { data: items as unknown as T, error: null };
+          }
+        }
+        if (name === 'request_emergency_access' && args && typeof args === 'object' && 'p_patient_id' in args) {
+          const pid = (args as unknown as { p_patient_id: string }).p_patient_id;
+          const reason = (args as unknown as { p_reason: string }).p_reason;
+          const res = await fetch(`/api/doctor/patients/${pid}/emergency-access`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason }),
+          });
+          if (res.ok) {
+            return { data: { success: true } as unknown as T, error: null };
           }
         }
       }

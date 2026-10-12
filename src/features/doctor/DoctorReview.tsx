@@ -10,9 +10,6 @@ import {
   CheckCircle2,
   FlaskConical,
 } from 'lucide-react';
-import { client } from '../../lib/client';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 interface PendingReport {
   id: string;
@@ -77,31 +74,21 @@ export function DoctorReview(): React.JSX.Element {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // 1. Fetch Reports
-  const { data: allReports = [], refetch: refetchReports } = useQuery<PendingReport[]>({
-    queryKey: ['doctor', 'review', 'reports'],
+  // 1. Fetch Review Queues from dedicated endpoint
+  const { data: reviewData, refetch: refetchReview } = useQuery<{
+    reports: PendingReport[];
+    symptoms: PendingSymptom[];
+  }>({
+    queryKey: ['doctor', 'review', 'data'],
     queryFn: async () => {
-      const { data, error } = await client
-        .from('documents')
-        .select('*, patients(id, full_name, uhid, dob, gender, phone)')
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return (data as PendingReport[]) || [];
+      const res = await fetch('/api/doctor/review');
+      if (!res.ok) throw new Error('Failed to fetch review data');
+      return res.json();
     },
   });
 
-  // 2. Fetch Symptoms
-  const { data: allSymptoms = [], refetch: refetchSymptoms } = useQuery<PendingSymptom[]>({
-    queryKey: ['doctor', 'review', 'symptoms'],
-    queryFn: async () => {
-      const { data, error } = await client
-        .from('symptom_reports')
-        .select('*, patients(id, full_name, uhid, dob, gender, phone)')
-        .order('reported_at', { ascending: false });
-      if (error) return [];
-      return (data as PendingSymptom[]) || [];
-    },
-  });
+  const allReports = reviewData?.reports || [];
+  const allSymptoms = reviewData?.symptoms || [];
 
   const waitingReports = allReports.filter((r) => r.review_status === 'pending');
   const todayDateStr = new Date().toISOString().split('T')[0] || '';
@@ -120,21 +107,15 @@ export function DoctorReview(): React.JSX.Element {
 
     setReviewSubmitting(true);
     try {
-      const { error } = await client
-        .from('documents')
-        .update({
-          review_status: 'reviewed',
-          reviewed_by: DR_RAHUL_STAFF_ID,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', selectedReport.id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/doctor/documents/${selectedReport.id}/review`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to save review');
 
       showToast(t('doctorReview.reviewSaved'));
       setSelectedReport(null);
       setReportComment('');
-      await refetchReports();
+      await refetchReview();
     } catch {
       showToast('Failed to save review.');
     } finally {
@@ -148,20 +129,15 @@ export function DoctorReview(): React.JSX.Element {
 
     setSymptomSubmitting(true);
     try {
-      const { error } = await client
-        .from('symptom_reports')
-        .update({
-          reviewed_by: DR_RAHUL_STAFF_ID,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', selectedSymptom.id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/doctor/symptoms/${selectedSymptom.id}/review`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to review symptom');
 
       showToast(t('doctorReview.symptomSeenSaved'));
       setSelectedSymptom(null);
       setSymptomNote('');
-      await refetchSymptoms();
+      await refetchReview();
     } catch {
       showToast('Failed to mark symptom seen.');
     } finally {

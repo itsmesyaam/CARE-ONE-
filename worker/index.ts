@@ -9,7 +9,7 @@ import { getEmailUsage } from './services/email';
 import { adminRouter, departmentsRouter, staffRouter } from './routes/admin';
 import { doctorRouter } from './routes/doctor';
 import { patientRouter } from './routes/patient';
-import { dataRouter } from './routes/data';
+import { deskRouter } from './routes/desk';
 
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -61,12 +61,12 @@ app.route('/api/admin', adminRouter);
 app.route('/api/departments', departmentsRouter);
 app.route('/api/staff', staffRouter);
 
+// Front Desk routes
+app.route('/api/desk', deskRouter);
+
 // Clinical Doctor and Patient routes
 app.route('/api/doctor', doctorRouter);
 app.route('/api/patient', patientRouter);
-
-// Database Query & Mutation router
-app.route('/api/data', dataRouter);
 
 // 404 handler for API routes
 app.notFound((c) => {

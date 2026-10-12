@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Lock, BadgeCheck } from 'lucide-react';
-import { client } from '../../lib/client';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 export interface AddendumModalProps {
   encounterId: string;
@@ -36,15 +33,20 @@ export function AddendumModal({
     setErrorMsg(null);
 
     try {
-      const { error } = await client.from('encounter_addenda').insert({
-        encounter_id: encounterId,
-        patient_id: patientId,
-        doctor_id: DR_RAHUL_STAFF_ID,
-        reason: kind,
-        notes: text.trim(),
+      const res = await fetch(`/api/doctor/encounters/${encounterId}/addendum`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          reason: kind,
+          notes: text.trim(),
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error || 'Failed to save addendum');
+      }
       setBusy(false);
       onSaved();
     } catch (err: unknown) {
