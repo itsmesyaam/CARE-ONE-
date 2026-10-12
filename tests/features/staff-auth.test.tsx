@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { StaffSignIn } from '../../src/features/auth/StaffSignIn';
 
-describe('Staff Auth Feature: StaffSignIn', () => {
-  it('renders staff sign in screen with hospital branding and security check', () => {
+describe('Staff Auth Feature: StaffSignIn (Passwordless 2FA)', () => {
+  it('renders passwordless staff sign in screen without password field', () => {
     render(
       <MemoryRouter>
         <StaffSignIn />
@@ -13,9 +13,10 @@ describe('Staff Auth Feature: StaffSignIn', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: /Staff sign-in/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Email$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
+    // Strict requirement: zero password field or hashing
+    expect(screen.queryByLabelText(/^Password$/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Security check/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Send sign-in code|Sign in/i })).toBeInTheDocument();
   });
 
   it('can navigate to 2FA verification step and display 6-digit code entry', async () => {
@@ -44,7 +45,7 @@ describe('Staff Auth Feature: StaffSignIn', () => {
     expect(screen.getByText(/JBSW Y3DP EHPK 3PXP/i)).toBeInTheDocument();
   });
 
-  it('renders screen lock with doctor avatar and unlocks with password', async () => {
+  it('renders screen lock with doctor avatar and unlocks with authenticator code without password', async () => {
     render(
       <MemoryRouter>
         <StaffSignIn initialStep="lock" />
@@ -53,7 +54,9 @@ describe('Staff Auth Feature: StaffSignIn', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: /Screen locked/i })).toBeInTheDocument();
     expect(screen.getByText(/Dr\. Rahul Nair/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    // Zero password field
+    expect(screen.queryByLabelText(/^Password$/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Authenticator code|Code/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unlock/i })).toBeInTheDocument();
   });
 });

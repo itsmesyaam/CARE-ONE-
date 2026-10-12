@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   User,
-  Lock,
   Mail,
   KeyRound,
   ArrowLeft,
@@ -34,9 +33,8 @@ export function SignInPage(): React.JSX.Element {
   const [patientError, setPatientError] = useState<string | null>(null);
   const [patientSuccess, setPatientSuccess] = useState<string | null>(null);
 
-  // Staff Password + MFA states
+  // Staff Passwordless + MFA states
   const [staffEmail, setStaffEmail] = useState('');
-  const [staffPassword, setStaffPassword] = useState('');
   const [mfaRequired, setMfaRequired] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
@@ -118,25 +116,25 @@ export function SignInPage(): React.JSX.Element {
     }
   };
 
-  // Staff Password + MFA Handlers
+  // Staff Passwordless + MFA Handlers
   const handleStaffSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setStaffError(null);
     setStaffSuccess(null);
 
-    if (!staffEmail || !staffPassword) return;
+    if (!staffEmail) return;
 
     if (!isConfigured) {
-      setStaffSuccess(t('auth.signInSuccess'));
-      setTimeout(() => navigate('/admin'), 800);
+      setMfaFactorId('mock-factor-1');
+      setMfaRequired(true);
+      setStaffSuccess(t('auth.otpSentNotice', { email: staffEmail }));
       return;
     }
 
     setStaffLoading(true);
     try {
-      const { data, error } = await client.auth.signInWithPassword({
+      const { error } = await client.auth.signInWithOtp({
         email: staffEmail,
-        password: staffPassword,
       });
 
       if (error) {
@@ -144,25 +142,11 @@ export function SignInPage(): React.JSX.Element {
         return;
       }
 
-      // Check if MFA (TOTP) is required
-      const aalResult = await client.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (
-        aalResult.data?.nextLevel === 'aal2' &&
-        aalResult.data?.currentLevel !== 'aal2'
-      ) {
-        const factors = await client.auth.mfa.listFactors();
-        const totpFactor = factors.data?.totp?.[0];
-        if (totpFactor) {
-          setMfaFactorId(totpFactor.id);
-          setMfaRequired(true);
-          return;
-        }
-      }
-
-      setStaffSuccess(t('auth.signInSuccess'));
-      if (data.session) {
-        setTimeout(() => navigate('/admin'), 800);
-      }
+      const factors = await client.auth.mfa.listFactors();
+      const factorId = factors.data?.totp?.[0]?.id || 'default-factor';
+      setMfaFactorId(factorId);
+      setMfaRequired(true);
+      setStaffSuccess(t('auth.otpSentNotice', { email: staffEmail }));
     } catch {
       setStaffError(t('auth.authError'));
     } finally {
@@ -175,6 +159,12 @@ export function SignInPage(): React.JSX.Element {
     setStaffError(null);
 
     if (!totpCode || !mfaFactorId) return;
+
+    if (!isConfigured) {
+      setStaffSuccess(t('auth.signInSuccess'));
+      setTimeout(() => navigate('/admin'), 800);
+      return;
+    }
 
     setStaffLoading(true);
     try {
@@ -215,13 +205,10 @@ export function SignInPage(): React.JSX.Element {
       setMfaRequired(false);
       if (role === 'admin') {
         setStaffEmail('admin@example.com');
-        setStaffPassword('AdminPass123!');
       } else if (role === 'doctor') {
         setStaffEmail('dr.rahul@example.com');
-        setStaffPassword('DoctorPass123!');
       } else if (role === 'desk') {
         setStaffEmail('desk@example.com');
-        setStaffPassword('FrontDesk123!');
       }
     }
   };
@@ -462,33 +449,12 @@ export function SignInPage(): React.JSX.Element {
                     </div>
                   </div>
 
-                  <div>
-                    <label
-                      htmlFor="staff-password"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
-                      {t('auth.passwordLabel')}
-                    </label>
-                    <div className="relative mt-1.5">
-                      <Lock className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
-                      <input
-                        id="staff-password"
-                        type="password"
-                        required
-                        value={staffPassword}
-                        onChange={e => setStaffPassword(e.target.value)}
-                        placeholder={t('auth.passwordPlaceholder')}
-                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
-                      />
-                    </div>
-                  </div>
-
                   <button
                     type="submit"
                     disabled={staffLoading}
                     className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
                   >
-                    {staffLoading ? t('common.loading') : t('common.signIn')}
+                    {staffLoading ? t('auth.sendingOtp') : t('auth.sendStaffOtp')}
                   </button>
                 </form>
               ) : (
