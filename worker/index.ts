@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
 import versionData from '../public/version.json';
+import { filesRouter, adminStorageHandler } from './routes/files';
 
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -35,6 +36,10 @@ app.get('/api/health', async (c) => {
     return c.json({ ok: false, db: 'error', error: message, status: 'error' }, 500);
   }
 });
+
+// D1 File storage routes
+app.route('/api/files', filesRouter);
+app.get('/api/admin/storage', adminStorageHandler);
 
 // 404 handler for API routes
 app.notFound((c) => {
