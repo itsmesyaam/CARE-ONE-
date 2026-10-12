@@ -17,5 +17,18 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-explicit-any': 'error',
     },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['worker/data/files.ts', 'tests/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name='FILES_DB']",
+          message: 'Direct access to FILES_DB is restricted to worker/data/files.ts only.',
+        },
+      ],
+    },
   }
 );

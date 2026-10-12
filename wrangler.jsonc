@@ -16,6 +16,12 @@
       "database_name": "careone-db",
       "database_id": "6f8e95cb-25df-434e-9b6b-c4dd18b91f2d",
       "migrations_dir": "migrations"
+    },
+    {
+      "binding": "FILES_DB",
+      "database_name": "careone-files",
+      "database_id": "6e4542af-f012-4c16-8e9b-5287427d177e",
+      "migrations_dir": "migrations-files"
     }
   ],
   "queues": {

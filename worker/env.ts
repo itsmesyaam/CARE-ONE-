@@ -2,7 +2,7 @@
 
 export interface WorkerEnv {
   DB: D1Database;
-  FILES?: R2Bucket;
+  FILES_DB: D1Database;
   REMINDERS: Queue<unknown>;
   CODE_LIMIT?: {
     limit(options: { key: string }): Promise<{ success: boolean }>;

@@ -13,7 +13,7 @@ describe('Cloudflare Worker Shell: /api/health & Security Headers', () => {
 
   const mockEnv: WorkerEnv = {
     DB: mockDb,
-    FILES: {} as unknown as R2Bucket,
+    FILES_DB: mockDb,
     REMINDERS: {} as unknown as Queue<unknown>,
   };
 
