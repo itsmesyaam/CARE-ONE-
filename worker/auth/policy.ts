@@ -148,13 +148,19 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
       .bind(actorId)
       .first<{ id: string }>();
 
+    const accessRow = await c.env.DB.prepare(
+      `SELECT user_id FROM patient_access WHERE (patient_id = ? OR user_id = ?) AND revoked_at IS NULL`
+    )
+      .bind(actorId, actorId)
+      .first<{ user_id: string }>();
+
     return {
       id: actorId,
-      userId: actorId,
+      userId: accessRow?.user_id || actorId,
       role,
       aal: 'aal1',
       departmentId: null,
-      isActive: Boolean(patientRow || actorId),
+      isActive: Boolean(patientRow || accessRow || actorId),
     };
   }
 
@@ -208,10 +214,13 @@ export async function canPatientAccessRecord(
   // Check guardian or caregiver link in patient_access
   const access = await db
     .prepare(
-      `SELECT id FROM patient_access
-       WHERE patient_id = ? AND user_id = ? AND revoked_at IS NULL`
+      `SELECT pa.id FROM patient_access pa
+       LEFT JOIN patient_access self_pa ON self_pa.user_id = pa.user_id
+       WHERE pa.patient_id = ?
+         AND (pa.user_id = ? OR self_pa.patient_id = ?)
+         AND pa.revoked_at IS NULL`
     )
-    .bind(targetPatientId, actorId)
+    .bind(targetPatientId, actorId, actorId)
     .first();
 
   return Boolean(access);

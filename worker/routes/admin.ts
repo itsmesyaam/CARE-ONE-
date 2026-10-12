@@ -199,3 +199,5 @@ staffRouter.post(
     return c.json({ ok: true, user_id: userId, staff_id: staffId }, 201);
   })
 );
+
+adminRouter.route('/staff', staffRouter);
