@@ -4,6 +4,9 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-11",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
