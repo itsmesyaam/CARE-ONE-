@@ -3,12 +3,15 @@ import worker, { app } from '../../worker/index';
 import type { WorkerEnv } from '../../worker/env';
 
 describe('Cloudflare Worker Shell: /api/health & Security Headers', () => {
+  const createMockStmt = () => ({
+    bind: () => createMockStmt(),
+    first: async <T>() => ({ ok: 1 }) as T,
+    all: async () => ({ results: [{ ok: 1 }] }),
+    run: async () => ({ success: true }),
+  });
+
   const mockDb = {
-    prepare: () => ({
-      first: async <T>() => ({ ok: 1 }) as T,
-      all: async () => ({ results: [{ ok: 1 }] }),
-      run: async () => ({ success: true }),
-    }),
+    prepare: () => createMockStmt(),
   } as unknown as D1Database;
 
   const mockEnv: WorkerEnv = {

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
 import versionData from '../public/version.json';
 import { filesRouter, adminStorageHandler } from './routes/files';
+import { processReminders } from './services/reminders';
 
 export const app = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -64,12 +65,14 @@ export default {
 
   async scheduled(
     _event?: ScheduledEvent,
-    _env?: WorkerEnv,
+    env?: WorkerEnv,
     _ctx?: ExecutionContext
   ): Promise<void> {
     void _event;
-    void _env;
     void _ctx;
+    if (env) {
+      await processReminders(env);
+    }
   },
 
   async queue(
