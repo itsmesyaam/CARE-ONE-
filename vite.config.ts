@@ -16,13 +16,15 @@ try {
 const buildTime = new Date().toISOString();
 
 try {
+  const pkgPath = path.resolve(import.meta.dirname, 'package.json');
+  const pkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || '0.1.1';
   const publicDir = path.resolve(import.meta.dirname, 'public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
   fs.writeFileSync(
     path.join(publicDir, 'version.json'),
-    JSON.stringify({ version: '0.1.0', commit: commitHash, buildTime }, null, 2)
+    JSON.stringify({ version: pkgVersion, commit: commitHash, buildTime }, null, 2)
   );
 } catch {}
 
