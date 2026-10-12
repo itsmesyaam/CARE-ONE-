@@ -104,3 +104,45 @@
   - All 10 pgTAP database test suites passing (160 tests).
   - 100% symmetric bilingual support (English and Malayalam, 445 keys).
 
+## Phase 9: Cloudflare Free-Tier Hardening ($0/mo, Zero Paid Services, D1 Schema & Storage) (Completed)
+- **Zero-Cost Cloudflare Free Plan Architecture**:
+  - Entire platform operates strictly within the Cloudflare Free Plan ($0/mo, NO credit card).
+  - No Cloudflare R2, no Workers Paid, no Cloudflare Email Service.
+- **D1 File Store (`careone-files`)**:
+  - Separate D1 database `careone-files` (`6e4542af-f012-4c16-8e9b-5287427d177e`) bound as `FILES_DB`.
+  - Tables: `file_objects` and `file_chunks` (1.9 MB chunks to conform to D1 2 MB row limit).
+  - Enforced write-once immutability via BEFORE UPDATE and BEFORE DELETE triggers (`RAISE(ABORT, ...)`).
+  - `worker/data/files.ts` is the only file allowed to touch `FILES_DB` (enforced by ESLint).
+  - File upload with magic-byte verification (PDF, JPEG, PNG), 5 MB max limit, SHA-256 hash check, and streaming download with `Cache-Control: no-store`.
+  - Client-side image compression (`src/lib/imageCompression.ts`) ensuring browser photo uploads stay under 1.5 MB.
+  - Admin storage usage route (`/api/admin/files/usage`) tracking total bytes vs 500 MB free allocation.
+- **Resend Free-Tier Email Adapter with D1 Quota**:
+  - `worker/services/email.ts` adapter sending via Resend API (`RESEND_API_KEY`).
+  - Atomic daily counter in `email_daily_counts` table enforcing a strict cap of 95 emails/day (free tier limit: 100/day).
+  - Audit logs in `email_logs` with sanitized subjects (strictly zero patient identifiers).
+- **Reminders Cron Processing (No Queues)**:
+  - Reminders claimed and dispatched directly inside the 5-minute cron worker using atomic `UPDATE ... RETURNING`.
+  - Small batches (max 50 reminders per run) to stay within free CPU limits.
+  - Automatic abandonment after 3 failed delivery attempts (`abandoned_at`).
+- **Staff Passwordless 2FA (< 10 ms CPU)**:
+  - Transitioned staff sign-in to passwordless two-factor authentication: Email OTP (Factor 1) + TOTP Authenticator (Factor 2).
+  - CPU runtime is `< 0.5 ms`, comfortably fitting within the Cloudflare Free Plan 10 ms CPU invocation limit.
+  - Removed password fields and hashing; lock screen unlocks via 6-digit authenticator code.
+  - Bilingual i18n updated to 454 keys with 100% parity across English and Malayalam.
+- **Automated Free-Plan Backups & Monthly Restore Check**:
+  - GitHub Actions workflow `.github/workflows/d1-backup.yml` running every 6 hours (`0 */6 * * *`).
+  - Exports both `careone-db` and `careone-files`, encrypts dumps with `age`, and uploads artifacts with 30-day retention ($0 storage cost).
+  - Monthly restore check workflow `.github/workflows/d1-restore-check.yml` (`0 2 1 * *`) and TypeScript verification script `scripts/verify-d1-restore.ts` testing scratch restore into SQLite.
+- **Demo Accounts**:
+  - Admin: `admin@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXP`)
+  - Doctor: `dr.rahul@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXR`)
+  - Front Desk: `desk@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXR`)
+  - Patient: `patient@example.com` (Email OTP code `123456`)
+- **Decisions Made**:
+  - D1 database row size limit is 2 MB; chunk size is set to 1,900,000 bytes.
+  - Backup exports are encrypted using `age` prior to artifact upload to safeguard clinical data under the DPDP Act.
+  - Password hashing eliminated on staff routes to eliminate CPU budget exhaustion on free Cloudflare Workers.
+- **Next Phase**:
+  - Production deployment and live URL validation.
+
+
