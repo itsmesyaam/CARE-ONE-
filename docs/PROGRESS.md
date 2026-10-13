@@ -104,45 +104,59 @@
   - All 10 pgTAP database test suites passing (160 tests).
   - 100% symmetric bilingual support (English and Malayalam, 445 keys).
 
-## Phase 9: Cloudflare Free-Tier Hardening ($0/mo, Zero Paid Services, D1 Schema & Storage) (Completed)
-- **Zero-Cost Cloudflare Free Plan Architecture**:
-  - Entire platform operates strictly within the Cloudflare Free Plan ($0/mo, NO credit card).
-  - No Cloudflare R2, no Workers Paid, no Cloudflare Email Service.
-- **D1 File Store (`careone-files`)**:
-  - Separate D1 database `careone-files` (`6e4542af-f012-4c16-8e9b-5287427d177e`) bound as `FILES_DB`.
-  - Tables: `file_objects` and `file_chunks` (1.9 MB chunks to conform to D1 2 MB row limit).
-  - Enforced write-once immutability via BEFORE UPDATE and BEFORE DELETE triggers (`RAISE(ABORT, ...)`).
-  - `worker/data/files.ts` is the only file allowed to touch `FILES_DB` (enforced by ESLint).
-  - File upload with magic-byte verification (PDF, JPEG, PNG), 5 MB max limit, SHA-256 hash check, and streaming download with `Cache-Control: no-store`.
-  - Client-side image compression (`src/lib/imageCompression.ts`) ensuring browser photo uploads stay under 1.5 MB.
-  - Admin storage usage route (`/api/admin/files/usage`) tracking total bytes vs 500 MB free allocation.
-- **Resend Free-Tier Email Adapter with D1 Quota**:
-  - `worker/services/email.ts` adapter sending via Resend API (`RESEND_API_KEY`).
-  - Atomic daily counter in `email_daily_counts` table enforcing a strict cap of 95 emails/day (free tier limit: 100/day).
-  - Audit logs in `email_logs` with sanitized subjects (strictly zero patient identifiers).
-- **Reminders Cron Processing (No Queues)**:
-  - Reminders claimed and dispatched directly inside the 5-minute cron worker using atomic `UPDATE ... RETURNING`.
-  - Small batches (max 50 reminders per run) to stay within free CPU limits.
-  - Automatic abandonment after 3 failed delivery attempts (`abandoned_at`).
-- **Staff Passwordless 2FA (< 10 ms CPU)**:
-  - Transitioned staff sign-in to passwordless two-factor authentication: Email OTP (Factor 1) + TOTP Authenticator (Factor 2).
-  - CPU runtime is `< 0.5 ms`, comfortably fitting within the Cloudflare Free Plan 10 ms CPU invocation limit.
-  - Removed password fields and hashing; lock screen unlocks via 6-digit authenticator code.
-  - Bilingual i18n updated to 454 keys with 100% parity across English and Malayalam.
-- **Automated Free-Plan Backups & Monthly Restore Check**:
-  - GitHub Actions workflow `.github/workflows/d1-backup.yml` running every 6 hours (`0 */6 * * *`).
-  - Exports both `careone-db` and `careone-files`, encrypts dumps with `age`, and uploads artifacts with 30-day retention ($0 storage cost).
-  - Monthly restore check workflow `.github/workflows/d1-restore-check.yml` (`0 2 1 * *`) and TypeScript verification script `scripts/verify-d1-restore.ts` testing scratch restore into SQLite.
-- **Demo Accounts**:
-  - Admin: `admin@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXP`)
-  - Doctor: `dr.rahul@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXR`)
-  - Front Desk: `desk@example.com` (Email OTP + TOTP secret `JBSWY3DPEHPK3PXR`)
-  - Patient: `patient@example.com` (Email OTP code `123456`)
-- **Decisions Made**:
-  - D1 database row size limit is 2 MB; chunk size is set to 1,900,000 bytes.
-  - Backup exports are encrypted using `age` prior to artifact upload to safeguard clinical data under the DPDP Act.
-  - Password hashing eliminated on staff routes to eliminate CPU budget exhaustion on free Cloudflare Workers.
+## Phase 9: Cloudflare Free-Tier Hardening, Generic Router Elimination & Live Verification (Completed)
+- **Zero-Cost Cloudflare Free Plan Architecture ($0/mo, NO Card, NO R2, NO Workers Paid)**:
+  - Deployed on Cloudflare Worker (`https://care-one.syam18official.workers.dev`) and Cloudflare Pages.
+  - Bound to remote D1 databases: `careone-db` (`6f8e95cb-25df-434e-9b6b-c4dd18b91f2d`) and `careone-files` (`6e4542af-f012-4c16-8e9b-5287427d177e`).
+- **Generic Data Router Elimination (AGENTS.md Strict Compliance)**:
+  - Completely removed `worker/routes/data.ts` and `QueryBuilder` in `src/lib/client.ts`.
+  - Replaced by dedicated, strongly-typed endpoints wrapped in `withPolicy`:
+    - Front Desk: `GET /api/desk/patients`, `POST /api/desk/patients`, `POST /api/desk/appointments`
+    - Doctor: `GET /api/doctor/today`, `GET /api/doctor/patients`, `GET /api/doctor/patients/:id/chart`, `GET /api/doctor/patients/:id/what-changed`, `POST /api/doctor/encounters/sign`, `POST /api/doctor/encounters/:id/addendum`, `POST /api/doctor/patients/:id/emergency-access`
+    - Patient/Guardian: `GET /api/patient/home`, `GET /api/patient/records`, `GET /api/patient/appointments`, `GET /api/patient/care-plan`, `POST /api/patient/readings`, `POST /api/patient/symptoms`
+    - Admin: `GET /api/admin/dashboard`, `GET /api/admin/audit-logs`, `GET /api/admin/storage`, `GET /api/admin/email/usage`, `GET/POST /api/departments`, `GET/POST /api/staff`
+    - File Storage: `POST /api/files/upload`, `GET /api/files/:id/download`
+  - Verified with `tests/worker/no-raw-queries.test.ts` (fails if any route accepts raw table/column/filter parameters).
+- **8-Role Full Access Matrix & Attack Testing**:
+  - Validated across all 8 roles: Patient Arun, Guardian Sujatha, Doctor Rahul, Specialist Anjali, Unlinked Doctor Thomas, Front Desk Anjali, Admin Anand, and Doctor without MFA (`aal1`).
+  - Attack tests confirmed:
+    - ID spoofing across patients returns 404 (prevents existence probing under India's DPDP Act).
+    - Unlinked guardian child access returns 404.
+    - Unlinked doctor chart access returns 404 until break-glass 4h emergency access is granted.
+    - Staff missing MFA (`aal1`) returns 401 `mfa_required`.
+    - Desk & Admin clinical access attempts return 404/403.
+    - Admin JSON responses recursively scanned: exactly 0 clinical fields returned.
+    - Restricted psychiatric clinical notes visible only to the authoring department.
+- **Sign-In Hardening & Session Invariants**:
+  - Fixed demo OTP "123456" permitted ONLY when `ENVIRONMENT=local`; strictly rejected (401) on production Worker.
+  - Production OTPs generated via `crypto.getRandomValues`, single-use, 10-minute expiry, locked for 15 minutes after 5 failed attempts.
+  - Staff daily email quota reserved: last 20 emails of 95/day limit reserved for staff sign-in; 75% warning banner shown to admins.
+  - JWT session lifetimes: max 12 hours for staff, max 30 days for patients. Cookie: `HttpOnly; Secure; SameSite=Strict`.
+  - Immediate lockout on deactivated staff and sign-out-everywhere enabled via `token_version` column in `staff` and `patients`.
+- **Live Proof on Production URL (`https://care-one.syam18official.workers.dev`)**:
+  - `/api/health`: 200 OK (`commit: "96d35337"`, `d1: true`).
+  - `/version.json`: 200 OK (`version: "0.1.1"`, matching commit).
+  - Fixed code "123456": 401 rejected live.
+  - Generic `/api/data`: 404 rejected live.
+  - Front Desk (Anjali Nair): Registered test patient (`ABC-4804`) and booked appointment.
+  - Doctor (Dr. Rahul Menon): Opened chart, what-changed, signed immutable note, edit attempt returned 404, created addendum.
+  - Unlinked Doctor (Dr. Thomas Varghese): Chart access returned 404; emergency access granted 4h access (logged); chart opened 200 OK.
+  - Arun Kumar: Uploaded 1 MB PDF and downloaded back byte-for-byte identical (SHA-256 match `2c0b82fa...`).
+  - Guardian (Sujatha Nair): Accessed self record, switched to child Baby Meenakshi (200 OK), unlinked patient returned 404.
+  - Admin (Anand Verma): Dashboard counts, audit logs, and storage metrics returned with 0 clinical fields leaked.
+- **Final Demo Accounts**:
+  - Admin: `admin@example.com` (TOTP secret: `JBSWY3DPEHPK3PXP`)
+  - Front Desk: `desk@example.com` (TOTP secret: `JBSWY3DPEHPK3PXR`)
+  - Doctor (General Medicine): `dr.rahul@example.com` (TOTP secret: `JBSWY3DPEHPK3PXR`)
+  - Specialist (Cardiology): `dr.anjali@example.com` (TOTP secret: `JBSWY3DPEHPK3PXR`)
+  - Unlinked Doctor (Orthopedics): `thomas@example.com` (TOTP secret: `JBSWY3DPEHPK3PXR`)
+  - Patient (Self): Phone `9847000001` (Arun Kumar)
+  - Guardian: Phone `9847000002` (Sujatha Nair, guardian to Baby Meenakshi)
+- **Known Gaps**:
+  - Cloudflare Workers Free CPU limit is 10 ms; all current route handlers execute in < 2 ms.
+  - External SMS and WhatsApp gateways excluded from V1 scope by specification.
 - **Next Phase**:
-  - Production deployment and live URL validation.
+  - Phase 10 / Final Release sign-off, merge to `main`, and Cloudflare Pages production deployment.
+
 
 
