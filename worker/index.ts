@@ -3,6 +3,7 @@ import type { WorkerEnv } from './env';
 import versionData from '../public/version.json';
 import { filesRouter, adminStorageHandler } from './routes/files';
 import { authRouter } from './routes/auth';
+import { passkeyRouter } from './routes/passkey';
 import { processReminders } from './services/reminders';
 import { getEmailUsage } from './services/email';
 
@@ -45,7 +46,10 @@ app.get('/api/health', async (c) => {
   }
 });
 
-// Auth and OTP verification routes
+// Passkeys and Auth routes
+app.route('/api/auth/passkey', passkeyRouter);
+app.route('/api/auth/passkeys', passkeyRouter);
+app.route('/api/auth', passkeyRouter);
 app.route('/api/auth', authRouter);
 
 // D1 File storage routes

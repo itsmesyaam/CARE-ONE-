@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
 import { withPolicy } from '../auth/policy';
 import { sendEmail } from '../services/email';
+import { hashToken } from './passkey';
 
 export const deskRouter = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -199,3 +200,77 @@ deskRouter.post(
     return c.json({ ok: true, access_id: accessId, user_id: userId });
   })
 );
+
+// POST /api/desk/patients/:id/setup-link (Generate 30m onboarding passkey setup token)
+deskRouter.post(
+  '/patients/:id/setup-link',
+  withPolicy({ allowedRoles: ['front_desk', 'admin'], requireAal2: true }, async (c, principal) => {
+    const patientId = c.req.param('id');
+    const patient = await c.env.DB.prepare(
+      'SELECT id, full_name, uhid FROM patients WHERE id = ? AND deleted_at IS NULL'
+    )
+      .bind(patientId)
+      .first<{ id: string; full_name: string; uhid: string }>();
+
+    if (!patient) {
+      return c.json({ error: 'Patient not found' }, 404);
+    }
+
+    // Generate random 32-byte crypto token (hex string of 64 chars)
+    const rawBytes = new Uint8Array(32);
+    crypto.getRandomValues(rawBytes);
+    const token = Array.from(rawBytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const tokenHash = await hashToken(token);
+    const tokenId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes
+
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at)
+         VALUES (?, ?, ?, 'patient', ?, ?)`
+      ).bind(tokenId, patientId, tokenHash, principal.id, expiresAt),
+      c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, patient_id)
+         VALUES (datetime('now'), ?, 'SETUP_LINK_CREATED', 'setup_tokens', ?, ?)`
+      ).bind(principal.id, tokenId, patientId),
+    ]);
+
+    return c.json(
+      {
+        ok: true,
+        token,
+        setup_url: `/setup?token=${token}`,
+        expires_at: expiresAt,
+        patient: {
+          id: patient.id,
+          full_name: patient.full_name,
+          uhid: patient.uhid,
+        },
+      },
+      201
+    );
+  })
+);
+
+// POST /api/desk/patients/:id/revoke-passkeys (Revoke all active passkeys for patient)
+deskRouter.post(
+  '/patients/:id/revoke-passkeys',
+  withPolicy({ allowedRoles: ['front_desk', 'admin'], requireAal2: true }, async (c, principal) => {
+    const patientId = c.req.param('id');
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE passkeys SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL`
+      ).bind(patientId),
+      c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, patient_id)
+         VALUES (datetime('now'), ?, 'PASSKEY_REVOKED', 'passkeys', ?)`
+      ).bind(principal.id, patientId),
+    ]);
+
+    return c.json({ ok: true, message: 'All active passkeys for patient have been revoked' });
+  })
+);
+

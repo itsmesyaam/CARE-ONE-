@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
 import { withPolicy } from '../auth/policy';
+import { hashToken } from './passkey';
 
 export const adminRouter = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -200,4 +201,77 @@ staffRouter.post(
   })
 );
 
+// POST /api/admin/staff/:id/setup-link (Generate passkey onboarding link for staff)
+staffRouter.post(
+  '/:id/setup-link',
+  withPolicy({ allowedRoles: ['admin'], requireAal2: true }, async (c, principal) => {
+    const staffId = c.req.param('id');
+    const staffMember = await c.env.DB.prepare(
+      'SELECT id, full_name, role, user_id FROM staff WHERE id = ? AND deleted_at IS NULL'
+    )
+      .bind(staffId)
+      .first<{ id: string; full_name: string; role: string; user_id: string }>();
+
+    if (!staffMember) {
+      return c.json({ error: 'Staff member not found' }, 404);
+    }
+
+    const rawBytes = new Uint8Array(32);
+    crypto.getRandomValues(rawBytes);
+    const token = Array.from(rawBytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const tokenHash = await hashToken(token);
+    const tokenId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at)
+         VALUES (?, ?, ?, 'staff', ?, ?)`
+      ).bind(tokenId, staffId, tokenHash, principal.id, expiresAt),
+      c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id)
+         VALUES (datetime('now'), ?, 'SETUP_LINK_CREATED', 'setup_tokens', ?)`
+      ).bind(principal.id, tokenId),
+    ]);
+
+    return c.json(
+      {
+        ok: true,
+        token,
+        setup_url: `/staff/setup?token=${token}`,
+        expires_at: expiresAt,
+        staff: {
+          id: staffMember.id,
+          full_name: staffMember.full_name,
+          role: staffMember.role,
+        },
+      },
+      201
+    );
+  })
+);
+
+// POST /api/admin/staff/:id/revoke-passkeys (Revoke all active passkeys for staff member)
+staffRouter.post(
+  '/:id/revoke-passkeys',
+  withPolicy({ allowedRoles: ['admin'], requireAal2: true }, async (c, principal) => {
+    const staffId = c.req.param('id');
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE passkeys SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL`
+      ).bind(staffId),
+      c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id)
+         VALUES (datetime('now'), ?, 'PASSKEY_REVOKED', 'passkeys', ?)`
+      ).bind(principal.id, staffId),
+    ]);
+
+    return c.json({ ok: true, message: 'All active passkeys for staff member have been revoked' });
+  })
+);
+
 adminRouter.route('/staff', staffRouter);
+
