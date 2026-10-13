@@ -13,4 +13,6 @@ export interface WorkerEnv {
   APP_ENV?: string;
   ENVIRONMENT?: string;
   JWT_SECRET?: string;
+  RP_ID?: string;
+  ORIGIN?: string;
 }
