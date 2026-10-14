@@ -130,7 +130,19 @@ export function ForcePasswordChangeModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <form method="post" action="#" onSubmit={handleSubmit} className="mt-5 space-y-4">
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            value={username || ''}
+            readOnly
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+
           <div>
             <label
               htmlFor="current-password"
@@ -141,7 +153,9 @@ export function ForcePasswordChangeModal({
             <div className="relative">
               <input
                 id="current-password"
+                name="currentPassword"
                 type={showCurrent ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
@@ -169,7 +183,9 @@ export function ForcePasswordChangeModal({
             <div className="relative">
               <input
                 id="new-password"
+                name="newPassword"
                 type={showNew ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
@@ -198,7 +214,9 @@ export function ForcePasswordChangeModal({
             <div className="relative">
               <input
                 id="confirm-password"
+                name="confirmPassword"
                 type={showConfirm ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { BuildStamp } from '../../components/BuildStamp';
 import { ForcePasswordChangeModal } from '../../components/auth/ForcePasswordChangeModal';
+import { storeBrowserPasswordCredential } from '../../lib/auth-credentials';
 
 export interface StaffSignInProps {
   onUnlock?: () => void;
@@ -86,6 +87,7 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
         return;
       }
 
+      void storeBrowserPasswordCredential(email, password);
       setSuccess(true);
       setTimeout(() => {
         if (onUnlock) {
@@ -174,17 +176,21 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
             </div>
           )}
 
-          <form onSubmit={handleSignIn} className="mt-6 space-y-4">
+          <form method="post" action="#" onSubmit={handleSignIn} className="mt-6 space-y-4">
             <div>
               <label
-                htmlFor="staff-email"
+                htmlFor="username"
                 className="block text-xs font-bold text-[#0B1533] uppercase tracking-wider mb-1.5"
               >
                 {t('staffAuth.email', 'Email')}
               </label>
               <input
-                id="staff-email"
+                id="username"
+                name="username"
                 type="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck="false"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -195,15 +201,17 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
 
             <div>
               <label
-                htmlFor="staff-password"
+                htmlFor="password"
                 className="block text-xs font-bold text-[#0B1533] uppercase tracking-wider mb-1.5"
               >
                 {t('staffAuth.password', 'Password')}
               </label>
               <div className="relative">
                 <input
-                  id="staff-password"
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

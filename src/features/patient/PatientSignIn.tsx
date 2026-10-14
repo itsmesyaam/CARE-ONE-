@@ -13,6 +13,7 @@ import {
 import { usePatient } from './PatientContext';
 import { BuildStamp } from '../../components/BuildStamp';
 import { ForcePasswordChangeModal } from '../../components/auth/ForcePasswordChangeModal';
+import { storeBrowserPasswordCredential } from '../../lib/auth-credentials';
 
 export function PatientSignIn(): React.JSX.Element {
   const { lang, setLang, go } = usePatient();
@@ -79,6 +80,7 @@ export function PatientSignIn(): React.JSX.Element {
         return;
       }
 
+      void storeBrowserPasswordCredential(username, password);
       setSuccess(true);
       setTimeout(() => {
         go('app');
@@ -160,17 +162,21 @@ export function PatientSignIn(): React.JSX.Element {
             </div>
           )}
 
-          <form onSubmit={handleSignIn} className="mt-6 space-y-4">
+          <form method="post" action="#" onSubmit={handleSignIn} className="mt-6 space-y-4">
             <div>
               <label
-                htmlFor="patient-uhid"
+                htmlFor="username"
                 className="block text-xs font-bold text-[#0B1533] uppercase tracking-wider mb-1.5"
               >
                 {lang === 'ml' ? 'ഹോസ്പിറ്റൽ നമ്പർ അല്ലെങ്കിൽ ഫോൺ' : 'Hospital number or phone'}
               </label>
               <input
-                id="patient-uhid"
+                id="username"
+                name="username"
                 type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck="false"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -181,15 +187,17 @@ export function PatientSignIn(): React.JSX.Element {
 
             <div>
               <label
-                htmlFor="patient-password"
+                htmlFor="password"
                 className="block text-xs font-bold text-[#0B1533] uppercase tracking-wider mb-1.5"
               >
                 {lang === 'ml' ? 'പാസ്‌വേഡ്' : 'Password'}
               </label>
               <div className="relative">
                 <input
-                  id="patient-password"
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
