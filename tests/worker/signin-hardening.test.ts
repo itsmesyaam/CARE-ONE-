@@ -15,6 +15,7 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
   const schemaPasskeysPath = path.resolve(__dirname, '../../migrations/0009_passkeys.sql');
   const schemaHardeningPath = path.resolve(__dirname, '../../migrations/0010_passkeys_and_tokens_hardening.sql');
   const schemaDropOtpsPath = path.resolve(__dirname, '../../migrations/0011_drop_auth_otps.sql');
+  const schemaStaffEmailPath = path.resolve(__dirname, '../../migrations/0012_staff_email.sql');
   const seedPath = path.resolve(__dirname, '../../seed/seed.sql');
 
   let dbSqlite: DatabaseSync;
@@ -102,6 +103,9 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
     }
     if (fs.existsSync(seedPath)) {
       dbSqlite.exec(fs.readFileSync(seedPath, 'utf8'));
+    }
+    if (fs.existsSync(schemaStaffEmailPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaStaffEmailPath, 'utf8'));
     }
 
     mockEnv = {

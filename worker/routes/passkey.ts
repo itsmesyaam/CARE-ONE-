@@ -89,23 +89,29 @@ passkeyRouter.post('/register/options', async (c) => {
   // Look up user details
   let userName = setupToken.user_id;
   let userDisplayName = 'CareOne User';
+  let userEmail: string | undefined;
+  let userRole: string | undefined;
 
   const isPatientSetup = setupToken.purpose === 'patient' || setupToken.purpose === 'patient_setup';
   if (isPatientSetup) {
-    const patient = await c.env.DB.prepare('SELECT full_name, uhid FROM patients WHERE id = ?')
+    const patient = await c.env.DB.prepare('SELECT full_name, uhid, email FROM patients WHERE id = ?')
       .bind(setupToken.user_id)
-      .first<{ full_name: string; uhid: string }>();
+      .first<{ full_name: string; uhid: string; email?: string }>();
     if (patient) {
       userName = patient.uhid || patient.full_name;
       userDisplayName = patient.full_name;
+      userEmail = patient.email;
+      userRole = 'patient';
     }
   } else {
-    const staff = await c.env.DB.prepare('SELECT full_name, user_id FROM staff WHERE id = ?')
+    const staff = await c.env.DB.prepare('SELECT id, full_name, user_id, email, role FROM staff WHERE id = ?')
       .bind(setupToken.user_id)
-      .first<{ full_name: string; user_id: string }>();
+      .first<{ id: string; full_name: string; user_id: string; email?: string; role: string }>();
     if (staff) {
       userName = staff.user_id || staff.full_name;
       userDisplayName = staff.full_name;
+      userEmail = staff.email;
+      userRole = staff.role;
     }
   }
 
@@ -137,6 +143,8 @@ passkeyRouter.post('/register/options', async (c) => {
     user_id: setupToken.user_id,
     purpose: setupToken.purpose,
     displayName: userDisplayName,
+    email: userEmail,
+    role: userRole,
   });
 });
 
@@ -233,7 +241,19 @@ passkeyRouter.post('/register/verify', async (c) => {
 
   // Issue session token
   const isPatient = setupToken.purpose === 'patient' || setupToken.purpose === 'patient_setup';
+  let staffRecord: { role: string; department_id: string | null; email?: string } | null = null;
+  if (!isPatient) {
+    staffRecord = await c.env.DB.prepare('SELECT role, department_id, email FROM staff WHERE id = ?')
+      .bind(setupToken.user_id)
+      .first<{ role: string; department_id: string | null; email?: string }>();
+  }
+
+  const role = isPatient ? 'patient' : (staffRecord?.role || 'doctor');
   const maxAge = isPatient ? 30 * 24 * 3600 : 12 * 3600;
+  // AGENTS.md invariant: Staff passkey satisfies Factor 1 -> issue aal1. Staff requires TOTP factor next before accessing clinical or admin routes.
+  const aal = 'aal1';
+  const requireTotp = !isPatient;
+
   let token: string | undefined;
 
   if (c.env.JWT_SECRET) {
@@ -241,8 +261,9 @@ passkeyRouter.post('/register/verify', async (c) => {
       {
         sub: setupToken.user_id,
         id: setupToken.user_id,
-        role: isPatient ? 'patient' : 'doctor',
-        aal: isPatient ? 'aal1' : 'aal2',
+        role,
+        aal,
+        department_id: staffRecord?.department_id || null,
         token_version: 1,
         exp: Math.floor(Date.now() / 1000) + maxAge,
       },
@@ -254,13 +275,27 @@ passkeyRouter.post('/register/verify', async (c) => {
     );
   }
 
+  let totpUri: string | undefined;
+  let totpSecret: string | undefined;
+
+  if (requireTotp && staffRecord?.email) {
+    totpSecret = staffRecord.email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
+    totpUri = `otpauth://totp/CareOne:${encodeURIComponent(staffRecord.email)}?secret=${totpSecret}&issuer=CareOne`;
+  }
+
   return c.json({
     ok: true,
     passkey_id: passkeyId,
     token,
+    role,
+    require_totp: requireTotp,
+    totp_uri: totpUri,
+    totp_secret: totpSecret,
+    email: staffRecord?.email,
     user: {
       id: setupToken.user_id,
       purpose: setupToken.purpose,
+      role,
     },
   });
 });

@@ -102,10 +102,10 @@ authRouter.post('/mfa/verify', async (c) => {
     `SELECT id, role, department_id, is_active, token_version
      FROM staff
      WHERE deleted_at IS NULL
-       AND (user_id = ? OR phone = ? OR id = ? OR lower(full_name) LIKE ? OR lower(phone) LIKE ?)
+       AND (email = ? OR user_id = ? OR phone = ? OR id = ? OR lower(full_name) LIKE ? OR lower(phone) LIKE ?)
      LIMIT 1`
   )
-    .bind(email, email, email, `%${emailPrefix}%`, `%${emailPrefix}%`)
+    .bind(email, email, email, email, `%${emailPrefix}%`, `%${emailPrefix}%`)
     .first<{
       id: string;
       role: string;
