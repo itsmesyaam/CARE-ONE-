@@ -20,6 +20,7 @@
     "deploy": "npm run build && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "set-password": "npx tsx scripts/set-password.ts",
+    "test:live-auth": "npx tsx scripts/live-auth-proof.ts",
     "i18n:check": "node scripts/check-i18n.js"
   },
   "dependencies": {
