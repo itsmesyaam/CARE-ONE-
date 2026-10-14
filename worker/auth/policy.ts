@@ -4,17 +4,19 @@ import type { WorkerEnv } from '../env';
 export type UserRole = 'patient' | 'guardian' | 'doctor' | 'specialist' | 'front_desk' | 'admin';
 
 export interface Principal {
-  id: string; // staff.id or patients.id
+  id: string; // staff.id, patients.id, or users.record_id
   userId: string;
   role: UserRole;
-  aal: 'aal1' | 'aal2';
+  aal?: 'aal1' | 'aal2';
   departmentId?: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
+  sessionVersion?: number;
 }
 
 export interface PolicyOptions {
   allowedRoles: UserRole[];
-  requireAal2?: boolean;
+  requireAal2?: boolean; // Kept as optional for backwards compatibility
   isClinical?: boolean;
 }
 
@@ -119,7 +121,7 @@ export async function signJwt(payload: Record<string, unknown>, secret: string):
 }
 
 /**
- * Resolves Principal from JWT or test headers, re-checking active status in D1.
+ * Resolves Principal from JWT or test headers, re-checking active status and session version in D1.
  */
 export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promise<Principal | null> {
   const token = extractToken(c);
@@ -127,7 +129,7 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
   let actorId = c.req.header('x-actor-id');
   let role = (c.req.header('x-actor-role') || '') as UserRole;
   let aal = (c.req.header('x-actor-aal') || 'aal2') as 'aal1' | 'aal2';
-  let tokenVersion: number | undefined;
+  let sessionVersion: number | undefined;
 
   if (token && c.env.JWT_SECRET) {
     const payload = await verifyJwt(token, c.env.JWT_SECRET);
@@ -135,8 +137,10 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
       actorId = (payload.sub || payload.id) as string;
       role = (payload.role || role) as UserRole;
       aal = (payload.aal || aal) as 'aal1' | 'aal2';
-      if (typeof payload.token_version === 'number') {
-        tokenVersion = payload.token_version;
+      if (typeof payload.session_version === 'number') {
+        sessionVersion = payload.session_version;
+      } else if (typeof payload.token_version === 'number') {
+        sessionVersion = payload.token_version;
       }
     } else {
       return null;
@@ -147,7 +151,68 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
     return null;
   }
 
-  // Check active status in D1 database
+  // 1. Primary check: Query users table
+  try {
+    const userRow = await c.env.DB.prepare(
+      `SELECT id, username, role, record_id, must_change_password, session_version, is_active
+       FROM users
+       WHERE id = ? OR username = ? COLLATE NOCASE
+       LIMIT 1`
+    )
+      .bind(actorId, actorId)
+      .first<{
+        id: string;
+        username: string;
+        role: string;
+        record_id: string | null;
+        must_change_password: number;
+        session_version: number;
+        is_active: number;
+      }>();
+
+    if (userRow) {
+      if (userRow.is_active !== 1) {
+        return {
+          id: userRow.record_id || userRow.id,
+          userId: userRow.id,
+          role: (userRow.role as UserRole) || role,
+          aal: 'aal2',
+          isActive: false,
+          mustChangePassword: Boolean(userRow.must_change_password),
+          sessionVersion: userRow.session_version,
+        };
+      }
+
+      if (sessionVersion !== undefined && userRow.session_version !== sessionVersion) {
+        return null;
+      }
+
+      let departmentId: string | null = null;
+      if (['doctor', 'specialist', 'front_desk', 'admin'].includes(userRow.role)) {
+        const staffRow = await c.env.DB.prepare(
+          'SELECT department_id FROM staff WHERE id = ? OR user_id = ? LIMIT 1'
+        )
+          .bind(userRow.record_id || userRow.id, userRow.id)
+          .first<{ department_id: string | null }>();
+        departmentId = staffRow?.department_id || null;
+      }
+
+      return {
+        id: userRow.record_id || userRow.id,
+        userId: userRow.id,
+        role: (userRow.role as UserRole) || role,
+        aal: 'aal2',
+        departmentId,
+        isActive: true,
+        mustChangePassword: Boolean(userRow.must_change_password),
+        sessionVersion: userRow.session_version,
+      };
+    }
+  } catch {
+    // If users table is not yet present in some isolated early tests, fall through
+  }
+
+  // 2. Fallback check for staff table
   if (role === 'doctor' || role === 'specialist' || role === 'front_desk' || role === 'admin') {
     const staffRow = await c.env.DB.prepare(
       `SELECT *
@@ -168,7 +233,7 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
       };
     }
 
-    if (tokenVersion !== undefined && staffRow.token_version !== undefined && staffRow.token_version !== tokenVersion) {
+    if (sessionVersion !== undefined && staffRow.token_version !== undefined && staffRow.token_version !== sessionVersion) {
       return null;
     }
 
@@ -182,16 +247,15 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
     };
   }
 
-  // Patient or Guardian
+  // 3. Fallback check for Patient or Guardian
   if (role === 'patient' || role === 'guardian') {
-    // Check if patient exists in DB
     const patientRow = await c.env.DB.prepare(
       `SELECT * FROM patients WHERE id = ? AND deleted_at IS NULL`
     )
       .bind(actorId)
       .first<{ id: string; token_version?: number }>();
 
-    if (tokenVersion !== undefined && patientRow?.token_version !== undefined && patientRow.token_version !== tokenVersion) {
+    if (sessionVersion !== undefined && patientRow?.token_version !== undefined && patientRow.token_version !== sessionVersion) {
       return null;
     }
 
@@ -222,7 +286,6 @@ export async function canDoctorAccessPatient(
   doctorId: string,
   patientId: string
 ): Promise<boolean> {
-  // 1. Care team link
   const careTeam = await db
     .prepare(
       `SELECT id FROM care_team
@@ -234,7 +297,6 @@ export async function canDoctorAccessPatient(
 
   if (careTeam) return true;
 
-  // 2. Active emergency break-glass
   const emergency = await db
     .prepare(
       `SELECT id FROM emergency_access
@@ -258,7 +320,6 @@ export async function canPatientAccessRecord(
     return true;
   }
 
-  // Check guardian or caregiver link in patient_access
   const access = await db
     .prepare(
       `SELECT pa.id FROM patient_access pa
@@ -292,20 +353,27 @@ export function withPolicy(
       return c.json({ error: 'account_inactive', code: 'ACCOUNT_INACTIVE' }, 401);
     }
 
-    // Two-factor enforcement for staff routes
-    const isStaff = ['doctor', 'specialist', 'front_desk', 'admin'].includes(principal.role);
-    const requireAal2 = options.requireAal2 ?? isStaff;
+    // Forced password change barrier:
+    // While must_change_password=1, every route except /api/me/password and logout returns 403 {error: "password_change_required"}
+    const path = c.req.path;
+    const isExempt =
+      path.endsWith('/me/password') ||
+      path.endsWith('/auth/logout') ||
+      path.endsWith('/auth/signout');
 
-    if (requireAal2 && principal.aal !== 'aal2') {
-      return c.json({ error: 'mfa_required', code: 'MFA_REQUIRED' }, 401);
+    if (principal.mustChangePassword && !isExempt) {
+      return c.json(
+        { error: 'password_change_required', code: 'PASSWORD_CHANGE_REQUIRED' },
+        403
+      );
     }
 
-    // Role check
-    const allowed = options.allowedRoles.includes(principal.role) ||
+    // Role check (mfa_required removed per MVP specification)
+    const allowed =
+      options.allowedRoles.includes(principal.role) ||
       (options.allowedRoles.includes('doctor') && principal.role === 'specialist');
 
     if (!allowed) {
-      // DPDP: Clinical endpoints return 404 to non-permitted roles (e.g. admin or desk reading clinical data)
       if (options.isClinical || principal.role === 'admin' || principal.role === 'front_desk') {
         return c.json({ error: 'Not Found' }, 404);
       }

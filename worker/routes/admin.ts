@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
 import { withPolicy } from '../auth/policy';
-import { hashToken } from './passkey';
+import { hashPassword } from '../auth/password';
 
 export const adminRouter = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -201,77 +201,69 @@ staffRouter.post(
   })
 );
 
-// POST /api/admin/staff/:id/setup-link (Generate passkey onboarding link for staff)
+// POST /api/admin/staff/:id/password-reset (Admin resets staff password with temporary password)
 staffRouter.post(
-  '/:id/setup-link',
-  withPolicy({ allowedRoles: ['admin'], requireAal2: true }, async (c, principal) => {
+  '/:id/password-reset',
+  withPolicy({ allowedRoles: ['admin'] }, async (c, principal) => {
     const staffId = c.req.param('id');
     const staffMember = await c.env.DB.prepare(
-      'SELECT id, full_name, role, user_id FROM staff WHERE id = ? AND deleted_at IS NULL'
+      'SELECT id, full_name, role, user_id, email FROM staff WHERE id = ? AND deleted_at IS NULL'
     )
       .bind(staffId)
-      .first<{ id: string; full_name: string; role: string; user_id: string }>();
+      .first<{ id: string; full_name: string; role: string; user_id: string; email?: string }>();
 
     if (!staffMember) {
       return c.json({ error: 'Staff member not found' }, 404);
     }
 
-    const rawBytes = new Uint8Array(32);
+    const username = staffMember.email || staffMember.user_id;
+
+    // Generate secure random 12-character temporary password
+    const rawBytes = new Uint8Array(7);
     crypto.getRandomValues(rawBytes);
-    const token = Array.from(rawBytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const randomSuffix = Array.from(rawBytes)
+      .map((b) => chars[b % chars.length])
       .join('');
+    const tempPassword = `Temp#${randomSuffix}`;
 
-    const tokenHash = await hashToken(token);
-    const tokenId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const { hash, salt, iterations } = await hashPassword(tempPassword);
 
     await c.env.DB.batch([
       c.env.DB.prepare(
-        `INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at)
-         VALUES (?, ?, ?, 'staff_setup', ?, ?)`
-      ).bind(tokenId, staffId, tokenHash, principal.id, expiresAt),
+        `INSERT INTO users (
+           id, username, role, record_id, password_hash, password_salt, password_iterations,
+           must_change_password, session_version, failed_attempts, locked_until, is_active, updated_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 0, NULL, 1, datetime('now'))
+         ON CONFLICT(id) DO UPDATE SET
+           username = excluded.username,
+           role = excluded.role,
+           password_hash = excluded.password_hash,
+           password_salt = excluded.password_salt,
+           password_iterations = excluded.password_iterations,
+           must_change_password = 1,
+           session_version = session_version + 1,
+           failed_attempts = 0,
+           locked_until = NULL,
+           is_active = 1,
+           updated_at = datetime('now')`
+      ).bind(staffMember.id, username, staffMember.role, staffMember.id, hash, salt, iterations),
       c.env.DB.prepare(
         `INSERT INTO audit_log (at, actor_id, action, table_name, record_id)
-         VALUES (datetime('now'), ?, 'SETUP_LINK_CREATED', 'setup_tokens', ?)`
-      ).bind(principal.id, tokenId),
+         VALUES (datetime('now'), ?, 'STAFF_PASSWORD_RESET', 'users', ?)`
+      ).bind(principal.id, staffMember.id),
     ]);
 
-    return c.json(
-      {
-        ok: true,
-        token,
-        setup_url: `/staff/setup?token=${token}`,
-        expires_at: expiresAt,
-        staff: {
-          id: staffMember.id,
-          full_name: staffMember.full_name,
-          role: staffMember.role,
-        },
-      },
-      201
-    );
+    return c.json({
+      ok: true,
+      username,
+      temporary_password: tempPassword,
+      staff_id: staffMember.id,
+    });
   })
 );
 
-// POST /api/admin/staff/:id/revoke-passkeys (Revoke all active passkeys for staff member)
-staffRouter.post(
-  '/:id/revoke-passkeys',
-  withPolicy({ allowedRoles: ['admin'], requireAal2: true }, async (c, principal) => {
-    const staffId = c.req.param('id');
-    await c.env.DB.batch([
-      c.env.DB.prepare(
-        `UPDATE passkeys SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL`
-      ).bind(staffId),
-      c.env.DB.prepare(
-        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id)
-         VALUES (datetime('now'), ?, 'PASSKEY_REVOKED', 'passkeys', ?)`
-      ).bind(principal.id, staffId),
-    ]);
-
-    return c.json({ ok: true, message: 'All active passkeys for staff member have been revoked' });
-  })
-);
 
 adminRouter.route('/staff', staffRouter);
 

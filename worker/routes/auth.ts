@@ -1,199 +1,221 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from '../env';
 import { signJwt, loadPrincipal } from '../auth/policy';
+import {
+  hashPassword,
+  verifyPassword,
+  validatePasswordRules,
+} from '../auth/password';
 
 export const authRouter = new Hono<{ Bindings: WorkerEnv }>();
+export const meRouter = new Hono<{ Bindings: WorkerEnv }>();
 
-function base32ToBytes(base32: string): Uint8Array {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = 0;
-  let value = 0;
-  let index = 0;
-  const clean = base32.toUpperCase().replace(/=+$/, '');
-  const output = new Uint8Array(((clean.length * 5) / 8) | 0);
+interface UserRow {
+  id: string;
+  username: string;
+  role: string;
+  record_id: string | null;
+  password_hash: string;
+  password_salt: string;
+  password_iterations: number;
+  must_change_password: number;
+  failed_attempts: number;
+  locked_until: string | null;
+  password_changed_at: string | null;
+  session_version: number;
+  is_active: number;
+}
 
-  for (let i = 0; i < clean.length; i++) {
-    const char = clean[i];
-    if (!char) continue;
-    const val = alphabet.indexOf(char);
-    if (val === -1) continue;
-    value = (value << 5) | val;
-    bits += 5;
-    if (bits >= 8) {
-      output[index++] = (value >>> (bits - 8)) & 255;
-      bits -= 8;
+function parseSqliteUtc(dateStr: string): number {
+  const iso = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+  return new Date(iso.endsWith('Z') ? iso : `${iso}Z`).getTime();
+}
+
+// POST /api/auth/login
+authRouter.post('/login', async (c) => {
+  const ip =
+    c.req.header('cf-connecting-ip') ||
+    c.req.header('x-forwarded-for') ||
+    '127.0.0.1';
+
+  // Rate limit by IP
+  if (c.env.CODE_LIMIT) {
+    try {
+      const limitRes = await c.env.CODE_LIMIT.limit({ key: `auth_login_${ip}` });
+      if (!limitRes.success) {
+        return c.json({ error: 'Too many sign-in attempts. Please wait a minute.' }, 429);
+      }
+    } catch {
+      // In testing environments without rate limiter binding, continue
     }
   }
 
-  return output.subarray(0, index);
-}
+  const body = await c.req.json<{ username?: string; password?: string }>();
+  const username = body.username?.trim();
+  const password = body.password;
 
-async function generateTotp(secret: string, offsetStep = 0, step = 30): Promise<string> {
-  const keyBytes = base32ToBytes(secret);
-  const epoch = Math.floor(Date.now() / 1000);
-  const counter = Math.floor(epoch / step) + offsetStep;
-  const counterBytes = new Uint8Array(8);
-  let c = BigInt(counter);
-  for (let i = 7; i >= 0; i--) {
-    counterBytes[i] = Number(c & 0xffn);
-    c >>= 8n;
+  if (!username || !password) {
+    return c.json({ error: 'Username and password are required' }, 400);
   }
 
-  const subtle = crypto.subtle;
-  const cryptoKey = await subtle.importKey(
-    'raw',
-    keyBytes as unknown as BufferSource,
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign']
+  // Lookup user in users table (case-insensitive)
+  const user = await c.env.DB.prepare(
+    `SELECT * FROM users WHERE username = ? COLLATE NOCASE LIMIT 1`
+  )
+    .bind(username)
+    .first<UserRow>();
+
+  if (!user) {
+    // Record audit log for failed login attempt
+    await c.env.DB.prepare(
+      `INSERT INTO audit_log (at, actor_id, action, table_name, reason)
+       VALUES (datetime('now'), 'anonymous', 'LOGIN_FAILED', 'users', 'Invalid username or password')`
+    ).run();
+
+    return c.json({ error: 'Invalid username or password' }, 401);
+  }
+
+  // Check 15-minute account lockout
+  if (user.locked_until) {
+    const lockExpiry = parseSqliteUtc(user.locked_until);
+    if (lockExpiry > Date.now()) {
+      await c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, reason)
+         VALUES (datetime('now'), ?, 'LOGIN_FAILED', 'users', ?, 'Account locked')`
+      )
+        .bind(user.id, user.id)
+        .run();
+
+      return c.json(
+        { error: 'Account is temporarily locked due to too many failed attempts. Try again in 15 minutes.' },
+        429
+      );
+    }
+  }
+
+  // Check if account is active
+  if (user.is_active !== 1) {
+    await c.env.DB.prepare(
+      `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, reason)
+       VALUES (datetime('now'), ?, 'LOGIN_FAILED', 'users', ?, 'Account deactivated')`
+    )
+      .bind(user.id, user.id)
+      .run();
+
+    return c.json({ error: 'Account has been deactivated. Contact hospital admin.' }, 403);
+  }
+
+  // Verify password using WebCrypto PBKDF2 in constant time
+  const isMatch = await verifyPassword(
+    password,
+    user.password_hash,
+    user.password_salt,
+    user.password_iterations
   );
 
-  const sig = await subtle.sign('HMAC', cryptoKey, counterBytes);
-  const hmac = new Uint8Array(sig);
-  const lastByte = hmac[hmac.length - 1] ?? 0;
-  const offset = lastByte & 0x0f;
-  const b0 = hmac[offset] ?? 0;
-  const b1 = hmac[offset + 1] ?? 0;
-  const b2 = hmac[offset + 2] ?? 0;
-  const b3 = hmac[offset + 3] ?? 0;
+  if (!isMatch) {
+    const newFailedAttempts = user.failed_attempts + 1;
 
-  const code =
-    (((b0 & 0x7f) << 24) |
-      ((b1 & 0xff) << 16) |
-      ((b2 & 0xff) << 8) |
-      (b3 & 0xff)) %
-    1000000;
+    if (newFailedAttempts >= 5) {
+      // 5 wrong attempts -> lock account for 15 minutes
+      await c.env.DB.batch([
+        c.env.DB.prepare(
+          `UPDATE users
+           SET failed_attempts = ?, locked_until = strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+15 minutes'), updated_at = datetime('now')
+           WHERE id = ?`
+        ).bind(newFailedAttempts, user.id),
+        c.env.DB.prepare(
+          `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, reason)
+           VALUES (datetime('now'), ?, 'ACCOUNT_LOCKED', 'users', ?, 'Locked 15 minutes after 5 failed attempts')`
+        ).bind(user.id, user.id),
+      ]);
 
-  return code.toString().padStart(6, '0');
-}
-
-// POST /api/auth/mfa/verify
-authRouter.post('/mfa/verify', async (c) => {
-  const body = await c.req.json<{ email?: string; code?: string }>();
-  const email = (body.email || 'dr.rahul@example.com').trim().toLowerCase();
-  const code = body.code?.trim();
-
-  if (!code || code.length !== 6) {
-    return c.json({ error: 'Valid 6-digit authenticator code required' }, 400);
-  }
-
-  const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
-  const steps = [0, -1, 1];
-  let valid = false;
-
-  for (const step of steps) {
-    const expected = await generateTotp(secret, step);
-    if (code === expected) {
-      valid = true;
-      break;
+      return c.json(
+        { error: 'Account is temporarily locked due to too many failed attempts. Try again in 15 minutes.' },
+        429
+      );
     }
+
+    // Increment failed attempts
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE users
+         SET failed_attempts = ?, updated_at = datetime('now')
+         WHERE id = ?`
+      ).bind(newFailedAttempts, user.id),
+      c.env.DB.prepare(
+        `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, reason)
+         VALUES (datetime('now'), ?, 'LOGIN_FAILED', 'users', ?, 'Invalid username or password')`
+      ).bind(user.id, user.id),
+    ]);
+
+    return c.json({ error: 'Invalid username or password' }, 401);
   }
 
-  if (!valid && c.env.ENVIRONMENT === 'local') {
-    valid = true;
-  }
+  // Login successful: reset failed attempts & lockout
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE users
+       SET failed_attempts = 0, locked_until = NULL, updated_at = datetime('now')
+       WHERE id = ?`
+    ).bind(user.id),
+    c.env.DB.prepare(
+      `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, patient_id)
+       VALUES (datetime('now'), ?, 'LOGIN_SUCCESS', 'users', ?, ?)`
+    ).bind(
+      user.id,
+      user.id,
+      ['patient', 'guardian'].includes(user.role) ? user.record_id || user.id : null
+    ),
+  ]);
 
-  if (!valid) {
-    return c.json({ error: 'Invalid authenticator code. Check device time sync.' }, 401);
-  }
+  // Session duration: 12 hours for staff, 30 days for patients
+  const isStaff = ['doctor', 'specialist', 'front_desk', 'admin'].includes(user.role);
+  const maxAge = isStaff ? 12 * 60 * 60 : 30 * 24 * 60 * 60;
 
-  const emailPrefix = email.split('@')[0]?.toLowerCase() || '';
-  const staffMember = await c.env.DB.prepare(
-    `SELECT id, role, department_id, is_active, token_version
-     FROM staff
-     WHERE deleted_at IS NULL
-       AND (email = ? OR user_id = ? OR phone = ? OR id = ? OR lower(full_name) LIKE ? OR lower(phone) LIKE ?)
-     LIMIT 1`
-  )
-    .bind(email, email, email, email, `%${emailPrefix}%`, `%${emailPrefix}%`)
-    .first<{
-      id: string;
-      role: string;
-      department_id: string | null;
-      is_active: number;
-      token_version?: number;
-    }>();
-
-  const fallbackStaffId = email.includes('admin')
-    ? 'b0000000-0000-0000-0000-000000000001'
-    : email.includes('desk')
-    ? 'b0000000-0000-0000-0000-000000000002'
-    : 'b0000000-0000-0000-0000-000000000003';
-  const fallbackRole = email.includes('admin')
-    ? 'admin'
-    : email.includes('desk')
-    ? 'front_desk'
-    : 'doctor';
-
-  const staffId = staffMember?.id || fallbackStaffId;
-  const staffRole = (staffMember?.role as string) || fallbackRole;
-  const tokenVersion = staffMember?.token_version ?? 1;
-
-  // Max 12 hours for staff session
-  const maxAgeStaff = 12 * 60 * 60; // 12 hours in seconds
   let token: string | undefined;
-
   if (c.env.JWT_SECRET) {
     token = await signJwt(
       {
-        sub: staffId,
-        id: staffId,
-        role: staffRole,
-        aal: 'aal2',
-        department_id: staffMember?.department_id || null,
-        token_version: tokenVersion,
-        exp: Math.floor(Date.now() / 1000) + maxAgeStaff,
+        sub: user.id,
+        id: user.record_id || user.id,
+        role: user.role,
+        session_version: user.session_version,
+        must_change_password: user.must_change_password,
+        exp: Math.floor(Date.now() / 1000) + maxAge,
       },
       c.env.JWT_SECRET
     );
+
     c.header(
       'Set-Cookie',
-      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeStaff}; HttpOnly; Secure; SameSite=Strict`
+      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
     );
   }
 
   return c.json({
     ok: true,
     token,
-    aal: 'aal2',
+    must_change_password: Boolean(user.must_change_password),
     user: {
-      id: staffId,
-      email,
-      role: staffRole,
+      id: user.id,
+      username: user.username,
+      role: user.role,
     },
   });
 });
 
-// POST /api/auth/signout
-authRouter.post('/signout', async (c) => {
+// POST /api/auth/logout & /api/auth/signout
+const handleLogout = async (c: import('hono').Context) => {
   c.header(
     'Set-Cookie',
     'careone_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'
   );
   return c.json({ ok: true, message: 'Signed out successfully' });
-});
+};
 
-// POST /api/auth/signout-everywhere
-authRouter.post('/signout-everywhere', async (c) => {
-  const principal = await loadPrincipal(c);
-  if (principal) {
-    if (['doctor', 'specialist', 'front_desk', 'admin'].includes(principal.role)) {
-      await c.env.DB.prepare(
-        'UPDATE staff SET token_version = token_version + 1 WHERE id = ?'
-      ).bind(principal.id).run();
-    } else if (['patient', 'guardian'].includes(principal.role)) {
-      await c.env.DB.prepare(
-        'UPDATE patients SET token_version = token_version + 1 WHERE id = ?'
-      ).bind(principal.id).run();
-    }
-  }
-
-  c.header(
-    'Set-Cookie',
-    'careone_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'
-  );
-  return c.json({ ok: true, message: 'Signed out everywhere successfully' });
-});
+authRouter.post('/logout', handleLogout);
+authRouter.post('/signout', handleLogout);
 
 // GET /api/auth/session
 authRouter.get('/session', async (c) => {
@@ -204,9 +226,113 @@ authRouter.get('/session', async (c) => {
           user: {
             id: principal.id,
             role: principal.role,
-            aal: principal.aal,
+            must_change_password: principal.mustChangePassword ?? false,
           },
         }
       : null,
+  });
+});
+
+// POST /api/me/password
+meRouter.post('/password', async (c) => {
+  const principal = await loadPrincipal(c);
+  if (!principal) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+
+  const body = await c.req.json<{ currentPassword?: string; newPassword?: string }>();
+  const currentPassword = body.currentPassword;
+  const newPassword = body.newPassword;
+
+  if (!currentPassword || !newPassword) {
+    return c.json({ error: 'Current password and new password are required' }, 400);
+  }
+
+  // Load user record from users table
+  const user = await c.env.DB.prepare(
+    `SELECT * FROM users WHERE id = ? OR username = ? COLLATE NOCASE LIMIT 1`
+  )
+    .bind(principal.userId || principal.id, principal.userId || principal.id)
+    .first<UserRow>();
+
+  if (!user) {
+    return c.json({ error: 'User record not found' }, 404);
+  }
+
+  // Verify current password
+  const isMatch = await verifyPassword(
+    currentPassword,
+    user.password_hash,
+    user.password_salt,
+    user.password_iterations
+  );
+
+  if (!isMatch) {
+    return c.json({ error: 'Current password is incorrect' }, 401);
+  }
+
+  // Validate new password rules
+  const ruleCheck = validatePasswordRules(newPassword, user.username);
+  if (!ruleCheck.valid) {
+    return c.json({ error: ruleCheck.errors[0], errors: ruleCheck.errors }, 400);
+  }
+
+  // Hash new password using WebCrypto PBKDF2
+  const { hash, salt, iterations } = await hashPassword(newPassword);
+  const nextSessionVersion = (user.session_version ?? 1) + 1;
+
+  // Update password and bump session_version to invalidate all other active sessions
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE users
+       SET password_hash = ?,
+           password_salt = ?,
+           password_iterations = ?,
+           must_change_password = 0,
+           password_changed_at = datetime('now'),
+           session_version = ?,
+           failed_attempts = 0,
+           locked_until = NULL,
+           updated_at = datetime('now')
+       WHERE id = ?`
+    ).bind(hash, salt, iterations, nextSessionVersion, user.id),
+    c.env.DB.prepare(
+      `INSERT INTO audit_log (at, actor_id, action, table_name, record_id, patient_id)
+       VALUES (datetime('now'), ?, 'PASSWORD_CHANGED', 'users', ?, ?)`
+    ).bind(
+      user.id,
+      user.id,
+      ['patient', 'guardian'].includes(user.role) ? user.record_id || user.id : null
+    ),
+  ]);
+
+  // Issue fresh session token with updated session_version and must_change_password=0
+  const isStaff = ['doctor', 'specialist', 'front_desk', 'admin'].includes(user.role);
+  const maxAge = isStaff ? 12 * 60 * 60 : 30 * 24 * 60 * 60;
+
+  let token: string | undefined;
+  if (c.env.JWT_SECRET) {
+    token = await signJwt(
+      {
+        sub: user.id,
+        id: user.record_id || user.id,
+        role: user.role,
+        session_version: nextSessionVersion,
+        must_change_password: 0,
+        exp: Math.floor(Date.now() / 1000) + maxAge,
+      },
+      c.env.JWT_SECRET
+    );
+
+    c.header(
+      'Set-Cookie',
+      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
+    );
+  }
+
+  return c.json({
+    ok: true,
+    token,
+    message: 'Password changed successfully',
   });
 });

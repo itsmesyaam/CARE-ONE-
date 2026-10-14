@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import type { WorkerEnv } from './env';
 import versionData from '../public/version.json';
 import { filesRouter, adminStorageHandler } from './routes/files';
-import { authRouter } from './routes/auth';
-import { passkeyRouter } from './routes/passkey';
+import { authRouter, meRouter } from './routes/auth';
 import { processReminders } from './services/reminders';
 import { getEmailUsage } from './services/email';
 
@@ -46,12 +45,9 @@ app.get('/api/health', async (c) => {
   }
 });
 
-// Passkeys and Auth routes
-app.route('/api/auth/passkey', passkeyRouter);
-app.route('/api/auth/passkeys', passkeyRouter);
-app.route('/api/me/passkeys', passkeyRouter);
-app.route('/api/auth', passkeyRouter);
+// Auth and Account routes
 app.route('/api/auth', authRouter);
+app.route('/api/me', meRouter);
 
 // D1 File storage routes
 app.route('/api/files', filesRouter);
