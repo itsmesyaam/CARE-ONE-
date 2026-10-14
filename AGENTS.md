@@ -8,15 +8,15 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 ## Project in brief
 - This build is a demo. It runs on a free Cloudflare project (Workers + D1 + Queues) with fictional demo data only. Polish, speed and a smooth demo matter more than backups and operations.
 - One hospital. Five roles: patient or guardian, doctor, front desk, hospital admin, and us (the platform team, with no routine access to patient data).
-- V1 features: patient registration and app invites by the front desk via biometric passkey QR code; appointments; doctor chart (history, allergies, medicines, consultation notes, reports, timeline); care plans; reminders by web push and email; patient report uploads with a doctor review queue; "What changed since the last visit" built from plain SQL queries; hospital admin dashboard showing counts only; English and Malayalam.
-- Authentication: WebAuthn passkeys (fingerprint / face / screen lock) for all patients and staff; hospital staff must complete 6-digit TOTP MFA (aal2) before accessing clinical or administrative routes. No OTP, SMS, or passwords.
+- V1 features: patient registration and app account creation by the front desk with temporary passwords; appointments; doctor chart (history, allergies, medicines, consultation notes, reports, timeline); care plans; reminders by web push and email; patient report uploads with a doctor review queue; "What changed since the last visit" built from plain SQL queries; hospital admin dashboard showing counts only; English and Malayalam.
+- Authentication: Username + Password ONLY for everyone. Staff sign in with email; patients sign in with hospital number (MRN). Native WebCrypto PBKDF2-SHA-256 with 50,000 iterations (stays under 10 ms CPU budget on free plan). Constant-time hash comparisons. 5 failed attempts locks account for 15 minutes. Forced password change on first login or reset (`must_change_password=1`). No passkeys, no TOTP MFA, no OTP, SMS, or email login codes.
 - Not in V1: any AI feature, payments, SMS or WhatsApp, video consultations, doctor-patient messaging.
-- Access: patients and guardians see their own records. Doctors see patients on their care team; booking an appointment adds the doctor for one year. Restricted records are visible only within the authoring department. Emergency access needs a written reason, lasts 4 hours, and is logged. The hospital admin never reads an individual patient's clinical record. Staff must use two-factor sign-in.
+- Access: patients and guardians see their own records. Doctors see patients on their care team; booking an appointment adds the doctor for one year. Restricted records are visible only within the authoring department. Emergency access needs a written reason, lasts 4 hours, and is logged. The hospital admin never reads an individual patient's clinical record.
 - Production runs on Cloudflare Workers in the Mumbai region. Real patient data exists only in production.
 
 ## Stack (do not add, remove or swap anything without asking)
-- Frontend: React + TypeScript (strict) + Vite, one single-page app that is also a PWA (vite-plugin-pwa). Tailwind CSS, TanStack Query, React Router, React Hook Form + Zod, react-i18next (English and Malayalam), @simplewebauthn/browser.
-- Backend: Cloudflare Workers only: Hono router, D1 SQLite databases (relational DB with triggers and files DB with chunked blobs), @simplewebauthn/server, Cron triggers, Queues. Local development uses Cloudflare Wrangler CLI.
+- Frontend: React + TypeScript (strict) + Vite, one single-page app that is also a PWA (vite-plugin-pwa). Tailwind CSS, TanStack Query, React Router, React Hook Form + Zod, react-i18next (English and Malayalam).
+- Backend: Cloudflare Workers only: Hono router, D1 SQLite databases (relational DB with triggers and files DB with chunked blobs), native WebCrypto PBKDF2 password engine, Cron triggers, Queues. Local development uses Cloudflare Wrangler CLI.
 - Hosting: Cloudflare Workers serving both `/api/*` and the static SPA bundle.
 - Tests: Vitest for unit tests, role matrix, access control, and schema integrity tests.
 - Not allowed: Next.js or any server rendering, Supabase, Firebase, AWS, any AI or LLM API, analytics or session-replay tools.
@@ -33,7 +33,7 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 3. Never use real patient data. Seed data uses obviously fake people ("Test Patient 01"), `example.com` emails, and fictional test phone numbers.
 4. Every new table in D1 enforces appropriate indexes, immutable audit triggers, and access control via `withPolicy` middleware in the Worker.
 5. User roles come strictly from the `staff` and `patient_access` tables in D1. Never trust client-supplied roles.
-6. Staff routes strictly require `aal2` (TOTP MFA verified) after passkey authentication.
+6. While must_change_password=1, every route except /api/me/password and logout returns 403 password_change_required. Every request verifies is_active=1 and session_version matches.
 7. No hard deletes of clinical data; use `deleted_at`. Signed consultation notes never change (enforced by SQLite triggers); corrections are addenda.
 8. Patient data never goes into URLs, `console.log`, error reports, push notification text, email subjects, localStorage, IndexedDB or the service-worker cache.
 9. No `dangerouslySetInnerHTML`, no `eval`, and never disable TypeScript checks, lint rules or tests to make something pass.

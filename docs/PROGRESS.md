@@ -156,7 +156,43 @@
   - Cloudflare Workers Free CPU limit is 10 ms; all current route handlers execute in < 2 ms.
   - External SMS and WhatsApp gateways excluded from V1 scope by specification.
 - **Next Phase**:
-  - Phase 10 / Final Release sign-off, merge to `main`, and Cloudflare Pages production deployment.
+  - Phase 10: Complete Migration to Username + Password Authentication (Completed below).
+
+## Phase 10: Complete Migration to Username + Password Authentication (Completed)
+- **Architectural Shift & Simplification**:
+  - Removed all WebAuthn passkey registration/login endpoints, tables (`passkeys`, `setup_tokens`, `webauthn_challenges`), and client dependencies (`@simplewebauthn/server`, `@simplewebauthn/browser`).
+  - Removed staff TOTP MFA / AAL2 checks and authenticator enrollment.
+  - Eliminated all OTPs, SMS codes, and email verification friction.
+  - Retained strict DPDP Act compliance: no route returns patient data without a valid session.
+- **Native WebCrypto PBKDF2 Engine (Free Plan < 10 ms CPU Budget)**:
+  - Native `crypto.subtle.deriveBits` with PBKDF2, SHA-256, 50,000 iterations (~5.08 ms CPU).
+  - Random 16-byte cryptographically secure salt per user.
+  - Constant-time hash equality comparisons to prevent timing side channels.
+  - Complexity validation: minimum 8 characters, cannot match username, blocks top 100 common passwords.
+- **D1 Database Schema**:
+  - `migrations/0013_username_password_auth.sql`: Added `users` table (`username TEXT NOT NULL COLLATE NOCASE UNIQUE`, `password_hash`, `password_salt`, `password_iterations`, `must_change_password`, `failed_attempts`, `locked_until`, `session_version`, `is_active`); dropped `passkeys`, `setup_tokens`, `webauthn_challenges`.
+  - `migrations/0014_seed_demo_users.sql`: Seeded all 7 demo accounts into local and live remote D1 with password `DemoPassword123!` and `must_change_password = 0`.
+- **API Endpoints & Policy Middleware**:
+  - `POST /api/auth/login`: Issues `careone_session` HttpOnly, Secure, SameSite=Strict cookie (12h for staff, 30d for patients). 5 failed attempts locks account for 15 minutes. Identical generic error for unknown user and wrong password.
+  - `POST /api/auth/logout`: Clears session cookie and invalidates session.
+  - `POST /api/me/password`: Changes password, clears `must_change_password`, and increments `session_version` to invalidate other sessions.
+  - `POST /api/desk/patients/:id/account`: Front desk generates a temporary 12-character password (`Temp#...`) with `must_change_password = 1`.
+  - `POST /api/admin/staff/:id/password-reset`: Hospital admin generates a temporary password for staff.
+  - Forced password change barrier: `withPolicy` blocks all routes with `403 password_change_required` while `must_change_password = 1` until password is changed.
+  - Deactivated accounts (`is_active = 0`) immediately blocked with `401 account_inactive`.
+- **Bilingual Frontend Screens (English & Malayalam)**:
+  - Patient login (`/patient/login`): "Hospital number or phone" + "Password" + Show/hide toggle + Sign In.
+  - Staff login (`/staff/signin`): "Email" + "Password" + Show/hide toggle + Sign In.
+  - First-login forced password change modal with live rule validation.
+  - Desk patient page & Admin staff page: "Create login / Reset password" modals with single-use temporary password and copy button.
+  - Account profile pages: "Change password" card in `PatientProfile.tsx` and `DoctorAccount.tsx`.
+- **Emergency Out-of-Band CLI Tool**:
+  - `scripts/set-password.ts` (`npm run set-password -- --username <user> [--remote | --local] [--password <pass>]`): Safely updates user password hash and resets lockouts via Wrangler directly without exposing an HTTP route.
+- **Verification & Live Production Proofs**:
+  - Full Vitest suite: 43 test files, 204 tests passing (100% pass rate).
+  - `npm run typecheck`, `npm run lint`, `npm run i18n:check` (469 keys symmetric), and `npm run build` all pass with 0 errors.
+  - Deployed to `https://care-one.syam18official.workers.dev`.
+  - `scripts/live-auth-proof.ts` (`npm run test:live-auth`): 9 out of 9 end-to-end HTTP verification proofs passed against production Cloudflare Workers and D1 database.
 
 
 

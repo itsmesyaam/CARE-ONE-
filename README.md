@@ -6,10 +6,10 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.3-38bdf8.svg)](https://tailwindcss.com/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-Hono-orange.svg)](https://workers.cloudflare.com/)
 [![Cloudflare D1](https://img.shields.io/badge/Cloudflare_D1-SQLite-f38020.svg)](https://developers.cloudflare.com/d1/)
-[![WebAuthn Passkeys](https://img.shields.io/badge/Auth-WebAuthn_Passkeys-green.svg)](https://webauthn.io/)
+[![Auth: Username & Password](https://img.shields.io/badge/Auth-Username_%2B_Password-green.svg)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
 
-**CareOne** is a patient-engagement and doctor-assistant web application engineered for a hospital in Kerala, India. It stores and manages sensitive health records under India's Digital Personal Data Protection (DPDP) Act 2023, enforcing strict role-based access control, purpose limitation, cryptographic WebAuthn passkey authentication, and immutable audit logging.
+**CareOne** is a patient-engagement and doctor-assistant web application engineered for a hospital in Kerala, India. It stores and manages sensitive health records under India's Digital Personal Data Protection (DPDP) Act 2023, enforcing strict role-based access control, purpose limitation, native WebCrypto password authentication, and immutable audit logging.
 
 The entire backend and data layer run **100% on Cloudflare's serverless edge stack on the free tier ($0/month)**. Supabase has been completely removed and replaced with native Cloudflare Workers, Cloudflare D1 relational databases, D1 chunked document storage, Cloudflare Queues, and Cron Triggers.
 
@@ -20,7 +20,7 @@ The entire backend and data layer run **100% on Cloudflare's serverless edge sta
 2. [Current Status & What Works](#-current-status--what-works)
 3. [Cloudflare Architecture & System Design](#-cloudflare-architecture--system-design)
 4. [Security Model & Access Control Matrix](#-security-model--access-control-matrix)
-5. [Authentication & Passkey Sign-In](#-authentication--passkey-sign-in)
+5. [Authentication & Password System](#-authentication--password-system)
 6. [Tech Stack & Versions](#-tech-stack--versions)
 7. [Repository Structure](#-repository-structure)
 8. [Local Setup Guide (Windows)](#-local-setup-guide-windows)
@@ -57,7 +57,7 @@ CareOne is built with a dual-interface architecture:
   - Physical identity verification checkbox (never stores identity card numbers).
   - Appointment scheduling with automatic 1-year care team binding.
   - Department management and staff roster coordination.
-  - Generation of 30-minute single-use passkey setup links displayed as QR codes.
+  - Instant patient account creation and password resets with secure temporary passwords.
 - **Doctor Clinical Chart**:
   - Live OPD queue and patient directory with penicillin allergy banners.
   - **"What Changed Since Last Visit"**: Plain SQL aggregation of newly uploaded lab reports, vital trends, medication changes, and reported symptoms since the previous signed encounter.
@@ -82,6 +82,8 @@ CareOne is built with a dual-interface architecture:
 - All SMS and email OTP sign-in flows and codes.
 - All OTP verification tables (`auth_otps`).
 - The "From Messages / Tap to fill" mock code box and code-entry screens.
+- All WebAuthn passkey and biometric registration/login endpoints and tables.
+- Staff TOTP 2FA requirements and setup QR codes.
 - All Supabase migrations, seed files, CLI configurations, and client modules.
 
 ---
@@ -130,7 +132,7 @@ CareOne operates entirely within Cloudflare's serverless infrastructure:
 | **API Server** | Supabase Edge Functions (Deno) | Cloudflare Worker with Hono TypeScript router |
 | **Relational DB** | Supabase Postgres 15 (AWS Mumbai) | Cloudflare D1 (`careone-db`) with SQLite triggers |
 | **Document Store** | Supabase Storage Bucket (`patient-files`) | Cloudflare D1 (`careone-files`) chunked blob store |
-| **Authentication** | Supabase GoTrue Auth (Email/Phone OTP) | Native WebAuthn Passkeys + TOTP MFA + HMAC-SHA256 JWT |
+| **Authentication** | Supabase GoTrue Auth (Email/Phone OTP) | Native WebCrypto PBKDF2-SHA-256 + HMAC-SHA256 JWT |
 | **Scheduled Tasks**| PostgreSQL `pg_cron` | Cloudflare Worker Cron Triggers (`*/5 * * * *`) |
 | **Job Queues** | Custom database polling | Cloudflare Queues (`careone-reminders`) |
 | **Hosting** | Cloudflare Pages + Supabase API | Unified Cloudflare Worker serving `/api/*` + SPA bundle |
@@ -141,21 +143,21 @@ CareOne operates entirely within Cloudflare's serverless infrastructure:
 
 CareOne implements an onion-layered defense model. Every incoming API request passes through:
 1. **Security Headers Middleware**: Enforces strict CSP, HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
-2. **Session Verification**: Validates the `careone_session` cookie or `Bearer` token using HMAC-SHA256. Checks user active status and `token_version` to permit instant global revocation.
-3. **Principal Resolution**: Constructs a verified `Principal` object containing `userId`, `role`, and authentication assurance level (`aal1` or `aal2`).
-4. **Policy Enforcement (`withPolicy`)**: Verifies required roles and forces `aal2` (TOTP MFA) for all hospital staff.
+2. **Session Verification**: Validates the `careone_session` cookie or `Bearer` token using HMAC-SHA256. Re-checks user active status (`is_active = 1`) and matches `session_version` in D1 to permit instant global revocation.
+3. **Principal Resolution**: Constructs a verified `Principal` object containing `userId`, `role`, `isActive`, `mustChangePassword`, and `sessionVersion`.
+4. **Policy Enforcement (`withPolicy`)**: Verifies required roles. Enforces the forced password change barrier (`must_change_password = 1` blocks all routes with `403 password_change_required` until password is changed via `/api/me/password`).
 5. **Database Context (`_request_ctx`)**: Populates the request context table in SQLite before query execution to feed immutable triggers.
 
 ### Access Control Matrix
 
-| User Role | Allowed Endpoints | Clinical Record Access | Staff MFA Required | Emergency Access Permitted |
+| User Role | Allowed Endpoints | Clinical Record Access | Session Expiry | Emergency Access Permitted |
 |---|---|---|---|---|
-| **Patient** | `/api/patient/*`, `/api/files/*` | Own records only; foreign patient IDs return `404 Not Found` | No (Passkey protected) | No |
-| **Guardian** | `/api/patient/*`, `/api/files/*` | Linked dependent children records only; unlinked IDs return `404` | No (Passkey protected) | No |
-| **Doctor** | `/api/doctor/*`, `/api/files/*` | Active care-team patients only; unlinked patients return `404` | **Yes (`aal2`)** | **Yes (4h break-glass, audited)** |
-| **Specialist** | `/api/doctor/*`, `/api/files/*` | Same as Doctor; restricted psychiatric notes limited to authoring dept | **Yes (`aal2`)** | **Yes (4h break-glass, audited)** |
-| **Front Desk** | `/api/desk/*`, `/api/departments` | Patient demographics and appointments only; zero clinical access | **Yes (`aal2`)** | No |
-| **Admin** | `/api/admin/*`, `/api/staff`, `/api/departments` | High-level operational counts only; exactly 0 clinical fields leaked | **Yes (`aal2`)** | No |
+| **Patient** | `/api/patient/*`, `/api/files/*`, `/api/me/*` | Own records only; foreign patient IDs return `404 Not Found` | 30 days (HttpOnly cookie) | No |
+| **Guardian** | `/api/patient/*`, `/api/files/*`, `/api/me/*` | Linked dependent children records only; unlinked IDs return `404` | 30 days (HttpOnly cookie) | No |
+| **Doctor** | `/api/doctor/*`, `/api/files/*`, `/api/me/*` | Active care-team patients only; unlinked patients return `404` | 12 hours (HttpOnly cookie) | **Yes (4h break-glass, audited)** |
+| **Specialist** | `/api/doctor/*`, `/api/files/*`, `/api/me/*` | Same as Doctor; restricted psychiatric notes limited to authoring dept | 12 hours (HttpOnly cookie) | **Yes (4h break-glass, audited)** |
+| **Front Desk** | `/api/desk/*`, `/api/departments`, `/api/me/*` | Patient demographics and appointments only; zero clinical access | 12 hours (HttpOnly cookie) | No |
+| **Admin** | `/api/admin/*`, `/api/staff`, `/api/departments`, `/api/me/*` | High-level operational counts only; exactly 0 clinical fields leaked | 12 hours (HttpOnly cookie) | No |
 
 ### SQLite Database Triggers & Invariants
 - **Frozen Encounter Trigger**: Rejects any `UPDATE` or `DELETE` on encounters where `status = 'signed'`.
@@ -164,24 +166,37 @@ CareOne implements an onion-layered defense model. Every incoming API request pa
 
 ---
 
-## 🔑 Authentication & Passkey Sign-In
+## 🔑 Authentication & Password System
 
-CareOne replaces insecure passwords and SMS/email codes with hardware-backed **WebAuthn passkeys** and **TOTP multi-factor authentication**:
+CareOne uses a fast, secure, and resource-efficient **Username + Password** authentication system engineered specifically for Cloudflare Workers Free Tier:
 
-### 1. Patient Onboarding & Authentication
-1. **In-Person Desk Verification**: The patient visits the front desk. Staff verifies their physical ID and clicks **"Set up app"**.
-2. **Setup Link & QR Generation**: The Worker generates a cryptographically secure 32-byte token (valid for 30 minutes, single use) and stores its SHA-256 hash in `setup_tokens`. The desk displays it as a QR code on-screen.
-3. **Biometric Passkey Registration**: The patient scans the QR code on their smartphone (`/setup?token=...`). The browser prompts for biometric unlock (fingerprint, Face ID, or screen lock) via `@simplewebauthn/browser`.
-4. **Attestation & Verification**: The Worker validates the cryptographic response via `@simplewebauthn/server` and stores the public key in `passkeys`.
-5. **Instant Login**: Subsequent logins use the **"Sign in with fingerprint / face"** button. No SMS codes or passwords are required.
+### 1. WebCrypto PBKDF2 Password Engine (< 10 ms CPU Budget)
+- **Native WebCrypto API**: Uses native `crypto.subtle` PBKDF2 with SHA-256 (no heavy npm packages like bcrypt, argon2, or scrypt).
+- **Iteration Count**: Tuned to **50,000 iterations**, taking ~5.08 ms CPU time under Cloudflare Workers, comfortably inside the 10 ms CPU free-tier execution limit.
+- **Salts**: Cryptographically random 16-byte salt per user generated via `crypto.getRandomValues`.
+- **Constant-Time Verification**: Uses constant-time Uint8Array byte comparison to eliminate timing side-channel attacks.
+- **Password Rules**: Minimum 8 characters, cannot equal username, blocks the top 100 most common passwords.
 
-### 2. Hospital Staff Authentication (Two-Factor Required)
-1. **Passkey Verification**: Staff authenticates using their registered hardware security key or device passkey.
-2. **Mandatory TOTP Challenge (`aal2`)**: Staff must provide a 6-digit authenticator code (Google Authenticator, Microsoft Authenticator).
-3. **Strict Route Protection**: Any staff request lacking `aal2` status is rejected with `401 {"error": "mfa_required"}`.
+### 2. User Identifiers
+- **Hospital Staff**: Username is their hospital email address (e.g., `admin@example.com`, `dr.rahul@example.com`).
+- **Patients**: Username is their Hospital Medical Record Number / UHID (e.g., `ABC-1001`) or registered phone number. Case-insensitive collation (`COLLATE NOCASE`).
 
-### 3. Local Development Demo Sign-In
-When `ENVIRONMENT=local`, a dedicated demo sign-in endpoint (`/api/auth/demo-signin`) is active to facilitate fast manual and automated testing. This endpoint is **strictly stripped and returns 401 in production builds**.
+### 3. Account Protection & Lockout
+- **Rate Limiting & Lockout**: 5 consecutive incorrect password attempts automatically locks the account for 15 minutes (`locked_until`).
+- **Timing Uniformity**: Unknown usernames and incorrect passwords return the exact same generic error message: `"Invalid username or password"`.
+- **Session Cookies**: Issued as `HttpOnly`, `Secure`, `SameSite=Strict` cookies (12 hours for hospital staff, 30 days for patients).
+
+### 4. Temporary Passwords & Forced First-Login Change
+- **Front Desk Patient Setup**: Front desk staff clicks **"Create login / Reset password"** on the patient chart (`POST /api/desk/patients/:id/account`). A 12-character single-use temporary password (`Temp#...`) is generated and shown once on screen with a Copy button.
+- **Admin Staff Password Reset**: Hospital admin can generate a temporary password for any staff member (`POST /api/admin/staff/:id/password-reset`).
+- **Forced Password Change Barrier**: While `must_change_password = 1`, all clinical and administrative routes return `403 {"error": "password_change_required"}` until the user submits a new compliant password to `POST /api/me/password`.
+- **Global Invalidation**: Updating password increments `session_version`, instantly invalidating sessions on all other devices.
+
+### 5. Emergency CLI Password Tool
+For initial bootstrapping and emergency administrative recovery, an out-of-band CLI tool is provided that executes directly via Wrangler without exposing any HTTP route:
+```powershell
+npm run set-password -- --username admin@example.com --remote
+```
 
 ---
 
@@ -195,8 +210,7 @@ All dependencies and versions are verified from [`package.json`](file:///d:/Care
 | **Web Framework** | Hono | `^4.13.13` | Lightweight, zero-dependency edge HTTP router |
 | **Primary Database** | Cloudflare D1 (`careone-db`) | SQLite 3 | Relational clinical data store with triggers |
 | **File Storage** | Cloudflare D1 (`careone-files`)| SQLite 3 | 256 KB chunked binary document store |
-| **Passkey Engine** | `@simplewebauthn/server` | `^14.0.3` | FIDO2 / WebAuthn server-side attestation & assertion |
-| **Passkey Client** | `@simplewebauthn/browser` | `^14.0.0` | Client-side biometric WebAuthn prompt |
+| **Password Engine** | WebCrypto PBKDF2-SHA-256 | Native | 50,000 iterations, constant-time verification |
 | **Frontend Core** | React | `^19.3.0` | UI component tree with strict Concurrent Mode |
 | **Type System** | TypeScript | `^5.8.3` | Strict type validation across frontend and worker |
 | **Build Tool** | Vite | `^8.3.3` | Lightning-fast bundle generation |
@@ -320,22 +334,22 @@ npm run worker:dev
 
 ---
 
-## 👥 Demo Accounts (Local Testing)
+## 👥 Demo Accounts (Demo Only)
 
-All demo accounts use fictional data and are active **only in local development**:
+All demo accounts are fictional and seeded into both local and live demo databases with password `DemoPassword123!` and `must_change_password = 0`:
 
-| Role | Name | Email | Password | TOTP Secret |
+| Role | Name | Username (Staff Email / Patient MRN) | Password | Notes |
 |---|---|---|---|---|
-| **Hospital Admin** | Anand Verma | `admin@example.com` | `DemoPassword123!` | `JBSWY3DPEHPK3PXP` |
-| **Front Desk** | Anjali Nair | `desk@example.com` | `DemoPassword123!` | `JBSWY3DPEHPK3PXR` |
-| **Doctor (General Medicine)** | Dr. Rahul Menon | `dr.rahul@example.com` | `DemoPassword123!` | `JBSWY3DPEHPK3PXR` |
-| **Specialist (Cardiology)** | Dr. Anjali Sharma | `dr.anjali@example.com` | `DemoPassword123!` | `JBSWY3DPEHPK3PXR` |
-| **Doctor (Unlinked / Ortho)** | Dr. Thomas Varghese | `thomas@example.com` | `DemoPassword123!` | `JBSWY3DPEHPK3PXR` |
-| **Patient (Self)** | Arun Kumar | Phone `9847000001` | *N/A (Passkey)* | *N/A* |
-| **Guardian (Child Profile)** | Sujatha Nair | Phone `9847000002` | *N/A (Passkey)* | *N/A* |
+| **Hospital Admin** | Anand Verma | `admin@example.com` | `DemoPassword123!` | Operational dashboard & staff management |
+| **Front Desk** | Anjali Nair | `desk@example.com` | `DemoPassword123!` | Patient registration & appointment booking |
+| **Doctor (General Medicine)** | Dr. Rahul Menon | `dr.rahul@example.com` | `DemoPassword123!` | Care team for Arun Kumar; consultation notes |
+| **Specialist (Cardiology)** | Dr. Anjali Sharma | `dr.anjali@example.com` | `DemoPassword123!` | Cardiology department specialist |
+| **Doctor (Ortho)** | Dr. Thomas Varghese | `dr.thomas@example.com` | `DemoPassword123!` | Ortho department; emergency break-glass |
+| **Patient (Self)** | Arun Kumar | `ABC-1001` | `DemoPassword123!` | Patient portal; vitals, records & care plan |
+| **Guardian** | Sujatha Nair | `ABC-1002` | `DemoPassword123!` | Guardian of Baby Meenakshi (`ABC-1003`) |
 
 > [!NOTE]
-> Demo passwords and TOTP secrets are strictly barred from production databases.
+> **Demo only**: In production with real patients, all accounts receive temporary passwords upon registration and are strictly required to change their password on first sign-in.
 
 ---
 
@@ -353,8 +367,11 @@ All demo accounts use fictional data and are active **only in local development*
 | `npm run test` | `vitest run` | Execute complete unit, integration, and security test suites |
 | `npm run i18n:check`| `node scripts/check-i18n.js`| Verify 100% key symmetry between English and Malayalam |
 | `npm run db:migrate:local` | `wrangler d1 migrations apply DB --local` | Apply schema updates to local D1 SQLite database |
+| `npm run set-password` | `npx tsx scripts/set-password.ts` | Out-of-band CLI tool to update/reset passwords on local or remote D1 |
+| `npm run test:live-auth` | `npx tsx scripts/live-auth-proof.ts` | Automated end-to-end verification suite against live Cloudflare Workers API |
 | `npm run worker:dev`| `wrangler dev` | Run Cloudflare Worker backend locally with D1 bindings |
-| `npm run deploy` | `npm run build && wrangler deploy` | Build production assets and deploy full Worker to Cloudflare |
+| `npm run worker:deploy` | `npm run build && wrangler deploy` | Build production assets and deploy full Worker to Cloudflare |
+| `npm run deploy` | `npm run build && wrangler deploy` | Alias for worker:deploy |
 
 ---
 

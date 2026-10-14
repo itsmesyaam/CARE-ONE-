@@ -1,139 +1,111 @@
-# CareOne Platform Handoff & Session Summary
+# CareOne Platform Handoff & Session Summary 🏥
 
-## 📌 Current State & Branch
+## 📌 Current State & Live Deployment
 - **Branch**: `main`
-- **Latest Commit**: `12a970f8` (`chore: bump version to 0.1.2 and update version.json`)
-- **Live Worker URL**: [https://care-one.syam18official.workers.dev](https://care-one.syam18official.workers.dev)
-- **Deployment Status**: Production active on Cloudflare Workers + D1 (`careone-db` and `careone-files`).
-- **Live Health Check**: `/api/health` verified (`{"ok":true,"db":"ok","commit":"0e5dda6e","status":"ok","service":"care-one-api","d1":true}`)
-- **Live Version**: `/version.json` verified (`0.1.2`, build `2026-10-14T10:44:40.096Z`)
+- **Latest Commit**: Synced and pushed to `origin/main`
+- **Live Production URL**: [https://care-one.syam18official.workers.dev](https://care-one.syam18official.workers.dev)
+- **Live Health Check**: `/api/health` -> `{"ok":true,"db":"ok","status":"ok","service":"care-one-api","d1":true}`
+- **Hosting Stack**: 100% Cloudflare Free Tier ($0/month): Cloudflare Workers + D1 (`careone-db` and `careone-files`) + Cloudflare Queues + Cron Triggers. Zero external compute, zero Supabase dependencies.
 
 ---
 
-## 🎯 What Was Completed
+## 🎯 Architecture & MVP Authentication Decision
 
-### STEP 0 — Inventory & Audit
-- Traced the hard-coded `"482 913"` code to a mock helper in `src/features/patient/PatientSignIn.tsx`.
-- Audited all legacy OTP endpoints (`/api/auth/otp/send`, `/api/auth/otp/verify`), code boxes, and `auth_otps` table.
-
-### STEP 1 — Database Schema Hardening
-- Applied and hardened migrations:
-  - `migrations/0009_passkeys.sql`: Created `passkeys` table, `setup_tokens` table, and `webauthn_challenges` table.
-  - `migrations/0010_passkeys_and_tokens_hardening.sql`: Added indexes (`idx_passkeys_user_id`, `idx_setup_tokens_user_id`, `idx_setup_tokens_token_hash`) and immutable triggers for audit logging on passkey and token actions.
-  - `migrations/0011_drop_auth_otps.sql`: Completely dropped the legacy `auth_otps` table.
-
-### STEP 2 — Passkey Server (Worker Engine)
-- Integrated `@simplewebauthn/server` in `worker/routes/passkey.ts`:
-  - `POST /api/auth/passkey/login/options` & `POST /api/auth/passkey/login/verify`: FIDO2 / WebAuthn assertion verification with IP rate limiting and `SameSite=Strict`, `HttpOnly`, `Secure` session cookies (12h for staff, 30d for patients).
-  - `POST /api/auth/passkey/register/options` & `POST /api/auth/passkey/register/verify`: Biometric attestation verification tied strictly to single-use 32-byte setup tokens (SHA-256 hashed).
-  - `POST /api/desk/patients/:id/setup-link`: Generates 30-minute onboarding QR links (Front Desk / Admin only, requires AAL2 MFA).
-  - `POST /api/admin/staff/:id/setup-link`: Generates staff onboarding passkey links (Admin only).
-  - `GET /api/me/passkeys` & `DELETE /api/me/passkeys/:id`: User device management and passkey revocation.
-  - `POST /api/desk/patients/:id/revoke-passkeys`: Bulk revocation for lost devices.
-
-### STEP 3 — Client UI Screens (React + SimpleWebAuthn)
-- `/patient/login` (`src/features/patient/PatientSignIn.tsx`):
-  - Clean UI with a single prominent biometric button: *"Sign in with fingerprint or face lock"*.
-  - Helper note: *"First time? Ask the front desk for your setup QR code."*
-  - Zero OTP code boxes, SMS inputs, or email code forms.
-  - Full bilingual support (English and Malayalam).
-  - Environment guard: Demo sign-in buttons only rendered when `ENVIRONMENT === 'local'`.
-- `/setup?token=...` (`src/features/patient/PatientSetup.tsx`):
-  - Plain-language explainer for patients.
-  - Browser WebAuthn capability check (`browserSupportsWebAuthn`).
-  - Single-click *"Create my passkey"* triggering native device biometric prompt.
-  - Redirects directly to consent and patient portal.
-- Front Desk QR Setup Modal (`src/components/SetupQrModal.tsx`):
-  - In-browser SVG QR code rendering via pure TypeScript matrix generator (`src/lib/qr.ts` - 0 external npm dependencies).
-  - 30-minute live countdown timer and one-click clipboard copy.
-  - Revocation action for lost/stolen phones.
-- Staff Sign-In (`src/features/auth/StaffSignIn.tsx`):
-  - Enforces WebAuthn security key / passkey first (Factor 1), followed by 6-digit TOTP authenticator code (Factor 2 / `aal2`).
-  - Automatic lock screen on 10-minute idle inactivity.
-- Account Management (`src/components/PasskeyDeviceList.tsx`):
-  - Lists registered devices with dates and revocation buttons in `PatientProfile.tsx` and `DoctorAccount.tsx`.
-
-### STEP 4 — Full OTP Removal
-- Deleted `/api/auth/otp/send` and `/api/auth/otp/verify` endpoints from `worker/routes/auth.ts`.
-- Removed `signInWithPassword`, `signInWithOtp`, and `verifyOtp` client methods from `src/lib/client.ts`.
-- Removed legacy OTP translation keys (`sendOtp`, `sendingOtp`, `verifyOtp`, `verifyingOtp`, `otpSentNotice`, `otpLabel`, `otpPlaceholder`, `sendStaffOtp`, `invalidOtp`, `emailOtpTitle`, `emailOtpSub`, `sendCodeBtn`, `emailCode`) from `src/locales/en.json` and `src/locales/ml.json`.
-- Removed legacy `.otp` and `.webotp` CSS classes from `src/index.css`.
-- Removed `'otp'` step from `PatientContext.tsx`.
-- Updated `README.md` and `AGENTS.md` to reflect Cloudflare Workers, D1, and passkey architecture.
-
-### STEP 5 — Rigorous Verification & Tests
-- **Test Results**: All 42 test files and 202 tests pass (`npm test`).
-  - Grep test confirms 0 OTP routes, tables, or "one-time-code" strings remain.
-  - Every protected patient and staff route returns 401 without an active session.
-  - Setup tokens reject expired, reused, non-existent, and cross-user tokens.
-  - Patients and unauthenticated users cannot generate setup tokens.
-  - Front Desk staff without two-factor (`aal1`) are rejected with `401 {"error": "mfa_required"}`.
-  - Revoked passkeys and disabled users (`is_active = 0`) are immediately blocked.
-  - Demo sign-in is strictly blocked (`403`) when `ENVIRONMENT=production`.
-  - Full 8-role access matrix verified.
-- **Typecheck**: `npm run typecheck` passed with 0 errors.
-- **Lint**: `npm run lint` passed with 0 errors.
-- **i18n Symmetry**: `npm run i18n:check` passed with 100% key symmetry across all 440 keys.
-- **Build**: `npm run build` completed successfully.
-
-### STEP 6 — Deployment & Remote DB Sync
-- Remote D1 database migrations applied to `careone-db`:
-  - `0009_passkeys.sql` ✅
-  - `0010_passkeys_and_tokens_hardening.sql` ✅
-  - `0011_drop_auth_otps.sql` ✅
-- Bumped app version to `0.1.2` in `package.json` and `public/version.json`.
-- Deployed Worker bundle and static assets via `npx wrangler deploy`.
-- Confirmed live operation at `https://care-one.syam18official.workers.dev`.
+The platform authentication model has been unified to **USERNAME + PASSWORD ONLY** for all users (patients and hospital staff):
+- **No Passkeys / WebAuthn**: Removed all biometric prompts, device credentials, and `@simplewebauthn` dependencies.
+- **No Staff TOTP MFA / AAL2**: Removed Google Authenticator / 6-digit TOTP requirements.
+- **No OTP, SMS, or Email Codes**: Login is never open, but completely free of SMS/email friction.
+- **Strict Free-Tier CPU Budget (< 10 ms)**: Password hashing uses native WebCrypto `PBKDF2` with SHA-256 and **50,000 iterations**, bench-tested at ~5.08 ms CPU time under Cloudflare Workers.
+- **Constant-Time Comparison**: Hash verification executes in constant time using `crypto.subtle` byte comparison to prevent timing side-channel attacks.
+- **Password Rules**: Minimum 8 characters, cannot equal username, blocks the top 100 most common passwords.
 
 ---
 
-## 📱 Live Testing Walkthrough Guide
+## 👥 Demo Accounts (Demo Only)
 
-To test the end-to-end passkey biometric workflow on a physical smartphone:
+All demo accounts are fictional and seeded into both local and live remote D1 databases (`careone-db`) with initial password `DemoPassword123!` and `must_change_password = 0`:
 
-### Step 1: Front Desk Generates Setup QR Code
-1. Open [https://care-one.syam18official.workers.dev/staff/signin](https://care-one.syam18official.workers.dev/staff/signin) on desktop.
-2. Sign in as Front Desk staff (`desk@example.com`).
-3. In the patient directory or Doctor Chart view, select demo patient **"Arun Kumar"**.
-4. Click the **"Set up app"** button in the header.
-5. The **Setup App with Passkey** modal opens with a live QR code and a 30-minute countdown.
+| Role | Name | Username (Staff Email / Patient MRN) | Password | Notes |
+|---|---|---|---|---|
+| **Hospital Admin** | Anand Verma | `admin@example.com` | `DemoPassword123!` | Operational dashboard & staff password resets |
+| **Front Desk** | Anjali Nair | `desk@example.com` | `DemoPassword123!` | Patient registration, appointments & patient password resets |
+| **Doctor (General Medicine)** | Dr. Rahul Menon | `dr.rahul@example.com` | `DemoPassword123!` | Attending doctor on Arun Kumar's care team |
+| **Specialist (Cardiology)** | Dr. Anjali Sharma | `dr.anjali@example.com` | `DemoPassword123!` | Cardiology specialist; department-scoped encounters |
+| **Doctor (Ortho)** | Dr. Thomas Varghese | `dr.thomas@example.com` | `DemoPassword123!` | Unlinked doctor; break-glass emergency access |
+| **Patient (Self)** | Arun Kumar | `ABC-1001` | `DemoPassword123!` | Patient portal; vitals, records & care plan |
+| **Guardian** | Sujatha Nair | `ABC-1002` | `DemoPassword123!` | Guardian of Baby Meenakshi (`ABC-1003`) |
 
-### Step 2: Patient Scans QR Code on Phone
-1. Open the camera or QR scanner on an Android device (Android 9+) or iPhone (iOS 16+).
-2. Scan the on-screen QR code, which opens `https://care-one.syam18official.workers.dev/setup?token=...`.
-3. The page displays: *"Set up your fingerprint or screen lock. No passwords or SMS codes."*
-4. Tap **"Create my passkey"**.
-5. Your device's native biometric prompt appears (fingerprint, Face ID, or screen PIN/pattern).
-6. Confirm the biometric check. The passkey is attested and registered in Cloudflare D1.
-7. The patient is automatically transitioned through consent to the patient portal home screen.
-
-### Step 3: Verify Subsequent Biometric Sign-In
-1. In the mobile browser, navigate to [https://care-one.syam18official.workers.dev/patient/login](https://care-one.syam18official.workers.dev/patient/login).
-2. Notice: **No code boxes or password inputs exist anywhere on the page.**
-3. Tap **"Sign in with fingerprint or face lock"**.
-4. Touch your fingerprint sensor or verify Face ID.
-5. You are instantly signed in to your patient portal.
+> [!NOTE]
+> In production with real patients, newly created accounts receive a temporary password (`Temp#...`) and are strictly required to choose a new password upon first login before accessing any records.
 
 ---
 
-## 🛠️ Commands to Resume / Local Development
+## 🔐 Security Gates & Access Invariants
 
+1. **Lockout Protection**: 5 consecutive failed login attempts automatically locks the account for 15 minutes (`locked_until`). 6th attempt returns HTTP 429.
+2. **Timing Uniformity**: Non-existent usernames and incorrect passwords return the exact same generic error: `"Invalid username or password"` (HTTP 401).
+3. **Session Cookies**:
+   - Staff: 12-hour session duration (`Max-Age=43200`).
+   - Patients: 30-day session duration (`Max-Age=2592000`).
+   - Cookie flags: `HttpOnly`, `Secure`, `SameSite=Strict`.
+4. **Forced Password Change Barrier**: While `must_change_password = 1`, all clinical and administrative routes return `403 {"error": "password_change_required"}` until `POST /api/me/password` is called.
+5. **Instant Invalidation**: Password updates increment `session_version`, instantly invalidating sessions on all other devices.
+6. **Active User Enforcement**: Every API request checks `is_active = 1` in D1. Deactivating a user immediately blocks all active sessions (`401 account_inactive`).
+7. **DPDP Compliance & Shielding**:
+   - Admin cannot access clinical records (routes return 404; admin dashboard returns aggregate numbers only).
+   - Unlinked doctors receive 404 when requesting an unassigned patient chart until 4-hour emergency break-glass is executed with written justification.
+   - Zero patient data is ever returned without a valid session (HTTP 401).
+
+---
+
+## 📱 Live Verification Walkthrough
+
+To verify the platform on a desktop browser or mobile phone:
+
+### 1. Patient Portal Walkthrough (Mobile / Desktop)
+1. Navigate to: `https://care-one.syam18official.workers.dev/patient/login`
+2. Enter **Hospital number or phone**: `ABC-1001`
+3. Enter **Password**: `DemoPassword123!` (use the eye icon toggle to reveal/hide password).
+4. Click **Sign In**.
+5. You are redirected to `/patient/home`:
+   - View recent visits, prescriptions, lab reports, and care plan.
+   - Switch language to **മലയാളം** via the top toggle.
+
+### 2. Hospital Staff Portal Walkthrough
+1. Navigate to: `https://care-one.syam18official.workers.dev/staff/signin`
+2. Sign in as Doctor (`dr.rahul@example.com` / `DemoPassword123!`).
+3. You are redirected to `/doctor/today` (OPD queue).
+4. Click on **Arun Kumar** (`ABC-1001`) to open the interactive clinical chart.
+5. Review allergies, conditions, and past consultation notes.
+6. Sign out using the user menu.
+
+### 3. Front Desk Patient Password Reset Walkthrough
+1. Sign in as Front Desk (`desk@example.com` / `DemoPassword123!`).
+2. Navigate to the patient directory or open Arun Kumar's chart.
+3. Click **"Create login / Reset password"**.
+4. The system generates a 12-character temporary password (e.g., `Temp#X7K9M2P`) and displays it once on screen with a **Copy** button.
+5. In a private/incognito window, go to `/patient/login` and sign in as `ABC-1001` with the temporary password.
+6. The application blocks portal access and immediately opens the **Set New Password** modal.
+7. Enter a new password satisfying all complexity rules (min 8 characters, != username).
+8. Once saved, the portal unlocks immediately and displays the patient home screen.
+
+### 4. Emergency CLI Password Reset Tool
+If an administrator or staff member ever forgets their password, reset it securely from your laptop terminal without exposing any HTTP route:
 ```powershell
-# 1. Start frontend dev server
-npm run dev
-
-# 2. Start Worker backend locally
-npm run worker:dev
-
-# 3. Apply local database migrations
-npm run db:migrate:local
-npx wrangler d1 migrations apply FILES_DB --local
-
-# 4. Run test suites
-npm test
-
-# 5. Typecheck & Lint
-npm run typecheck
-npm run lint
-npm run i18n:check
+npm run set-password -- --username admin@example.com --remote
 ```
+To run automated end-to-end tests against the live Cloudflare production API:
+```powershell
+npm run test:live-auth
+```
+
+---
+
+## ✅ Quality & Test Gate Status
+
+- **Automated Vitest Test Suite**: 43 test suites, 204 tests passing (100% pass rate).
+- **TypeScript Strictness**: `npm run typecheck` passes with 0 errors.
+- **ESLint Compliance**: `npm run lint` passes with 0 errors.
+- **Bilingual i18n Symmetry**: `npm run i18n:check` passes with 100% symmetry across 469 keys.
+- **Production Build**: `npm run build` generates optimized client bundle and Service Worker in < 1 second.
+- **Live Production Proofs**: 9 out of 9 end-to-end HTTP verification proofs passed against `https://care-one.syam18official.workers.dev`.
