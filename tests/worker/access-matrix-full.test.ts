@@ -112,7 +112,7 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
       DB: createD1Mock(dbSqlite),
       FILES_DB: createD1Mock(dbSqlite),
       REMINDERS: {} as Queue<unknown>,
-      ENVIRONMENT: 'production',
+      ENVIRONMENT: 'test',
       JWT_SECRET: 'test-jwt-secret-key-32-bytes-minimum-length!!',
       RESEND_API_KEY: 're_test_mock_key',
     };

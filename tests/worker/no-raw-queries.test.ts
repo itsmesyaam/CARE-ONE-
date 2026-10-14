@@ -90,7 +90,7 @@ describe('Security Gate: Generic Data Router Removal & No Raw Queries', () => {
       DB: createD1Mock(dbSqlite),
       FILES_DB: createD1Mock(dbSqlite),
       REMINDERS: {} as Queue<unknown>,
-      ENVIRONMENT: 'production',
+      ENVIRONMENT: 'test',
       JWT_SECRET: 'test-jwt-secret-key-32-bytes-minimum-length!!',
     };
   });

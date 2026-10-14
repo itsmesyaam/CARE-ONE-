@@ -9,6 +9,7 @@ import {
   detectMimeFromBytes,
   MAX_FILE_SIZE,
 } from '../data/files';
+import { loadPrincipal } from '../auth/policy';
 
 export const filesRouter = new Hono<{ Bindings: WorkerEnv }>();
 
@@ -28,12 +29,13 @@ function getExtensionForMime(mime: string): string {
 
 // POST /api/files/upload
 filesRouter.post('/upload', async (c) => {
-  const actorId = c.req.header('x-actor-id');
-  const actorRole = c.req.header('x-actor-role');
-
-  if (!actorId || !actorRole) {
+  const principal = await loadPrincipal(c);
+  if (!principal || !principal.isActive) {
     return c.json({ error: 'Unauthorized: missing actor credentials' }, 401);
   }
+
+  const actorId = principal.id;
+  const actorRole = principal.role;
 
   // Admins must never handle clinical records directly
   if (actorRole === 'admin') {
@@ -129,13 +131,14 @@ filesRouter.post('/upload', async (c) => {
 
 // GET /api/files/:fileId/download
 filesRouter.get('/:fileId/download', async (c) => {
-  const fileId = c.req.param('fileId');
-  const actorId = c.req.header('x-actor-id');
-  const actorRole = c.req.header('x-actor-role');
-
-  if (!actorId || !actorRole) {
+  const principal = await loadPrincipal(c);
+  if (!principal || !principal.isActive) {
     return c.json({ error: 'Unauthorized: missing actor credentials' }, 401);
   }
+
+  const fileId = c.req.param('fileId');
+  const actorId = principal.id;
+  const actorRole = principal.role;
 
   // Admins must never read individual clinical records
   if (actorRole === 'admin') {
@@ -184,8 +187,11 @@ filesRouter.get('/:fileId/download', async (c) => {
 
 // GET /api/admin/storage handler - Operational metrics only (no patient data)
 export const adminStorageHandler = async (c: Context<{ Bindings: WorkerEnv }>) => {
-  const actorRole = c.req.header('x-actor-role');
-  if (actorRole !== 'admin') {
+  const principal = await loadPrincipal(c);
+  if (!principal || !principal.isActive) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  if (principal.role !== 'admin') {
     return c.json({ error: 'Admin access required' }, 403);
   }
 

@@ -120,16 +120,22 @@ describe('D1 Chunked File Store: storeFile, readFile, and Routes', () => {
     // Insert test patient and staff
     mainSqlite.exec(`
       INSERT INTO patients (id, uhid, full_name, dob, gender, phone)
-      VALUES ('p-arun', 'ABC-1001', 'Arun Kumar', '1985-05-15', 'male', '9847000001');
+      VALUES 
+        ('p-arun', 'ABC-1001', 'Arun Kumar', '1985-05-15', 'male', '9847000001'),
+        ('p-other-patient', 'ABC-1002', 'Other Patient', '1990-01-01', 'female', '9847000002');
 
       INSERT INTO staff (id, user_id, role, full_name)
-      VALUES ('s-rahul', 'u-rahul', 'doctor', 'Dr. Rahul Nair');
+      VALUES 
+        ('s-rahul', 'u-rahul', 'doctor', 'Dr. Rahul Nair'),
+        ('admin-1', 'u-admin-1', 'admin', 'Admin User');
     `);
 
     mockEnv = {
       DB: createD1Mock(mainSqlite),
       FILES_DB: createD1Mock(filesSqlite),
       REMINDERS: {} as unknown as Queue<unknown>,
+      ENVIRONMENT: 'test',
+      JWT_SECRET: 'test-jwt-secret-key-32-bytes-minimum-length!!',
     };
   });
 

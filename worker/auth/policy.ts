@@ -126,17 +126,17 @@ export async function signJwt(payload: Record<string, unknown>, secret: string):
 export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promise<Principal | null> {
   const token = extractToken(c);
 
-  let actorId = c.req.header('x-actor-id');
-  let role = (c.req.header('x-actor-role') || '') as UserRole;
-  let aal = (c.req.header('x-actor-aal') || 'aal2') as 'aal1' | 'aal2';
+  let actorId: string | undefined;
+  let role: UserRole | undefined;
+  let aal: 'aal1' | 'aal2' = 'aal2';
   let sessionVersion: number | undefined;
 
   if (token && c.env.JWT_SECRET) {
     const payload = await verifyJwt(token, c.env.JWT_SECRET);
     if (payload) {
       actorId = (payload.sub || payload.id) as string;
-      role = (payload.role || role) as UserRole;
-      aal = (payload.aal || aal) as 'aal1' | 'aal2';
+      role = (payload.role as UserRole) || role;
+      aal = (payload.aal as 'aal1' | 'aal2') || aal;
       if (typeof payload.session_version === 'number') {
         sessionVersion = payload.session_version;
       } else if (typeof payload.token_version === 'number') {
@@ -145,6 +145,14 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
     } else {
       return null;
     }
+  } else if (c.env.ENVIRONMENT === 'test') {
+    // ONLY allowed when ENVIRONMENT === 'test' in vitest test suites, NEVER for 'local' or 'production'
+    actorId = c.req.header('x-actor-id');
+    role = (c.req.header('x-actor-role') || '') as UserRole;
+    aal = (c.req.header('x-actor-aal') || 'aal2') as 'aal1' | 'aal2';
+  } else {
+    // In production or local: valid session token is strictly required
+    return null;
   }
 
   if (!actorId || !role) {
@@ -265,13 +273,17 @@ export async function loadPrincipal(c: Context<{ Bindings: WorkerEnv }>): Promis
       .bind(actorId, actorId)
       .first<{ user_id: string }>();
 
+    if (!patientRow && !accessRow) {
+      return null;
+    }
+
     return {
       id: actorId,
       userId: accessRow?.user_id || actorId,
       role,
       aal: 'aal1',
       departmentId: null,
-      isActive: Boolean(patientRow || accessRow || actorId),
+      isActive: true,
     };
   }
 
