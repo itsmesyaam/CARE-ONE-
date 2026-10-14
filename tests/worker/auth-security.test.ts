@@ -5,8 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from '../../worker/index';
 import type { WorkerEnv } from '../../worker/env';
+import { signJwt } from '../../worker/auth/policy';
 
-describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
+describe('Auth Security, Password Invariants & Access Gates', () => {
   const schemaDbPath = path.resolve(__dirname, '../../migrations/0001_schema.sql');
   const schemaGuardsPath = path.resolve(__dirname, '../../migrations/0002_guards.sql');
   const schemaTriggersPath = path.resolve(__dirname, '../../migrations/0003_audit_triggers.sql');
@@ -16,6 +17,8 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
   const schemaHardeningPath = path.resolve(__dirname, '../../migrations/0010_passkeys_and_tokens_hardening.sql');
   const schemaDropOtpsPath = path.resolve(__dirname, '../../migrations/0011_drop_auth_otps.sql');
   const schemaStaffEmailPath = path.resolve(__dirname, '../../migrations/0012_staff_email.sql');
+  const schemaAuthPath = path.resolve(__dirname, '../../migrations/0013_username_password_auth.sql');
+  const seedUsersPath = path.resolve(__dirname, '../../migrations/0014_seed_demo_users.sql');
   const seedPath = path.resolve(__dirname, '../../seed/seed.sql');
 
   let dbSqlite: DatabaseSync;
@@ -107,6 +110,12 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
     if (fs.existsSync(schemaStaffEmailPath)) {
       dbSqlite.exec(fs.readFileSync(schemaStaffEmailPath, 'utf8'));
     }
+    if (fs.existsSync(schemaAuthPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaAuthPath, 'utf8'));
+    }
+    if (fs.existsSync(seedUsersPath)) {
+      dbSqlite.exec(fs.readFileSync(seedUsersPath, 'utf8'));
+    }
 
     mockEnv = {
       DB: createD1Mock(dbSqlite),
@@ -118,22 +127,34 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
     };
   });
 
-  it('verifies that no OTP routes or auth_otps tables remain', async () => {
-    // 1. /api/auth/otp/send and /verify must return 404 Not Found
-    const sendRes = await app.request('/api/auth/otp/send', { method: 'POST' }, mockEnv);
-    expect(sendRes.status).toBe(404);
+  it('verifies that no OTP, WebAuthn, or passkeys tables or endpoints exist', async () => {
+    // 1. Obsolete routes must return 404 Not Found
+    const obsoleteRoutes = [
+      '/api/auth/otp/send',
+      '/api/auth/otp/verify',
+      '/api/auth/passkey/login/options',
+      '/api/auth/passkey/login/verify',
+      '/api/auth/passkey/register/options',
+      '/api/auth/passkey/register/verify',
+      '/api/auth/demo-signin',
+    ];
 
-    const verifyRes = await app.request('/api/auth/otp/verify', { method: 'POST' }, mockEnv);
-    expect(verifyRes.status).toBe(404);
+    for (const route of obsoleteRoutes) {
+      const res = await app.request(route, { method: 'POST' }, mockEnv);
+      expect(res.status, `Route ${route} must be 404`).toBe(404);
+    }
 
-    // 2. auth_otps table must NOT exist in SQLite schema
-    const checkTable = dbSqlite
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'auth_otps';")
-      .get();
-    expect(checkTable).toBeUndefined();
+    // 2. Dropped tables must NOT exist in SQLite schema
+    const droppedTables = ['auth_otps', 'passkeys', 'setup_tokens', 'webauthn_challenges'];
+    for (const tableName of droppedTables) {
+      const checkTable = dbSqlite
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;")
+        .get(tableName);
+      expect(checkTable, `Table ${tableName} should be dropped`).toBeUndefined();
+    }
   });
 
-  it('grep check: verifies zero references to OTP routes or one-time code entry screens in src and worker', () => {
+  it('grep check: verifies zero references to OTP, passkey, or WebAuthn in src and worker', () => {
     const srcDir = path.resolve(__dirname, '../../src');
     const workerDir = path.resolve(__dirname, '../../worker');
 
@@ -156,8 +177,10 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
     for (const filePath of allFiles) {
       const content = fs.readFileSync(filePath, 'utf8');
       expect(content).not.toMatch(/\/api\/auth\/otp/i);
+      expect(content).not.toMatch(/\/api\/auth\/passkey/i);
       expect(content).not.toMatch(/one-time code/i);
       expect(content).not.toMatch(/one-time-code/i);
+      expect(content).not.toMatch(/SimpleWebAuthn/i);
     }
   });
 
@@ -171,201 +194,190 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
       { path: '/api/patient/records', method: 'GET' },
       { path: '/api/admin/dashboard', method: 'GET' },
       { path: '/api/admin/audit-logs', method: 'GET' },
-      { path: '/api/me/passkeys', method: 'GET' },
+      { path: '/api/me/password', method: 'POST' },
     ];
 
     for (const route of unauthenticatedRoutes) {
       const res = await app.request(route.path, { method: route.method }, mockEnv);
       expect(res.status, `Route ${route.path} should reject without session`).toBe(401);
+      const data = (await res.json()) as { error: string };
+      expect(data.error).toBe('unauthorized');
     }
   });
 
-  it('setup tokens: rejects expired, reused, or nonexistent tokens', async () => {
-    // 1. Non-existent token fails options request
-    const missingRes = await app.request('/api/auth/passkey/register/options', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: 'nonexistent-token-value' }),
-    }, mockEnv);
-    expect(missingRes.status).toBe(400);
-
-    // 2. Insert expired token into D1
-    const expiredToken = 'expired-token-12345678901234567890';
-    const expiredData = new TextEncoder().encode(expiredToken);
-    const expBuf = await crypto.subtle.digest('SHA-256', expiredData);
-    const expHash = Array.from(new Uint8Array(expBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
-
-    dbSqlite.exec(`
-      INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at)
-      VALUES ('t-expired', 'e0000000-0000-0000-0000-000000000001', '${expHash}', 'patient_setup', 'desk1', datetime('now', '-5 minutes'));
-    `);
-
-    const expiredRes = await app.request('/api/auth/passkey/register/options', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: expiredToken }),
-    }, mockEnv);
-    expect(expiredRes.status).toBe(400);
-
-    // 3. Insert already used token
-    const usedToken = 'used-token-12345678901234567890';
-    const usedData = new TextEncoder().encode(usedToken);
-    const usedBuf = await crypto.subtle.digest('SHA-256', usedData);
-    const usedHash = Array.from(new Uint8Array(usedBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
-
-    dbSqlite.exec(`
-      INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at, used_at)
-      VALUES ('t-used', 'e0000000-0000-0000-0000-000000000001', '${usedHash}', 'patient_setup', 'desk1', datetime('now', '+20 minutes'), datetime('now', '-2 minutes'));
-    `);
-
-    const usedRes = await app.request('/api/auth/passkey/register/options', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: usedToken }),
-    }, mockEnv);
-    expect(usedRes.status).toBe(400);
-  });
-
-  it('staff routes enforce AAL2: staff with AAL1 only (passkey without TOTP) is rejected with mfa_required', async () => {
-    // Issue token with aal1 (Factor 1 only)
-    const { signJwt } = await import('../../worker/auth/policy');
-    const aal1Token = await signJwt({
+  it('disabled user (is_active = 0) is blocked immediately across all routes', async () => {
+    // 1. Valid doctor session
+    const doctorToken = await signJwt({
       sub: 'b0000000-0000-0000-0000-000000000003',
       id: 'b0000000-0000-0000-0000-000000000003',
       role: 'doctor',
-      aal: 'aal1',
-      token_version: 1,
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    }, mockEnv.JWT_SECRET!);
-
-    const res = await app.request('/api/doctor/today', {
-      headers: { Authorization: `Bearer ${aal1Token}` },
-    }, mockEnv);
-
-    expect(res.status).toBe(401);
-    const data = (await res.json()) as { error: string };
-    expect(data.error).toMatch(/mfa_required/i);
-  });
-
-  it('revoked passkey is not allowed and disabled user sessions are blocked', async () => {
-    const { signJwt } = await import('../../worker/auth/policy');
-    const validDoctorToken = await signJwt({
-      sub: 'b0000000-0000-0000-0000-000000000003',
-      id: 'b0000000-0000-0000-0000-000000000003',
-      role: 'doctor',
-      aal: 'aal2',
-      token_version: 1,
+      session_version: 1,
       exp: Math.floor(Date.now() / 1000) + 3600,
     }, mockEnv.JWT_SECRET!);
 
     // Doctor can view /today
     const okRes = await app.request('/api/doctor/today', {
-      headers: { Authorization: `Bearer ${validDoctorToken}` },
+      headers: { Authorization: `Bearer ${doctorToken}` },
     }, mockEnv);
     expect(okRes.status).toBe(200);
 
-    // Disable doctor (is_active = 0)
+    // 2. Disable doctor in both staff and users tables
+    dbSqlite.exec("UPDATE users SET is_active = 0 WHERE username = 'dr.rahul@example.com';");
     dbSqlite.exec("UPDATE staff SET is_active = 0 WHERE id = 'b0000000-0000-0000-0000-000000000003';");
 
     // Session immediately blocked
     const blockedRes = await app.request('/api/doctor/today', {
-      headers: { Authorization: `Bearer ${validDoctorToken}` },
+      headers: { Authorization: `Bearer ${doctorToken}` },
     }, mockEnv);
     expect(blockedRes.status).toBe(401);
+    const blockedData = (await blockedRes.json()) as { error: string };
+    expect(blockedData.error).toBe('account_inactive');
   });
 
-  it('setup links: patient cannot create one; desk without two-factor is rejected with mfa_required', async () => {
-    const { signJwt } = await import('../../worker/auth/policy');
-
-    // 1. Patient attempt to create setup link
-    const patientToken = await signJwt({
-      sub: 'e0000000-0000-0000-0000-000000000001',
-      id: 'e0000000-0000-0000-0000-000000000001',
-      role: 'patient',
-      aal: 'aal1',
-      token_version: 1,
+  it('session version bump immediately invalidates previous sessions (sign-out everywhere)', async () => {
+    // 1. Session with version 1
+    const tokenV1 = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000003',
+      id: 'b0000000-0000-0000-0000-000000000003',
+      role: 'doctor',
+      session_version: 1,
       exp: Math.floor(Date.now() / 1000) + 3600,
     }, mockEnv.JWT_SECRET!);
 
-    const patientRes = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${patientToken}` },
+    const okRes = await app.request('/api/doctor/today', {
+      headers: { Authorization: `Bearer ${tokenV1}` },
     }, mockEnv);
-    expect([401, 403]).toContain(patientRes.status);
+    expect(okRes.status).toBe(200);
 
-    // 2. Desk with only aal1 (without TOTP factor) attempt
-    const deskAal1Token = await signJwt({
-      sub: 'b0000000-0000-0000-0000-000000000002',
-      id: 'b0000000-0000-0000-0000-000000000002',
-      role: 'front_desk',
-      aal: 'aal1',
-      token_version: 1,
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    }, mockEnv.JWT_SECRET!);
+    // 2. Bump session_version in users table
+    dbSqlite.exec("UPDATE users SET session_version = session_version + 1 WHERE username = 'dr.rahul@example.com';");
 
-    const deskAal1Res = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${deskAal1Token}` },
+    // 3. Old session token is now rejected with 401
+    const invalidatedRes = await app.request('/api/doctor/today', {
+      headers: { Authorization: `Bearer ${tokenV1}` },
     }, mockEnv);
-    expect(deskAal1Res.status).toBe(401);
-    const deskData = (await deskAal1Res.json()) as { error: string };
-    expect(deskData.error).toMatch(/mfa_required/i);
-
-    // 3. Desk with aal2 succeeds
-    const deskAal2Token = await signJwt({
-      sub: 'b0000000-0000-0000-0000-000000000002',
-      id: 'b0000000-0000-0000-0000-000000000002',
-      role: 'front_desk',
-      aal: 'aal2',
-      token_version: 1,
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    }, mockEnv.JWT_SECRET!);
-
-    const deskAal2Res = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${deskAal2Token}` },
-    }, mockEnv);
-    expect(deskAal2Res.status).toBe(201);
-    const linkData = (await deskAal2Res.json()) as { setup_url: string; expires_at: string };
-    expect(linkData.setup_url).toContain('/setup?token=');
+    expect(invalidatedRes.status).toBe(401);
   });
 
-  it('revoked passkey cannot sign in', async () => {
-    // Insert a revoked passkey into D1
-    dbSqlite.exec(`
-      INSERT INTO passkeys (id, user_id, credential_id, public_key, counter, revoked_at)
-      VALUES ('pk-revoked', 'e0000000-0000-0000-0000-000000000001', 'revoked-cred-id', 'dummy-key', 0, datetime('now', '-1 hour'));
-    `);
+  it('forced password change blocks clinical and desk routes until password is changed', async () => {
+    // 1. Set must_change_password = 1 for Dr. Rahul
+    dbSqlite.exec("UPDATE users SET must_change_password = 1 WHERE username = 'dr.rahul@example.com';");
 
-    // Attempting login verify with revoked credential id must fail
-    const verifyRes = await app.request('/api/auth/passkey/login/verify', {
+    const doctorToken = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000003',
+      id: 'b0000000-0000-0000-0000-000000000003',
+      role: 'doctor',
+      session_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
+
+    // Protected route blocked with 403
+    const blockedRes = await app.request('/api/doctor/today', {
+      headers: { Authorization: `Bearer ${doctorToken}` },
+    }, mockEnv);
+    expect(blockedRes.status).toBe(403);
+    const blockedData = (await blockedRes.json()) as { error: string };
+    expect(blockedData.error).toBe('password_change_required');
+
+    // Changing password via /api/me/password is permitted
+    const changeRes = await app.request('/api/me/password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${doctorToken}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        response: {
-          id: 'revoked-cred-id',
-          rawId: 'revoked-cred-id',
-          clientDataJSON: '',
-          authenticatorData: '',
-          signature: '',
-        },
+        currentPassword: 'DemoPassword123!',
+        newPassword: 'BrandNewSecurePass2026!',
       }),
     }, mockEnv);
+    expect(changeRes.status).toBe(200);
 
-    expect(verifyRes.status).toBe(401);
-    const errData = (await verifyRes.json()) as { error: string };
-    expect(errData.error).toMatch(/passkey not found or has been revoked/i);
+    // must_change_password reset to 0 in D1
+    const userRow = dbSqlite
+      .prepare("SELECT must_change_password, session_version FROM users WHERE username = 'dr.rahul@example.com';")
+      .get() as { must_change_password: number; session_version: number };
+    expect(userRow.must_change_password).toBe(0);
   });
 
-  it('demo sign-in returns 403 in production', async () => {
-    mockEnv.ENVIRONMENT = 'production';
+  it('desk can reset patient password, but is rejected on staff reset; admin can reset staff password', async () => {
+    const deskToken = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000002',
+      id: 'b0000000-0000-0000-0000-000000000002',
+      role: 'front_desk',
+      session_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
 
-    const res = await app.request('/api/auth/demo-signin', {
+    const adminToken = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000001',
+      id: 'b0000000-0000-0000-0000-000000000001',
+      role: 'admin',
+      session_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
+
+    // 1. Desk resets patient password
+    const patientId = 'e0000000-0000-0000-0000-000000000001';
+    const deskResetPatientRes = await app.request(`/api/desk/patients/${patientId}/account`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${deskToken}` },
+    }, mockEnv);
+    expect(deskResetPatientRes.status).toBe(200);
+    const patientResetData = (await deskResetPatientRes.json()) as { ok: boolean; temporary_password: string; username: string };
+    expect(patientResetData.ok).toBe(true);
+    expect(patientResetData.temporary_password).toMatch(/^Temp#[A-Za-z0-9]{7}$/);
+
+    // 2. Desk attempts to reset staff password -> 404 (desk not allowed on admin routes)
+    const staffId = 'b0000000-0000-0000-0000-000000000003';
+    const deskResetStaffRes = await app.request(`/api/admin/staff/${staffId}/password-reset`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${deskToken}` },
+    }, mockEnv);
+    expect(deskResetStaffRes.status).toBe(404);
+
+    // 3. Admin resets staff password -> 200
+    const adminResetStaffRes = await app.request(`/api/admin/staff/${staffId}/password-reset`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    }, mockEnv);
+    expect(adminResetStaffRes.status).toBe(200);
+    const adminResetData = (await adminResetStaffRes.json()) as { ok: boolean; temporary_password: string; username: string };
+    expect(adminResetData.ok).toBe(true);
+    expect(adminResetData.temporary_password).toMatch(/^Temp#[A-Za-z0-9]{7}$/);
+  });
+
+  it('enforces lockout after 5 consecutive failed logins', async () => {
+    // 4 failed logins return 401
+    for (let i = 1; i <= 4; i++) {
+      const failRes = await app.request('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'admin@example.com', password: 'WrongPassword123!' }),
+      }, mockEnv);
+      expect(failRes.status).toBe(401);
+      const data = (await failRes.json()) as { error: string };
+      expect(data.error).toBe('Invalid username or password');
+    }
+
+    // 5th attempt locks the account and returns 429
+    const fifthRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'front_desk' }),
+      body: JSON.stringify({ username: 'admin@example.com', password: 'WrongPassword123!' }),
     }, mockEnv);
+    expect(fifthRes.status).toBe(429);
+    const fifthData = (await fifthRes.json()) as { error: string };
+    expect(fifthData.error).toMatch(/temporarily locked.*15 minutes/i);
 
-    expect(res.status).toBe(403);
+    // 6th attempt is also rejected with 429 while locked
+    const sixthRes = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin@example.com', password: 'DemoPassword123!' }),
+    }, mockEnv);
+    expect(sixthRes.status).toBe(429);
+    const sixthData = (await sixthRes.json()) as { error: string };
+    expect(sixthData.error).toMatch(/temporarily locked/i);
   });
 });

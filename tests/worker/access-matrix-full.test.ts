@@ -92,8 +92,20 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
     if (fs.existsSync(schemaSessionsPath)) {
       dbSqlite.exec(fs.readFileSync(schemaSessionsPath, 'utf8'));
     }
+    const schemaStaffEmailPath = path.resolve(__dirname, '../../migrations/0012_staff_email.sql');
+    if (fs.existsSync(schemaStaffEmailPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaStaffEmailPath, 'utf8'));
+    }
+    const schemaAuthPath = path.resolve(__dirname, '../../migrations/0013_username_password_auth.sql');
+    if (fs.existsSync(schemaAuthPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaAuthPath, 'utf8'));
+    }
     if (fs.existsSync(seedPath)) {
       dbSqlite.exec(fs.readFileSync(seedPath, 'utf8'));
+    }
+    const schemaSeedUsersPath = path.resolve(__dirname, '../../migrations/0014_seed_demo_users.sql');
+    if (fs.existsSync(schemaSeedUsersPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaSeedUsersPath, 'utf8'));
     }
 
     mockEnv = {
@@ -398,15 +410,9 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
     });
   });
 
-  // 8. Doctor without two-factor (aal1)
-  describe('8. Doctor without two-factor (aal1)', () => {
-    const doctorNoMfaHeaders = {
-      'x-actor-id': DR_RAHUL_STAFF_ID,
-      'x-actor-role': 'doctor',
-      'x-actor-aal': 'aal1',
-    };
-
-    it('returns 401 mfa_required on every staff route', async () => {
+  // 8. Doctor Session & State Invariants
+  describe('8. Doctor Session & State Invariants', () => {
+    it('returns 401 unauthorized on every staff route without a valid session', async () => {
       const routes = [
         { path: '/api/doctor/today', method: 'GET' },
         { path: '/api/doctor/patients', method: 'GET' },
@@ -416,11 +422,37 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
       ];
 
       for (const route of routes) {
-        const res = await app.request(route.path, { method: route.method, headers: doctorNoMfaHeaders }, mockEnv);
+        const res = await app.request(route.path, { method: route.method }, mockEnv);
         expect(res.status).toBe(401);
-        const data = (await res.json()) as { error: string };
-        expect(data.error).toBe('mfa_required');
       }
+    });
+
+    it('returns 401 account_inactive when doctor account is deactivated (is_active = 0)', async () => {
+      dbSqlite.exec(`UPDATE staff SET is_active = 0 WHERE id = '${DR_RAHUL_STAFF_ID}';`);
+      dbSqlite.exec(`UPDATE users SET is_active = 0 WHERE record_id = '${DR_RAHUL_STAFF_ID}' OR id = '${DR_RAHUL_STAFF_ID}';`);
+      const res = await app.request('/api/doctor/today', {
+        headers: {
+          'x-actor-id': DR_RAHUL_STAFF_ID,
+          'x-actor-role': 'doctor',
+        },
+      }, mockEnv);
+      expect(res.status).toBe(401);
+      const data = (await res.json()) as { error: string };
+      expect(data.error).toBe('account_inactive');
+    });
+
+    it('returns 403 password_change_required when doctor must change password', async () => {
+      dbSqlite.exec(`UPDATE staff SET is_active = 1 WHERE id = '${DR_RAHUL_STAFF_ID}';`);
+      dbSqlite.exec(`UPDATE users SET is_active = 1, must_change_password = 1 WHERE record_id = '${DR_RAHUL_STAFF_ID}' OR username = 'dr.rahul@example.com';`);
+      const res = await app.request('/api/doctor/today', {
+        headers: {
+          'x-actor-id': DR_RAHUL_STAFF_ID,
+          'x-actor-role': 'doctor',
+        },
+      }, mockEnv);
+      expect(res.status).toBe(403);
+      const data = (await res.json()) as { error: string };
+      expect(data.error).toBe('password_change_required');
     });
   });
 });
