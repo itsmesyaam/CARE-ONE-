@@ -11,8 +11,10 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
   const schemaGuardsPath = path.resolve(__dirname, '../../migrations/0002_guards.sql');
   const schemaTriggersPath = path.resolve(__dirname, '../../migrations/0003_audit_triggers.sql');
   const schemaEmailPath = path.resolve(__dirname, '../../migrations/0005_email_limits.sql');
-  const schemaOtpsPath = path.resolve(__dirname, '../../migrations/0007_auth_otps.sql');
   const schemaSessionsPath = path.resolve(__dirname, '../../migrations/0008_sessions.sql');
+  const schemaPasskeysPath = path.resolve(__dirname, '../../migrations/0009_passkeys.sql');
+  const schemaHardeningPath = path.resolve(__dirname, '../../migrations/0010_passkeys_and_tokens_hardening.sql');
+  const schemaDropOtpsPath = path.resolve(__dirname, '../../migrations/0011_drop_auth_otps.sql');
   const seedPath = path.resolve(__dirname, '../../seed/seed.sql');
 
   let dbSqlite: DatabaseSync;
@@ -86,11 +88,17 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
       dbSqlite.exec(fs.readFileSync(schemaTriggersPath, 'utf8'));
     }
     dbSqlite.exec(fs.readFileSync(schemaEmailPath, 'utf8'));
-    if (fs.existsSync(schemaOtpsPath)) {
-      dbSqlite.exec(fs.readFileSync(schemaOtpsPath, 'utf8'));
-    }
     if (fs.existsSync(schemaSessionsPath)) {
       dbSqlite.exec(fs.readFileSync(schemaSessionsPath, 'utf8'));
+    }
+    if (fs.existsSync(schemaPasskeysPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaPasskeysPath, 'utf8'));
+    }
+    if (fs.existsSync(schemaHardeningPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaHardeningPath, 'utf8'));
+    }
+    if (fs.existsSync(schemaDropOtpsPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaDropOtpsPath, 'utf8'));
     }
     if (fs.existsSync(seedPath)) {
       dbSqlite.exec(fs.readFileSync(seedPath, 'utf8'));
@@ -107,7 +115,6 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
   });
 
   const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
-  const ARUN_PATIENT_PHONE = '9847000001';
 
   function parseJwt(token: string): Record<string, unknown> {
     const parts = token.split('.');
@@ -115,24 +122,18 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
     return JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
   }
 
-  it('rejects fixed code 123456 when ENVIRONMENT=production', async () => {
-    // 1. Send OTP in production
-    const sendRes = await app.request('/api/auth/otp/send', {
+  it('rejects demo-signin with 403 when ENVIRONMENT=production', async () => {
+    mockEnv.ENVIRONMENT = 'production';
+
+    const res = await app.request('/api/auth/demo-signin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: ARUN_PATIENT_PHONE, purpose: 'patient' }),
-    }, mockEnv);
-    expect(sendRes.status).toBe(200);
-
-    // 2. Attempt verification with fixed code 123456
-    const verifyRes = await app.request('/api/auth/otp/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: ARUN_PATIENT_PHONE, code: '123456' }),
+      body: JSON.stringify({ role: 'doctor' }),
     }, mockEnv);
 
-    // In production, fixed demo code 123456 must be rejected!
-    expect(verifyRes.status).toBe(401);
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toMatch(/disabled in production/i);
   });
 
   it('sets HttpOnly, Secure, SameSite=Strict cookies with correct TTLs (12h staff, 30d patient)', async () => {
@@ -140,7 +141,7 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
     const staffRes = await app.request('/api/auth/mfa/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'dr.rahul@example.com', code: '123456' }), // in test or totp
+      body: JSON.stringify({ email: 'dr.rahul@example.com', code: '123456' }),
     }, { ...mockEnv, ENVIRONMENT: 'local' });
 
     expect(staffRes.status).toBe(200);
@@ -158,18 +159,11 @@ describe('Step 3: Sign-In Hardening & Session Invariants', () => {
     expect(staffTtl).toBeGreaterThan(43000);
     expect(staffTtl).toBeLessThanOrEqual(43200);
 
-    // 2. Patient OTP verify
-    // First send code in local env so code is known
-    await app.request('/api/auth/otp/send', {
+    // 2. Patient session verify (via local demo-signin or passkey session)
+    const patientRes = await app.request('/api/auth/demo-signin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: ARUN_PATIENT_PHONE, purpose: 'patient' }),
-    }, { ...mockEnv, ENVIRONMENT: 'local' });
-
-    const patientRes = await app.request('/api/auth/otp/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: ARUN_PATIENT_PHONE, code: '123456' }),
+      body: JSON.stringify({ role: 'patient', id: 'e0000000-0000-0000-0000-000000000001' }),
     }, { ...mockEnv, ENVIRONMENT: 'local' });
 
     expect(patientRes.status).toBe(200);

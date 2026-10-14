@@ -6,19 +6,20 @@ A patient-engagement and doctor-assistant web app for one hospital in Kerala, In
 The full specification is @docs/ARCHITECTURE.md. Read it in full before planning any task. If a request conflicts with it, stop and ask. Do not change the architecture without my approval.
 
 ## Project in brief
-- This build is a demo. It runs on a free Supabase project with fictional demo data only. Polish, speed and a smooth demo matter more than backups and operations.
+- This build is a demo. It runs on a free Cloudflare project (Workers + D1 + Queues) with fictional demo data only. Polish, speed and a smooth demo matter more than backups and operations.
 - One hospital. Five roles: patient or guardian, doctor, front desk, hospital admin, and us (the platform team, with no routine access to patient data).
-- V1 features: patient registration and app invites by the front desk; appointments; doctor chart (history, allergies, medicines, consultation notes, reports, timeline); care plans; reminders by web push and email; patient report uploads with a doctor review queue; "What changed since the last visit" built from plain SQL queries; hospital admin dashboard showing counts only; English and Malayalam.
+- V1 features: patient registration and app invites by the front desk via biometric passkey QR code; appointments; doctor chart (history, allergies, medicines, consultation notes, reports, timeline); care plans; reminders by web push and email; patient report uploads with a doctor review queue; "What changed since the last visit" built from plain SQL queries; hospital admin dashboard showing counts only; English and Malayalam.
+- Authentication: WebAuthn passkeys (fingerprint / face / screen lock) for all patients and staff; hospital staff must complete 6-digit TOTP MFA (aal2) before accessing clinical or administrative routes. No OTP, SMS, or passwords.
 - Not in V1: any AI feature, payments, SMS or WhatsApp, video consultations, doctor-patient messaging.
 - Access: patients and guardians see their own records. Doctors see patients on their care team; booking an appointment adds the doctor for one year. Restricted records are visible only within the authoring department. Emergency access needs a written reason, lasts 4 hours, and is logged. The hospital admin never reads an individual patient's clinical record. Staff must use two-factor sign-in.
-- Production runs on Supabase in the Mumbai region. Real patient data exists only in production.
+- Production runs on Cloudflare Workers in the Mumbai region. Real patient data exists only in production.
 
 ## Stack (do not add, remove or swap anything without asking)
-- Frontend: React + TypeScript (strict) + Vite, one single-page app that is also a PWA (vite-plugin-pwa). Tailwind CSS + shadcn/ui, TanStack Query, React Router, React Hook Form + Zod, react-i18next (English and Malayalam).
-- Backend: Supabase only: Postgres with Row-Level Security, Auth, Storage, Edge Functions (Deno), Cron. Local development uses the Supabase CLI.
-- Hosting: static files on Cloudflare Pages.
-- Tests: Vitest for units, pgTAP through `supabase test db` for access rules, Playwright for smoke tests.
-- Not allowed: Next.js or any server rendering, a custom Node or Express server, Firebase, AWS, any AI or LLM API, analytics or session-replay tools.
+- Frontend: React + TypeScript (strict) + Vite, one single-page app that is also a PWA (vite-plugin-pwa). Tailwind CSS, TanStack Query, React Router, React Hook Form + Zod, react-i18next (English and Malayalam), @simplewebauthn/browser.
+- Backend: Cloudflare Workers only: Hono router, D1 SQLite databases (relational DB with triggers and files DB with chunked blobs), @simplewebauthn/server, Cron triggers, Queues. Local development uses Cloudflare Wrangler CLI.
+- Hosting: Cloudflare Workers serving both `/api/*` and the static SPA bundle.
+- Tests: Vitest for unit tests, role matrix, access control, and schema integrity tests.
+- Not allowed: Next.js or any server rendering, Supabase, Firebase, AWS, any AI or LLM API, analytics or session-replay tools.
 
 ## Credentials and accounts
 1. Do not ask me for credentials until a task truly needs them.
@@ -27,13 +28,13 @@ The full specification is @docs/ARCHITECTURE.md. Read it in full before planning
 4. You may push to origin after all checks pass and the secret check is clean. Never force push. Never change repository settings, add collaborators, or create GitHub secrets. I do those myself.
 
 ## Safety rules: never break these
-1. Work only against the local Supabase stack started with `supabase start`. Never run `supabase link`, `supabase db push`, `supabase functions deploy` or `supabase secrets`. Never use `--linked`, `--db-url` or `--project-ref`. Never deploy anything; I deploy through GitHub Actions myself.
-2. The service-role (secret) key must never appear in frontend code or in any `VITE_` variable.
-3. Never use real patient data. Seed data uses obviously fake people ("Test Patient 01"), `example.com` emails, and the test phone numbers set in `supabase/config.toml`.
-4. Every new table in the `public` schema enables Row-Level Security in the same migration that creates it, gets explicit policies, and gets pgTAP tests in the same change.
-5. Never use `user_metadata` or `raw_user_meta_data` for permissions. Roles come from the `staff` and `patient_access` tables through helper functions in the `private` schema.
-6. Every `security definer` function sets `search_path = ''`, lives in the `private` schema unless it is a deliberate RPC, and has execute revoked from `public` and `anon`. Every view uses `security_invoker = true`.
-7. No hard deletes of clinical data; use `deleted_at`. Signed consultation notes never change; corrections are addenda.
+1. Work locally using `wrangler` and local D1 (`npm run db:migrate:local`). Deployments happen via GitHub Actions or explicitly approved commands.
+2. The JWT_SECRET and service credentials must never appear in frontend code or in any `VITE_` variable.
+3. Never use real patient data. Seed data uses obviously fake people ("Test Patient 01"), `example.com` emails, and fictional test phone numbers.
+4. Every new table in D1 enforces appropriate indexes, immutable audit triggers, and access control via `withPolicy` middleware in the Worker.
+5. User roles come strictly from the `staff` and `patient_access` tables in D1. Never trust client-supplied roles.
+6. Staff routes strictly require `aal2` (TOTP MFA verified) after passkey authentication.
+7. No hard deletes of clinical data; use `deleted_at`. Signed consultation notes never change (enforced by SQLite triggers); corrections are addenda.
 8. Patient data never goes into URLs, `console.log`, error reports, push notification text, email subjects, localStorage, IndexedDB or the service-worker cache.
 9. No `dangerouslySetInnerHTML`, no `eval`, and never disable TypeScript checks, lint rules or tests to make something pass.
 10. Never edit or delete a migration that is already committed. Fix it with a new migration.

@@ -41,35 +41,6 @@ export const client = {
       const sess = await this.getSession();
       return { data: { user: sess.data?.session?.user || null }, error: null };
     },
-    async signInWithPassword(creds: { email: string; password?: string }): Promise<{ data: { session: UserSession }; error: ClientError | null }> {
-      void creds;
-      return { data: { session: { user: { id: 'u1' } } }, error: null };
-    },
-    async signInWithOtp(opts: { email: string; options?: unknown }): Promise<{ data: Record<string, unknown>; error: ClientError | null }> {
-      if (typeof fetch === 'function') {
-        const res = await fetch('/api/auth/otp/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: opts.email, purpose: 'staff' }),
-        });
-        if (res.ok) return { data: await res.json(), error: null };
-      }
-      return { data: {}, error: null };
-    },
-    async verifyOtp(opts: { email: string; token: string; type?: string }): Promise<{ data: { session: UserSession }; error: ClientError | null }> {
-      if (typeof fetch === 'function') {
-        const res = await fetch('/api/auth/otp/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: opts.email, code: opts.token }),
-        });
-        if (res.ok) {
-          const user = (await res.json()) as UserSession['user'];
-          return { data: { session: { user } }, error: null };
-        }
-      }
-      return { data: { session: { user: { id: 'u1' } } }, error: null };
-    },
     async signOut(): Promise<{ error: ClientError | null }> {
       try {
         if (typeof fetch === 'function') {

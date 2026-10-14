@@ -222,14 +222,16 @@ CareOne/
 │   ├── ARCHITECTURE.md         # Comprehensive architectural specification
 │   ├── PROGRESS.md             # Implementation changelog across phases
 │   └── DEPLOY.md               # Production deployment manual
-├── migrations/                 # D1 Primary Database migrations (0001 - 0009)
+├── migrations/                 # D1 Primary Database migrations (0001 - 0011)
 │   ├── 0001_schema.sql         # 23 relational tables, indexes, and constraints
 │   ├── 0002_guards.sql         # Context setup and encounter freeze triggers
 │   ├── 0003_audit_triggers.sql # AFTER INSERT/UPDATE triggers for audit trail
 │   ├── 0005_email_limits.sql   # Atomic daily email quota tracking
 │   ├── 0006_reminders.sql      # Reminder scheduler and abandonment logic
 │   ├── 0008_sessions.sql       # Session invalidation & token versioning
-│   └── 0009_passkeys.sql       # WebAuthn passkeys and setup tokens schema
+│   ├── 0009_passkeys.sql       # WebAuthn passkeys and setup tokens schema
+│   ├── 0010_passkeys_and_tokens_hardening.sql # Passkey indexes and audit triggers
+│   └── 0011_drop_auth_otps.sql # Drop legacy OTP table
 ├── migrations-files/           # D1 Files Database migrations
 │   └── 0001_files_schema.sql   # Chunked file storage tables (files & file_chunks)
 ├── public/                     # Static assets, version.json, and _headers

@@ -14,9 +14,9 @@ export interface PatientSheetConfig {
 export interface PatientContextType {
   lang: string;
   setLang: (lang: string) => void;
-  step: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app';
-  setStep: (step: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app') => void;
-  go: (step: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app') => void;
+  step: 'welcome' | 'signin' | 'consent' | 'who' | 'app';
+  setStep: (step: 'welcome' | 'signin' | 'consent' | 'who' | 'app') => void;
+  go: (step: 'welcome' | 'signin' | 'consent' | 'who' | 'app') => void;
   pid: string;
   setPid: (pid: string) => void;
   p: PatientPerson;
@@ -61,7 +61,7 @@ export const usePatient = (): PatientContextType => {
   return ctx;
 };
 
-export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app' }> = ({
+export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?: 'welcome' | 'signin' | 'consent' | 'who' | 'app' }> = ({
   children,
   initialStep = 'app',
 }) => {
@@ -73,7 +73,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
       return i18n.language || 'en';
     }
   });
-  const [step, setStep] = useState<'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app'>(initialStep);
+  const [step, setStep] = useState<'welcome' | 'signin' | 'consent' | 'who' | 'app'>(initialStep);
   const [pid, setPid] = useState<string>('anjali');
   const [tab, setTabState] = useState<string>('home');
   const [recTab, setRecTab] = useState<string>('reports');
@@ -133,7 +133,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     return () => clearTimeout(timer);
   }, [toastMsg]);
 
-  const go = useCallback((s: 'welcome' | 'signin' | 'otp' | 'consent' | 'who' | 'app') => {
+  const go = useCallback((s: 'welcome' | 'signin' | 'consent' | 'who' | 'app') => {
     setSheet(null);
     setStep(s);
     window.scrollTo(0, 0);

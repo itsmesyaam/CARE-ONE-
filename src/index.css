@@ -837,35 +837,6 @@ body {
 .patient-theme .sos h2 { color: var(--lat); }
 .patient-theme .note-card { display: flex; gap: 14px; padding: 16px; border-radius: 22px; background: #fff; border: 1px solid var(--line); }
 
-.patient-theme .otp { display: flex; gap: 8px; }
-.patient-theme .otp input {
-  flex: 1;
-  min-width: 0;
-  height: 62px;
-  text-align: center;
-  font-size: 1.6rem;
-  font-weight: 700;
-  border-radius: 14px;
-  border: 1.5px solid var(--line);
-  background: #fff;
-  outline: 0;
-  font-variant-numeric: tabular-nums;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.patient-theme .otp input:focus { border-color: var(--leaf); box-shadow: 0 0 0 4px rgba(31, 107, 79, 0.14); }
-.patient-theme .otp input.filled { border-color: #9DB5A9; }
-.patient-theme .otp input.bad { border-color: var(--lat); }
-
-.patient-theme .webotp {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 14px;
-  border-radius: 16px;
-  background: #fff;
-  border: 1px solid var(--line);
-}
 .patient-theme .secchk {
   display: flex;
   align-items: center;
