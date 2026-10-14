@@ -129,6 +129,34 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
     expect(checkTable).toBeUndefined();
   });
 
+  it('grep check: verifies zero references to OTP routes or one-time code entry screens in src and worker', () => {
+    const srcDir = path.resolve(__dirname, '../../src');
+    const workerDir = path.resolve(__dirname, '../../worker');
+
+    function scanFiles(dir: string): string[] {
+      let results: string[] = [];
+      const list = fs.readdirSync(dir);
+      for (const file of list) {
+        const fullPath = path.join(dir, file);
+        const stat = fs.statSync(fullPath);
+        if (stat && stat.isDirectory()) {
+          results = results.concat(scanFiles(fullPath));
+        } else if (/\.(ts|tsx|html|css)$/.test(file)) {
+          results.push(fullPath);
+        }
+      }
+      return results;
+    }
+
+    const allFiles = [...scanFiles(srcDir), ...scanFiles(workerDir)];
+    for (const filePath of allFiles) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      expect(content).not.toMatch(/\/api\/auth\/otp/i);
+      expect(content).not.toMatch(/one-time code/i);
+      expect(content).not.toMatch(/one-time-code/i);
+    }
+  });
+
   it('every protected patient and staff route returns 401 without a valid session', async () => {
     const unauthenticatedRoutes = [
       { path: '/api/doctor/today', method: 'GET' },
@@ -240,6 +268,89 @@ describe('Auth Security, WebAuthn Passkeys & Invariants', () => {
       headers: { Authorization: `Bearer ${validDoctorToken}` },
     }, mockEnv);
     expect(blockedRes.status).toBe(401);
+  });
+
+  it('setup links: patient cannot create one; desk without two-factor is rejected with mfa_required', async () => {
+    const { signJwt } = await import('../../worker/auth/policy');
+
+    // 1. Patient attempt to create setup link
+    const patientToken = await signJwt({
+      sub: 'e0000000-0000-0000-0000-000000000001',
+      id: 'e0000000-0000-0000-0000-000000000001',
+      role: 'patient',
+      aal: 'aal1',
+      token_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
+
+    const patientRes = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${patientToken}` },
+    }, mockEnv);
+    expect([401, 403]).toContain(patientRes.status);
+
+    // 2. Desk with only aal1 (without TOTP factor) attempt
+    const deskAal1Token = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000002',
+      id: 'b0000000-0000-0000-0000-000000000002',
+      role: 'front_desk',
+      aal: 'aal1',
+      token_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
+
+    const deskAal1Res = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${deskAal1Token}` },
+    }, mockEnv);
+    expect(deskAal1Res.status).toBe(401);
+    const deskData = (await deskAal1Res.json()) as { error: string };
+    expect(deskData.error).toMatch(/mfa_required/i);
+
+    // 3. Desk with aal2 succeeds
+    const deskAal2Token = await signJwt({
+      sub: 'b0000000-0000-0000-0000-000000000002',
+      id: 'b0000000-0000-0000-0000-000000000002',
+      role: 'front_desk',
+      aal: 'aal2',
+      token_version: 1,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    }, mockEnv.JWT_SECRET!);
+
+    const deskAal2Res = await app.request('/api/desk/patients/e0000000-0000-0000-0000-000000000001/setup-link', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${deskAal2Token}` },
+    }, mockEnv);
+    expect(deskAal2Res.status).toBe(201);
+    const linkData = (await deskAal2Res.json()) as { setup_url: string; expires_at: string };
+    expect(linkData.setup_url).toContain('/setup?token=');
+  });
+
+  it('revoked passkey cannot sign in', async () => {
+    // Insert a revoked passkey into D1
+    dbSqlite.exec(`
+      INSERT INTO passkeys (id, user_id, credential_id, public_key, counter, revoked_at)
+      VALUES ('pk-revoked', 'e0000000-0000-0000-0000-000000000001', 'revoked-cred-id', 'dummy-key', 0, datetime('now', '-1 hour'));
+    `);
+
+    // Attempting login verify with revoked credential id must fail
+    const verifyRes = await app.request('/api/auth/passkey/login/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        response: {
+          id: 'revoked-cred-id',
+          rawId: 'revoked-cred-id',
+          clientDataJSON: '',
+          authenticatorData: '',
+          signature: '',
+        },
+      }),
+    }, mockEnv);
+
+    expect(verifyRes.status).toBe(401);
+    const errData = (await verifyRes.json()) as { error: string };
+    expect(errData.error).toMatch(/passkey not found or has been revoked/i);
   });
 
   it('demo sign-in returns 403 in production', async () => {
