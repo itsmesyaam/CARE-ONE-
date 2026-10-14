@@ -7,6 +7,8 @@
  * with AGENTS.md rules 2–5. Every route has its own policy and dedicated domain endpoint.
  */
 
+import { logout } from './logout';
+
 export interface ClientError {
   message: string;
 }
@@ -35,7 +37,7 @@ export const client = {
       } catch {
         // fallback
       }
-      return { data: { session: { user: { id: 'b0000000-0000-0000-0000-000000000003', email: 'dr.rahul@example.com', role: 'doctor' } } }, error: null };
+      return { data: { session: null }, error: null };
     },
     async getUser(): Promise<{ data: { user: { id: string; email?: string } | null } | null; error: ClientError | null }> {
       const sess = await this.getSession();
@@ -43,9 +45,7 @@ export const client = {
     },
     async signOut(): Promise<{ error: ClientError | null }> {
       try {
-        if (typeof fetch === 'function') {
-          await fetch('/api/auth/signout', { method: 'POST' });
-        }
+        await logout();
       } catch {
         // ignore
       }

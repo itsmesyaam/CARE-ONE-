@@ -12,13 +12,29 @@ import {
   Phone,
   Mail,
   MapPin,
+  Info,
+  X,
 } from 'lucide-react';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ConfigBanner } from '../components/ConfigBanner';
 import { BuildStamp } from '../components/BuildStamp';
+import { SIGNED_OUT_NOTICE_KEY } from '../lib/logout';
 
 export function RootLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
+  const [signedOutNotice, setSignedOutNotice] = React.useState<string | null>(() => {
+    try {
+      if (typeof window === 'undefined') return null;
+      const notice = sessionStorage.getItem(SIGNED_OUT_NOTICE_KEY);
+      if (notice) {
+        sessionStorage.removeItem(SIGNED_OUT_NOTICE_KEY);
+        return notice === 'true' ? t('common.signedOutNotice') : notice;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
 
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'ml' ? 'en' : 'ml';
@@ -29,6 +45,28 @@ export function RootLayout(): React.JSX.Element {
     <div className="flex min-h-screen flex-col bg-[#F4F6FB] text-[#0B1533]">
       <ConfigBanner />
       <OfflineBanner />
+
+      {signedOutNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-3"
+        >
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Info className="h-5 w-5 shrink-0 text-sky-600" />
+              <span className="text-xs sm:text-sm font-semibold">{signedOutNotice}</span>
+            </div>
+            <button
+              onClick={() => setSignedOutNotice(null)}
+              className="p-1 rounded-lg text-sky-700 hover:bg-sky-100 transition"
+              aria-label="Dismiss notice"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Pill Header matching DoctorCare */}
       <header className="sticky top-3 z-30 mx-auto w-full max-w-5xl px-4 sm:px-6">

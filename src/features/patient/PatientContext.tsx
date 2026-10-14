@@ -346,31 +346,20 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
   };
 
   const signOut = async (msg?: string) => {
-    try {
-      await client.auth.signOut();
-    } catch {
-      // ignore
-    }
-    try {
-      const savedLang = localStorage.getItem('careone_lang');
-      localStorage.clear();
-      sessionStorage.clear();
-      if (savedLang) {
-        localStorage.setItem('careone_lang', savedLang);
-      }
-      if (msg) {
-        sessionStorage.setItem('careone_flash_toast', msg);
-      }
-    } catch {
-      // ignore
-    }
     setDb(createSampleSeed());
     setPid('anjali');
     setTabState('home');
     setSheet(null);
     setInst(false);
     setStep('welcome');
-    window.location.href = '/patient/signin';
+    try {
+      await client.auth.signOut();
+      if (msg) {
+        sessionStorage.setItem('careone_flash_toast', msg);
+      }
+    } catch {
+      // ignore
+    }
   };
 
   const value: PatientContextType = {

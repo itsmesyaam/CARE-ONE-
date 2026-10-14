@@ -175,8 +175,6 @@ export function AdminDashboard(): React.JSX.Element {
     try {
       setIsSigningOut(true);
       await client.auth.signOut();
-      queryClient.clear();
-      window.location.href = '/';
     } catch {
       setIsSigningOut(false);
     }

@@ -14,7 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
-import { client } from '../../lib/client';
+import { logout } from '../../lib/logout';
 
 export function DoctorLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
@@ -25,17 +25,7 @@ export function DoctorLayout(): React.JSX.Element {
   const [idleSecondsRemaining, setIdleSecondsRemaining] = useState<number | null>(null);
 
   const handleDoctorSignOut = async () => {
-    try {
-      await client.auth.signOut();
-    } catch {
-      // ignore
-    }
-    try {
-      sessionStorage.clear();
-    } catch {
-      // ignore
-    }
-    window.location.href = '/staff/signin';
+    await logout();
   };
 
   const lastActiveRef = useRef<number>(0);

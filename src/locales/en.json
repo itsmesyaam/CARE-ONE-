@@ -37,7 +37,8 @@
     "adminAuthMessage": "Please sign in with your staff credentials and two-factor authentication to access the administration dashboard.",
     "returnHome": "Return to Home",
     "signOut": "Sign Out",
-    "signingOut": "Signing out..."
+    "signingOut": "Signing out...",
+    "signedOutNotice": "You've been signed out. Please sign in again."
   },
   "roles": {
     "doctor": "Doctor",

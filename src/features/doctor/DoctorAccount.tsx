@@ -8,7 +8,7 @@ import {
   Check,
   ShieldAlert,
 } from 'lucide-react';
-import { client } from '../../lib/client';
+import { logout } from '../../lib/logout';
 import { ChangePasswordCard } from '../../components/auth/ChangePasswordCard';
 
 interface EmergencyAccessRow {
@@ -46,18 +46,7 @@ export function DoctorAccount(): React.JSX.Element {
 
   const handleSignOut = async () => {
     setSigningOut(true);
-    try {
-      await client.auth.signOut();
-    } catch {
-      // ignore
-    }
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem('auth.token');
-    } catch {
-      // ignore
-    }
-    window.location.href = '/staff/signin';
+    await logout();
   };
 
   return (
