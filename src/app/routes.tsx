@@ -5,7 +5,6 @@ import { AdminRouteGuard } from '../components/AdminRouteGuard';
 import { SignInPage } from '../features/auth/SignInPage';
 import { PatientProvider } from '../features/patient/PatientContext';
 import { PatientSignIn } from '../features/patient/PatientSignIn';
-import { PatientSetup } from '../features/patient/PatientSetup';
 import { PatientLayout } from '../features/patient/PatientLayout';
 import { PatientHome } from '../features/patient/PatientHome';
 import { PatientCarePlan } from '../features/patient/PatientCarePlan';
@@ -105,7 +104,7 @@ export const router = createBrowserRouter([
     path: '/setup',
     element: (
       <PatientProvider initialStep="welcome">
-        <PatientSetup />
+        <PatientSignIn />
       </PatientProvider>
     ),
   },
@@ -113,7 +112,7 @@ export const router = createBrowserRouter([
     path: '/patient/setup',
     element: (
       <PatientProvider initialStep="welcome">
-        <PatientSetup />
+        <PatientSignIn />
       </PatientProvider>
     ),
   },

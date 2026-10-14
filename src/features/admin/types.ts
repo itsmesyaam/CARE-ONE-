@@ -14,6 +14,7 @@ export interface StaffMember {
   department_id: string | null;
   departments?: { name: string } | null;
   phone: string | null;
+  email?: string | null;
   is_active: boolean;
   created_at: string;
   deleted_at: string | null;

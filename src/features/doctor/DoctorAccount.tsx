@@ -9,7 +9,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { client } from '../../lib/client';
-import { PasskeyDeviceList } from '../../components/PasskeyDeviceList';
+import { ChangePasswordCard } from '../../components/auth/ChangePasswordCard';
 
 interface EmergencyAccessRow {
   id: string;
@@ -147,16 +147,8 @@ export function DoctorAccount(): React.JSX.Element {
             </div>
           </section>
 
-          {/* Registered Devices (Passkeys / Security Keys) */}
-          <section className="bg-white p-6 rounded-2xl border border-[var(--line)] shadow-xs">
-            <h3 className="font-bold text-base text-[var(--ink)] mb-1">
-              Registered Security Keys & Passkeys
-            </h3>
-            <p className="text-xs text-[var(--ink3)] mb-4">
-              Hardware security keys and device biometric authenticators attached to your staff account.
-            </p>
-            <PasskeyDeviceList userRole="staff" />
-          </section>
+          {/* Change Password */}
+          <ChangePasswordCard username="dr.rahul@example.com" />
         </div>
 
         {/* Right Column: Email Alerts & Emergency Access Log */}

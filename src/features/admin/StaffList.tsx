@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, UserCheck, UserX, Stethoscope, Shield, Phone } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, Stethoscope, Shield, Phone, KeyRound } from 'lucide-react';
 import type { StaffMember } from './types';
+import { ResetPasswordModal } from '../../components/auth/ResetPasswordModal';
 
 interface StaffListProps {
   staff: StaffMember[];
@@ -13,6 +14,42 @@ export function StaffList({ staff, onInvite, onToggleActive }: StaffListProps): 
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'doctor' | 'front_desk' | 'admin'>('all');
+  const [resetModalData, setResetModalData] = useState<{
+    isOpen: boolean;
+    name: string;
+    username: string;
+    tempPass: string;
+  } | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+
+  const handleResetPassword = async (member: StaffMember) => {
+    setResettingId(member.id);
+    try {
+      const res = await fetch(`/api/admin/staff/${member.id}/password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        temporary_password?: string;
+        username?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok || !data.temporary_password) {
+        throw new Error(data.error || 'Failed to reset staff password');
+      }
+      setResetModalData({
+        isOpen: true,
+        name: member.full_name,
+        username: data.username || member.email || member.user_id,
+        tempPass: data.temporary_password,
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setResettingId(null);
+    }
+  };
 
   const filtered = staff.filter((member) => {
     const matchesSearch =
@@ -136,19 +173,31 @@ export function StaffList({ staff, onInvite, onToggleActive }: StaffListProps): 
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onToggleActive(member)}
-                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                        member.is_active
-                          ? 'text-rose-700 hover:bg-rose-50 border border-rose-200/60'
-                          : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200/60'
-                      }`}
-                    >
-                      {member.is_active
-                        ? t('admin.staff.deactivate', 'Deactivate')
-                        : t('admin.staff.activate', 'Activate')}
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResetPassword(member)}
+                        disabled={resettingId === member.id}
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 border border-slate-300 transition"
+                        title={t('admin.staff.resetPassword', 'Reset Password')}
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{resettingId === member.id ? '...' : t('admin.staff.resetPassword', 'Reset Password')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onToggleActive(member)}
+                        className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                          member.is_active
+                            ? 'text-rose-700 hover:bg-rose-50 border border-rose-200/60'
+                            : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200/60'
+                        }`}
+                      >
+                        {member.is_active
+                          ? t('admin.staff.deactivate', 'Deactivate')
+                          : t('admin.staff.activate', 'Activate')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -156,6 +205,16 @@ export function StaffList({ staff, onInvite, onToggleActive }: StaffListProps): 
           </tbody>
         </table>
       </div>
+
+      {resetModalData && (
+        <ResetPasswordModal
+          isOpen={resetModalData.isOpen}
+          title={t('resetPasswordModal.staffSuccess', 'Staff Password Reset')}
+          username={resetModalData.username}
+          temporaryPassword={resetModalData.tempPass}
+          onClose={() => setResetModalData(null)}
+        />
+      )}
     </div>
   );
 }

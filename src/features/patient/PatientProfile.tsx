@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { usePatient } from './PatientContext';
 import { SAMPLE_PEOPLE, PatientPerson } from './mock';
-import { PasskeyDeviceList } from '../../components/PasskeyDeviceList';
+import { ChangePasswordCard } from '../../components/auth/ChangePasswordCard';
 
 function IdCard(): React.JSX.Element {
   const { t } = useTranslation();
@@ -68,6 +68,7 @@ export function PatientProfile(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const {
+    p,
     lang,
     setLang,
     pid,
@@ -350,13 +351,8 @@ export function PatientProfile(): React.JSX.Element {
             </div>
           </section>
 
-          {/* Registered Devices (Passkeys) */}
-          <section aria-labelledby="devices-heading">
-            <h2 id="devices-heading" className="text-lg font-bold text-[var(--ink)] mb-3">
-              {lang === 'ml' ? 'രജിസ്റ്റർ ചെയ്ത ഉപകരണങ്ങൾ (പാസ്‌കീ)' : 'Registered Biometric Devices'}
-            </h2>
-            <PasskeyDeviceList userRole="patient" />
-          </section>
+          {/* Account Password */}
+          <ChangePasswordCard username={p.mrn} />
 
           {/* Quick links */}
           <section className="grp" aria-label="Portal Shortcuts">

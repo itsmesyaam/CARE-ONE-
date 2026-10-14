@@ -116,7 +116,8 @@
       "sending": "Sending...",
       "sendInvite": "Send Invite",
       "errorName": "Full name must be at least 2 characters",
-      "errorEmail": "Please enter a valid email address"
+      "errorEmail": "Please enter a valid email address",
+      "resetPassword": "Reset Password"
     }
   },
   "doctor": {
@@ -498,5 +499,39 @@
     "restrictedDesc": "Only doctors in your department and the patient can read it.",
     "signConfirmation": "I confirm this consultation note is accurate and complete.",
     "noteSignedSuccess": "Consultation note signed successfully."
+  },
+  "resetPasswordModal": {
+    "title": "Login Credentials",
+    "patientSuccess": "Patient Login Created / Reset",
+    "staffSuccess": "Staff Password Reset",
+    "usernameLabel": "Username",
+    "tempPasswordLabel": "Temporary Password",
+    "onceNotice": "This temporary password will only be shown ONCE. Please copy and share it securely with the user.",
+    "mustChangeNotice": "The user will be required to choose a new password upon their first sign-in.",
+    "copyBtn": "Copy",
+    "copied": "Copied!"
+  },
+  "forcePasswordChange": {
+    "title": "Set New Password",
+    "desc": "For your security, you must set a new password on your first sign-in or after a password reset.",
+    "rulesTitle": "Password Requirements:",
+    "ruleMinLength": "At least 8 characters",
+    "ruleNotUsername": "Cannot be your username",
+    "ruleNotCommon": "Cannot be a common easy-to-guess password",
+    "currentPasswordLabel": "Current (temporary) password",
+    "newPasswordLabel": "New password",
+    "confirmPasswordLabel": "Confirm new password",
+    "submitBtn": "Change Password",
+    "fillAll": "Please fill in all fields.",
+    "mismatch": "New passwords do not match."
+  },
+  "changePassword": {
+    "title": "Change Password",
+    "sub": "Update your account password. Changing password signs out all other devices.",
+    "success": "Password changed successfully! Other devices have been signed out.",
+    "currentPassword": "Current password",
+    "newPassword": "New password (min. 8 characters)",
+    "confirmPassword": "Confirm new password",
+    "button": "Change Password"
   }
 }

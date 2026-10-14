@@ -16,14 +16,14 @@ import {
   Clock,
   Activity,
   Check,
-  Eye,
   CheckCircle2,
-  QrCode,
+  KeyRound,
+  Eye,
 } from 'lucide-react';
 import { NoteComposer } from './NoteComposer';
 import { AddendumModal } from './AddendumModal';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
-import { SetupQrModal } from '../../components/SetupQrModal';
+import { ResetPasswordModal } from '../../components/auth/ResetPasswordModal';
 
 interface PatientRecord {
   id: string;
@@ -166,8 +166,42 @@ export function DoctorChart(): React.JSX.Element {
   const [selectedReadingKind, setSelectedReadingKind] = useState<string>('Blood Pressure');
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedEncounterForAddendum, setSelectedEncounterForAddendum] = useState<EncounterRecord | null>(null);
+  const [patientAccountData, setPatientAccountData] = useState<{
+    isOpen: boolean;
+    username: string;
+    tempPass: string;
+  } | null>(null);
+  const [accountLoading, setAccountLoading] = useState(false);
+
+  const handleCreateOrResetPatientAccount = async () => {
+    if (!patient?.id) return;
+    setAccountLoading(true);
+    try {
+      const res = await fetch(`/api/desk/patients/${patient.id}/account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        username?: string;
+        temporary_password?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok || !data.temporary_password) {
+        throw new Error(data.error || 'Failed to create or reset patient login');
+      }
+      setPatientAccountData({
+        isOpen: true,
+        username: data.username || patient.uhid,
+        tempPass: data.temporary_password,
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAccountLoading(false);
+    }
+  };
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
-  const [setupQrOpen, setSetupQrOpen] = useState(false);
   const [expandedEncounterId, setExpandedEncounterId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -523,16 +557,17 @@ export function DoctorChart(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Action Buttons: Passkey App Setup & Consultation Note */}
+          {/* Action Buttons: Patient Login Account & Consultation Note */}
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSetupQrOpen(true)}
+              onClick={handleCreateOrResetPatientAccount}
+              disabled={accountLoading}
               className="btn btn-sec inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold py-2 px-3.5 border-[var(--line)] shadow-2xs"
-              title="Generate 30-minute passkey setup QR code for patient"
+              title="Create login or reset temporary password for patient"
             >
-              <QrCode size={16} className="text-[var(--leaf)]" />
-              <span>Set up app</span>
+              <KeyRound size={16} className="text-[var(--leaf)]" />
+              <span>{accountLoading ? '...' : 'Create login / Reset password'}</span>
             </button>
 
             {todaysSignedEncounter ? (
@@ -1394,14 +1429,14 @@ export function DoctorChart(): React.JSX.Element {
         </div>
       )}
 
-      {/* Passkey Setup QR Modal */}
-      {setupQrOpen && patient && (
-        <SetupQrModal
-          patientId={patient.id}
-          patientName={patient.full_name}
-          uhid={patient.uhid}
-          isOpen={setupQrOpen}
-          onClose={() => setSetupQrOpen(false)}
+      {/* Patient Login Created / Reset Modal */}
+      {patientAccountData && (
+        <ResetPasswordModal
+          isOpen={patientAccountData.isOpen}
+          title="Patient Login Created / Reset"
+          username={patientAccountData.username}
+          temporaryPassword={patientAccountData.tempPass}
+          onClose={() => setPatientAccountData(null)}
         />
       )}
     </div>

@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
-  Fingerprint,
   KeyRound,
   ChevronRight,
   ShieldCheck,
@@ -57,10 +56,9 @@ export function SignInPage(): React.JSX.Element {
             {t('auth.signInTitle', 'Secure Sign-In')}
           </h1>
           <p className="text-sm text-[#6B7596] text-center mt-2 leading-relaxed">
-            {t(
-              'auth.selectPortal',
-              'CareOne uses WebAuthn biometric passkeys and physical security keys. No passwords or SMS codes are used.'
-            )}
+            {i18n.language === 'ml'
+              ? 'നിങ്ങളുടെ രജിസ്റ്റർ ചെയ്ത യൂസർനെയിമും പാസ്‌വേഡും ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക.'
+              : 'Sign in with your registered hospital number or email and password.'}
           </p>
 
           <div className="mt-8 flex flex-col gap-4">
@@ -71,7 +69,7 @@ export function SignInPage(): React.JSX.Element {
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#E8F7EE] text-[#15803D] flex items-center justify-center flex-none">
-                  <Fingerprint size={26} />
+                  <ShieldCheck size={26} />
                 </div>
                 <div>
                   <b className="block text-base font-bold text-[#0B1533] group-hover:text-[#2B59FF] transition">
@@ -79,8 +77,8 @@ export function SignInPage(): React.JSX.Element {
                   </b>
                   <span className="block text-xs text-[#6B7596] mt-0.5">
                     {i18n.language === 'ml'
-                      ? 'വിരലടയാളം അല്ലെങ്കിൽ ഫെയ്സ് ലോക്ക് ഉപയോഗിക്കുക'
-                      : 'Sign in with fingerprint or screen lock'}
+                      ? 'ഹോസ്പിറ്റൽ നമ്പറും പാസ്‌വേഡും ഉപയോഗിക്കുക'
+                      : 'Sign in with hospital number and password'}
                   </span>
                 </div>
               </div>
@@ -102,8 +100,8 @@ export function SignInPage(): React.JSX.Element {
                   </b>
                   <span className="block text-xs text-[#6B7596] mt-0.5">
                     {i18n.language === 'ml'
-                      ? 'പാസ്‌കീയും TOTP ആപ്പും ഉപയോഗിക്കുക'
-                      : 'Doctor, Front Desk, or Administrator (Passkey + 2FA)'}
+                      ? 'ഇമെയിലും പാസ്‌വേഡും ഉപയോഗിക്കുക'
+                      : 'Doctor, Front Desk, or Administrator (Email + Password)'}
                   </span>
                 </div>
               </div>
