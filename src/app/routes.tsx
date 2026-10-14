@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from './RootLayout';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 import { AdminRouteGuard } from '../components/AdminRouteGuard';
 import { SignInPage } from '../features/auth/SignInPage';
 import { PatientProvider } from '../features/patient/PatientContext';
@@ -56,7 +57,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/doctor',
-    element: <DoctorLayout />,
+    element: (
+      <ProtectedRoute allowedRoles={['doctor', 'front_desk', 'admin', 'staff']}>
+        <DoctorLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
@@ -119,9 +124,11 @@ export const router = createBrowserRouter([
   {
     path: '/patient',
     element: (
-      <PatientProvider initialStep="app">
-        <PatientLayout />
-      </PatientProvider>
+      <ProtectedRoute allowedRoles={['patient', 'guardian']}>
+        <PatientProvider initialStep="app">
+          <PatientLayout />
+        </PatientProvider>
+      </ProtectedRoute>
     ),
     children: [
       {

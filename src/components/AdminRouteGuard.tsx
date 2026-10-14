@@ -1,18 +1,23 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { client, isConfigured } from '../lib/client';
-import { useTranslation } from 'react-i18next';
 
 export function AdminRouteGuard({ children }: { children: ReactNode }): React.JSX.Element {
-  const { t } = useTranslation();
-  const [checked, setChecked] = useState(true);
-  const [hasSession, setHasSession] = useState(true);
+  const [checked, setChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
     if (!isConfigured) return;
-    client.auth.getSession().then(({ data }) => {
-      setHasSession(!!data?.session);
-      setChecked(true);
-    });
+    client.auth
+      .getSession()
+      .then(({ data }) => {
+        setHasSession(!!data?.session);
+        setChecked(true);
+      })
+      .catch(() => {
+        setHasSession(false);
+        setChecked(true);
+      });
   }, []);
 
   if (!checked) {
@@ -24,24 +29,7 @@ export function AdminRouteGuard({ children }: { children: ReactNode }): React.JS
   }
 
   if (!hasSession) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 text-center shadow-xs">
-          <h2 className="mb-2 font-bold text-lg text-slate-900">
-            {t('common.authRequired')}
-          </h2>
-          <p className="mb-4 text-slate-600 text-sm">
-            {t('common.adminAuthMessage')}
-          </p>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-sky-700 px-4 py-2 font-medium text-sm text-white hover:bg-sky-800 transition"
-          >
-            {t('common.returnHome')}
-          </a>
-        </div>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
