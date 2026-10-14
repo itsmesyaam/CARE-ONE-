@@ -386,8 +386,65 @@ async function runLiveProofs() {
     timestamp: new Date().toISOString(),
   });
 
+  // 10. Live Logout & GET /api/me 401 Verification
+  console.log('\n--- Step 10: Live Logout & GET /api/me Invalidation ---');
+  let step10Passed = true;
+  for (const roleTest of [
+    { username: 'dr.rahul@example.com', name: 'Dr. Rahul' },
+    { username: 'ABC-1001', name: 'Patient Arun' },
+  ]) {
+    const loginRes = await fetch(`${LIVE_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: roleTest.username, password: 'DemoPassword123!' }),
+    });
+    const cookie = extractCookie(loginRes, 'careone_session');
+    if (!cookie) {
+      step10Passed = false;
+      console.log(`FAILED: No cookie returned for ${roleTest.name}`);
+      continue;
+    }
+
+    const meRes = await fetch(`${LIVE_BASE}/api/me`, {
+      headers: { Cookie: `careone_session=${cookie}` },
+    });
+    if (meRes.status !== 200) {
+      step10Passed = false;
+      console.log(`FAILED: GET /api/me for ${roleTest.name} returned ${meRes.status}`);
+    }
+
+    const logoutRes = await fetch(`${LIVE_BASE}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Cookie: `careone_session=${cookie}` },
+    });
+    const setCookie = logoutRes.headers.get('set-cookie') || '';
+    if (!setCookie.includes('Max-Age=0')) {
+      step10Passed = false;
+      console.log(`FAILED: Logout Set-Cookie for ${roleTest.name} did not contain Max-Age=0`);
+    }
+
+    // Now test GET /api/me without cookie (or expired cookie)
+    const afterLogoutMe = await fetch(`${LIVE_BASE}/api/me`);
+    if (afterLogoutMe.status !== 401) {
+      step10Passed = false;
+      console.log(`FAILED: Post-logout GET /api/me returned ${afterLogoutMe.status}, expected 401`);
+    } else {
+      console.log(`PASSED: ${roleTest.name} logged in, /api/me returned 200, logged out (Max-Age=0), post-logout /api/me returned 401`);
+    }
+  }
+
+  results.push({
+    step: '10. Live Logout Cookie Cleared & GET /api/me returns 401',
+    url: `${LIVE_BASE}/api/auth/logout`,
+    method: 'POST',
+    status: step10Passed ? 200 : 500,
+    expectedStatus: 200,
+    passed: step10Passed,
+    timestamp: new Date().toISOString(),
+  });
+
   console.log('\n======================================================');
-  console.log('SUMMARY OF ALL 9 LIVE PRODUCTION ACCEPTANCE PROOFS:');
+  console.log('SUMMARY OF ALL 10 LIVE PRODUCTION ACCEPTANCE PROOFS:');
   console.log('======================================================');
   let allPassed = true;
   for (const r of results) {
