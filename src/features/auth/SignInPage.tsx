@@ -1,543 +1,121 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
-  ShieldCheck,
-  User,
-  Mail,
+  Fingerprint,
   KeyRound,
-  ArrowLeft,
-  Languages,
-  CheckCircle2,
-  AlertCircle,
+  ChevronRight,
+  ShieldCheck,
   Stethoscope,
-  Shield,
+  Languages,
 } from 'lucide-react';
-import { client, isConfigured } from '../../lib/client';
-import { ConfigBanner } from '../../components/ConfigBanner';
 import { BuildStamp } from '../../components/BuildStamp';
-
-type Tab = 'patient' | 'staff';
 
 export function SignInPage(): React.JSX.Element {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState<Tab>('patient');
-
-  // Patient OTP states
-  const [patientEmail, setPatientEmail] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [patientLoading, setPatientLoading] = useState(false);
-  const [patientError, setPatientError] = useState<string | null>(null);
-  const [patientSuccess, setPatientSuccess] = useState<string | null>(null);
-
-  // Staff Passwordless + MFA states
-  const [staffEmail, setStaffEmail] = useState('');
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [totpCode, setTotpCode] = useState('');
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-  const [staffLoading, setStaffLoading] = useState(false);
-  const [staffError, setStaffError] = useState<string | null>(null);
-  const [staffSuccess, setStaffSuccess] = useState<string | null>(null);
 
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'ml' ? 'en' : 'ml';
     void i18n.changeLanguage(nextLang);
   };
 
-  // Patient OTP Handlers
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPatientError(null);
-    setPatientSuccess(null);
-
-    if (!patientEmail) return;
-
-    if (!isConfigured) {
-      setOtpSent(true);
-      setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
-      return;
-    }
-
-    setPatientLoading(true);
-    try {
-      const { error } = await client.auth.signInWithOtp({
-        email: patientEmail,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-
-      if (error) {
-        setPatientError(error.message);
-      } else {
-        setOtpSent(true);
-        setPatientSuccess(t('auth.otpSentNotice', { email: patientEmail }));
-      }
-    } catch {
-      setPatientError(t('auth.authError'));
-    } finally {
-      setPatientLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPatientError(null);
-
-    if (!otpCode) return;
-
-    if (!isConfigured) {
-      setPatientSuccess(t('auth.signInSuccess'));
-      setTimeout(() => navigate('/'), 800);
-      return;
-    }
-
-    setPatientLoading(true);
-    try {
-      const { error } = await client.auth.verifyOtp({
-        email: patientEmail,
-        token: otpCode,
-        type: 'email',
-      });
-
-      if (error) {
-        setPatientError(t('auth.invalidOtp'));
-      } else {
-        setPatientSuccess(t('auth.signInSuccess'));
-        setTimeout(() => navigate('/'), 800);
-      }
-    } catch {
-      setPatientError(t('auth.invalidOtp'));
-    } finally {
-      setPatientLoading(false);
-    }
-  };
-
-  // Staff Passwordless + MFA Handlers
-  const handleStaffSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStaffError(null);
-    setStaffSuccess(null);
-
-    if (!staffEmail) return;
-
-    if (!isConfigured) {
-      setMfaFactorId('mock-factor-1');
-      setMfaRequired(true);
-      setStaffSuccess(t('auth.otpSentNotice', { email: staffEmail }));
-      return;
-    }
-
-    setStaffLoading(true);
-    try {
-      const { error } = await client.auth.signInWithOtp({
-        email: staffEmail,
-      });
-
-      if (error) {
-        setStaffError(error.message || t('auth.authError'));
-        return;
-      }
-
-      const factors = await client.auth.mfa.listFactors();
-      const factorId = factors.data?.totp?.[0]?.id || 'default-factor';
-      setMfaFactorId(factorId);
-      setMfaRequired(true);
-      setStaffSuccess(t('auth.otpSentNotice', { email: staffEmail }));
-    } catch {
-      setStaffError(t('auth.authError'));
-    } finally {
-      setStaffLoading(false);
-    }
-  };
-
-  const handleVerifyTotp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStaffError(null);
-
-    if (!totpCode || !mfaFactorId) return;
-
-    if (!isConfigured) {
-      setStaffSuccess(t('auth.signInSuccess'));
-      setTimeout(() => navigate('/admin'), 800);
-      return;
-    }
-
-    setStaffLoading(true);
-    try {
-      const challenge = await client.auth.mfa.challenge({ factorId: mfaFactorId });
-      if (challenge.error) {
-        setStaffError(challenge.error.message);
-        return;
-      }
-
-      const verify = await client.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: challenge.data.id,
-        code: totpCode,
-      });
-
-      if (verify.error) {
-        setStaffError(t('auth.invalidOtp'));
-      } else {
-        setStaffSuccess(t('auth.signInSuccess'));
-        setTimeout(() => navigate('/admin'), 800);
-      }
-    } catch {
-      setStaffError(t('auth.invalidOtp'));
-    } finally {
-      setStaffLoading(false);
-    }
-  };
-
-  // Demo account helper
-  const fillDemoAccount = (role: 'patient' | 'admin' | 'doctor' | 'desk') => {
-    if (role === 'patient') {
-      setActiveTab('patient');
-      setPatientEmail('patient@example.com');
-      setOtpSent(false);
-      setOtpCode('123456');
-    } else {
-      setActiveTab('staff');
-      setMfaRequired(false);
-      if (role === 'admin') {
-        setStaffEmail('admin@example.com');
-      } else if (role === 'doctor') {
-        setStaffEmail('dr.rahul@example.com');
-      } else if (role === 'desk') {
-        setStaffEmail('desk@example.com');
-      }
-    }
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F6FB] text-[#0B1533]">
-      <ConfigBanner />
+      {/* Header */}
+      <header className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-5">
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3" aria-label="CareOne Home">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
+              <Stethoscope className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-sm sm:text-base text-[#0B1533] leading-none tracking-tight">
+                CareOne
+              </span>
+              <span className="text-[11px] font-semibold text-[#6B7596] leading-tight">
+                ABC Hospital Kerala
+              </span>
+            </div>
+          </Link>
 
-      {/* Floating Header */}
-      <header className="sticky top-3 z-30 mx-auto w-full max-w-5xl px-4 sm:px-6">
-        <nav
-          aria-label="Navigation Header"
-          className="flex items-center justify-between rounded-full border border-[rgba(11,21,51,0.08)] bg-white/90 px-4 py-2.5 shadow-[0_12px_34px_-14px_rgba(11,21,51,0.18)] backdrop-blur-md sm:px-6"
-        >
           <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-xs font-bold text-[#0B1533] hover:text-[#2B59FF] transition"
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 rounded-full border border-[rgba(11,21,51,0.08)] bg-white px-3 py-1.5 text-xs font-bold text-[#0B1533] hover:bg-slate-100 transition shadow-2xs"
+            aria-label="Toggle language"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span>{t('nav.home')}</span>
+            <Languages size={15} className="text-[#6B7596]" />
+            <span>{i18n.language === 'ml' ? 'English' : 'മലയാളം'}</span>
           </button>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden text-xs font-bold uppercase tracking-wider text-[#6B7596] sm:inline">
-              {t('app.hospitalName')}
-            </span>
-
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 rounded-full border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] px-3 py-1.5 text-xs font-bold text-[#0B1533] hover:bg-slate-100 transition"
-              aria-label={t('nav.language')}
-            >
-              <Languages className="h-3.5 w-3.5 text-[#6B7596]" />
-              <span>{i18n.language === 'ml' ? 'English' : 'മലയാളം'}</span>
-            </button>
-          </div>
-        </nav>
+        </div>
       </header>
 
-      {/* Sign In Card */}
-      <main role="main" className="flex flex-1 items-center justify-center p-4 py-8 sm:py-12">
-        <div className="w-full max-w-md rounded-[26px] border border-[rgba(11,21,51,0.08)] bg-white p-6 shadow-[0_20px_50px_-20px_rgba(11,21,51,0.3)] sm:p-8">
-          {/* Logo / Header */}
-          <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E9EEFE] text-[#2B59FF] shadow-xs">
-              <Stethoscope className="h-6 w-6" />
-            </div>
-            <h1 className="text-xl font-extrabold tracking-tight text-[#0B1533] sm:text-2xl">
-              {t('app.title')}
-            </h1>
-            <p className="mt-1 text-xs text-[#6B7596]">{t('app.description')}</p>
-          </div>
+      {/* Main Choice Screen */}
+      <main className="flex-1 w-full max-w-lg mx-auto px-5 py-12 flex flex-col justify-center">
+        <div className="bg-white rounded-3xl p-7 sm:p-9 shadow-xl border border-[rgba(11,21,51,0.08)]">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-center text-[#0B1533]">
+            {t('auth.signInTitle', 'Secure Sign-In')}
+          </h1>
+          <p className="text-sm text-[#6B7596] text-center mt-2 leading-relaxed">
+            {t(
+              'auth.selectPortal',
+              'CareOne uses WebAuthn biometric passkeys and physical security keys. No passwords or SMS codes are used.'
+            )}
+          </p>
 
-          {/* Pill Segmented Tab Control */}
-          <div className="mb-6 flex rounded-full bg-[#F4F6FB] p-1 border border-[rgba(11,21,51,0.06)]">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('patient');
-                setPatientError(null);
-              }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2 text-xs font-bold transition ${
-                activeTab === 'patient'
-                  ? 'bg-white text-[#0B1533] shadow-xs'
-                  : 'text-[#6B7596] hover:text-[#0B1533]'
-              }`}
+          <div className="mt-8 flex flex-col gap-4">
+            {/* Patient Portal Option */}
+            <Link
+              to="/patient/login"
+              className="group p-5 rounded-2xl border border-[rgba(11,21,51,0.08)] bg-[#FAFCFF] hover:bg-[#F0F5FF] hover:border-[#2B59FF]/30 transition-all shadow-2xs flex items-center justify-between"
             >
-              <User className="h-3.5 w-3.5" />
-              <span>{t('auth.patientTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('staff');
-                setStaffError(null);
-              }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2 text-xs font-bold transition ${
-                activeTab === 'staff'
-                  ? 'bg-white text-[#0B1533] shadow-xs'
-                  : 'text-[#6B7596] hover:text-[#0B1533]'
-              }`}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#E8F7EE] text-[#15803D] flex items-center justify-center flex-none">
+                  <Fingerprint size={26} />
+                </div>
+                <div>
+                  <b className="block text-base font-bold text-[#0B1533] group-hover:text-[#2B59FF] transition">
+                    {t('auth.patientTab', 'Patient or Guardian')}
+                  </b>
+                  <span className="block text-xs text-[#6B7596] mt-0.5">
+                    {i18n.language === 'ml'
+                      ? 'വിരലടയാളം അല്ലെങ്കിൽ ഫെയ്സ് ലോക്ക് ഉപയോഗിക്കുക'
+                      : 'Sign in with fingerprint or screen lock'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-[#6B7596] group-hover:translate-x-1 transition text-right" />
+            </Link>
+
+            {/* Doctor & Staff Option */}
+            <Link
+              to="/staff/signin"
+              className="group p-5 rounded-2xl border border-[rgba(11,21,51,0.08)] bg-[#FAFCFF] hover:bg-[#F0F5FF] hover:border-[#2B59FF]/30 transition-all shadow-2xs flex items-center justify-between"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>{t('auth.staffTab')}</span>
-            </button>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#E9EEFE] text-[#2B59FF] flex items-center justify-center flex-none">
+                  <KeyRound size={24} />
+                </div>
+                <div>
+                  <b className="block text-base font-bold text-[#0B1533] group-hover:text-[#2B59FF] transition">
+                    {t('auth.staffTab', 'Hospital Staff')}
+                  </b>
+                  <span className="block text-xs text-[#6B7596] mt-0.5">
+                    {i18n.language === 'ml'
+                      ? 'പാസ്‌കീയും TOTP ആപ്പും ഉപയോഗിക്കുക'
+                      : 'Doctor, Front Desk, or Administrator (Passkey + 2FA)'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-[#6B7596] group-hover:translate-x-1 transition text-right" />
+            </Link>
           </div>
 
-          {/* PATIENT TAB */}
-          {activeTab === 'patient' && (
-            <div>
-              <p className="mb-4 text-xs leading-relaxed text-[#6B7596]">
-                {t('auth.patientDescription')}
-              </p>
-
-              {patientError && (
-                <div
-                  role="alert"
-                  className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700"
-                >
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                  <span>{patientError}</span>
-                </div>
-              )}
-
-              {patientSuccess && (
-                <div
-                  role="status"
-                  className="mb-4 flex items-start gap-2 rounded-xl bg-[#E8F7EE] p-3 text-xs text-[#15803D]"
-                >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
-                  <span>{patientSuccess}</span>
-                </div>
-              )}
-
-              {!otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="patient-email"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
-                      {t('auth.emailLabel')}
-                    </label>
-                    <div className="relative mt-1.5">
-                      <Mail className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
-                      <input
-                        id="patient-email"
-                        type="email"
-                        required
-                        value={patientEmail}
-                        onChange={e => setPatientEmail(e.target.value)}
-                        placeholder={t('auth.emailPlaceholder')}
-                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={patientLoading}
-                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
-                  >
-                    {patientLoading ? t('auth.sendingOtp') : t('auth.sendOtp')}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="patient-otp"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
-                      {t('auth.otpLabel')}
-                    </label>
-                    <div className="relative mt-1.5">
-                      <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
-                      <input
-                        id="patient-otp"
-                        type="text"
-                        maxLength={6}
-                        required
-                        value={otpCode}
-                        onChange={e => setOtpCode(e.target.value)}
-                        placeholder={t('auth.otpPlaceholder')}
-                        className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setOtpSent(false)}
-                      className="rounded-full border border-[rgba(11,21,51,0.14)] bg-[#F4F6FB] px-4 py-2.5 text-xs font-bold text-[#0B1533] hover:bg-slate-100 transition"
-                    >
-                      {t('auth.changeEmail')}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={patientLoading}
-                      className="btn-pill flex-1 bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
-                    >
-                      {patientLoading ? t('auth.verifyingOtp') : t('auth.verifyOtp')}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          )}
-
-          {/* STAFF TAB */}
-          {activeTab === 'staff' && (
-            <div>
-              <p className="mb-4 text-xs leading-relaxed text-[#6B7596]">
-                {t('auth.staffDescription')}
-              </p>
-
-              {staffError && (
-                <div
-                  role="alert"
-                  className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700"
-                >
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                  <span>{staffError}</span>
-                </div>
-              )}
-
-              {staffSuccess && (
-                <div
-                  role="status"
-                  className="mb-4 flex items-start gap-2 rounded-xl bg-[#E8F7EE] p-3 text-xs text-[#15803D]"
-                >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
-                  <span>{staffSuccess}</span>
-                </div>
-              )}
-
-              {!mfaRequired ? (
-                <form onSubmit={handleStaffSignIn} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="staff-email"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
-                      {t('auth.emailLabel')}
-                    </label>
-                    <div className="relative mt-1.5">
-                      <Mail className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
-                      <input
-                        id="staff-email"
-                        type="email"
-                        required
-                        value={staffEmail}
-                        onChange={e => setStaffEmail(e.target.value)}
-                        placeholder="staff@example.com"
-                        className="w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-sm text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={staffLoading}
-                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
-                  >
-                    {staffLoading ? t('auth.sendingOtp') : t('auth.sendStaffOtp')}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyTotp} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="staff-totp"
-                      className="block text-xs font-bold text-[#0B1533]"
-                    >
-                      {t('auth.totpLabel')}
-                    </label>
-                    <div className="relative mt-1.5">
-                      <KeyRound className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-[#6B7596]" />
-                      <input
-                        id="staff-totp"
-                        type="text"
-                        maxLength={6}
-                        required
-                        value={totpCode}
-                        onChange={e => setTotpCode(e.target.value)}
-                        placeholder={t('auth.totpPlaceholder')}
-                        className="mono w-full rounded-xl border border-[rgba(11,21,51,0.14)] bg-white py-2.5 pl-10 pr-3.5 text-center text-lg tracking-widest text-[#0B1533] placeholder:text-slate-400 focus:border-[#2B59FF] focus:outline-hidden focus:ring-2 focus:ring-[#2B59FF]/20"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={staffLoading}
-                    className="btn-pill w-full bg-[#2B59FF] text-white shadow-[0_4px_14px_rgba(43,89,255,0.35)] hover:bg-[#1F47E6] disabled:opacity-50"
-                  >
-                    {staffLoading ? t('common.loading') : t('auth.verifyTotp')}
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
-
-          {/* Quick Demo Accounts */}
-          <div className="mt-8 border-t border-[rgba(11,21,51,0.08)] pt-6">
-            <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-[#6B7596]">
-              {t('auth.demoAccounts')}
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('patient')}
-                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
-              >
-                <span className="block font-bold text-[#15803D]">Patient</span>
-                <span className="mono block text-[10px] text-[#6B7596]">patient@example.com</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('doctor')}
-                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
-              >
-                <span className="block font-bold text-[#2B59FF]">Doctor</span>
-                <span className="mono block text-[10px] text-[#6B7596]">dr.rahul@example.com</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('desk')}
-                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
-              >
-                <span className="block font-bold text-[#0B1533]">Front Desk</span>
-                <span className="mono block text-[10px] text-[#6B7596]">desk@example.com</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('admin')}
-                className="rounded-xl border border-[rgba(11,21,51,0.08)] bg-[#F4F6FB] p-2.5 text-left hover:border-[#2B59FF]/30 hover:bg-white transition"
-              >
-                <span className="block font-bold text-[#0B1533]">Admin</span>
-                <span className="mono block text-[10px] text-[#6B7596]">admin@example.com</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Privacy Footnote */}
-          <div className="mt-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-[#15803D]">
-            <Shield className="h-3.5 w-3.5" />
-            <span>DPDP Act Protected</span>
+          <div className="mt-8 pt-6 border-t border-[rgba(11,21,51,0.08)] flex items-start gap-2.5 text-xs text-[#6B7596]">
+            <ShieldCheck size={18} className="text-[#15803D] flex-none mt-0.5" />
+            <span>
+              India DPDP Act 2023 compliant. Cryptographic authentication ensures your health data remains protected against credential phishing.
+            </span>
           </div>
         </div>
       </main>

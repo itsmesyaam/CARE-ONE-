@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { startRegistration } from '@simplewebauthn/browser';
+import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { Fingerprint, ShieldCheck, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { usePatient } from './PatientContext';
 
@@ -20,6 +20,15 @@ export function PatientSetup(): React.JSX.Element {
         lang === 'ml'
           ? 'സജ്ജീകരണ ലിങ്ക് അസാധുവാണ്. ഫ്രണ്ട് ഡെസ്കിൽ നിന്ന് പുതിയ QR കോഡ് നേടുക.'
           : 'Setup link is missing or invalid. Please ask the front desk for a new QR code.'
+      );
+      return;
+    }
+
+    if (!browserSupportsWebAuthn()) {
+      setError(
+        lang === 'ml'
+          ? 'നിങ്ങളുടെ ബ്രൗസർ പാസ്‌കീ പിന്തുണയ്ക്കുന്നില്ല. ദയവായി Android 9+ ലെ Chrome അല്ലെങ്കിൽ iOS 16+ ലെ Safari ഉപയോഗിക്കുക.'
+          : 'Your browser does not support passkeys. Please use Chrome on Android 9+ or Safari on iOS 16+.'
       );
       return;
     }
@@ -178,8 +187,8 @@ export function PatientSetup(): React.JSX.Element {
                   <Fingerprint size={20} />
                   <span>
                     {lang === 'ml'
-                      ? 'വിരലടയാളം / മുഖം രേഖപ്പെടുത്തുക'
-                      : 'Set up fingerprint / face unlock'}
+                      ? 'എന്റെ പാസ്‌കീ സൃഷ്ടിക്കുക'
+                      : 'Create my passkey'}
                   </span>
                   <ArrowRight size={18} />
                 </>

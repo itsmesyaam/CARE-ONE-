@@ -3,15 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck,
-  Lock,
   ChevronLeft,
   Copy,
   Check,
   Languages,
   Stethoscope,
+  KeyRound,
+  AlertCircle,
 } from 'lucide-react';
-import { MOCK_DOCTOR } from '../doctor/mock';
-import { client, isConfigured } from '../../lib/client';
+import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
@@ -20,7 +20,7 @@ interface StaffSignInProps {
   initialStep?: StaffAuthStep;
 }
 
-// Visual QR Code SVG
+// Visual QR Code SVG for TOTP enrollment
 function QRCodeSvg(): React.JSX.Element {
   return (
     <svg
@@ -31,7 +31,6 @@ function QRCodeSvg(): React.JSX.Element {
       aria-label="Two-factor authentication QR code"
     >
       <rect width="168" height="168" fill="#ffffff" />
-      {/* Corner position markers */}
       <rect x="12" y="12" width="40" height="40" rx="6" fill="#173327" />
       <rect x="20" y="20" width="24" height="24" rx="2" fill="#ffffff" />
       <rect x="26" y="26" width="12" height="12" rx="1" fill="#1F6B4F" />
@@ -44,7 +43,6 @@ function QRCodeSvg(): React.JSX.Element {
       <rect x="20" y="124" width="24" height="24" rx="2" fill="#ffffff" />
       <rect x="26" y="130" width="12" height="12" rx="1" fill="#1F6B4F" />
 
-      {/* Decorative QR code blocks */}
       <rect x="62" y="14" width="8" height="8" fill="#173327" />
       <rect x="76" y="14" width="14" height="8" fill="#173327" />
       <rect x="96" y="14" width="8" height="8" fill="#173327" />
@@ -53,39 +51,16 @@ function QRCodeSvg(): React.JSX.Element {
       <rect x="80" y="28" width="8" height="8" fill="#173327" />
       <rect x="94" y="28" width="12" height="8" fill="#173327" />
 
-      <rect x="62" y="42" width="20" height="8" fill="#173327" />
-      <rect x="88" y="42" width="18" height="8" fill="#1F6B4F" />
-
       <rect x="14" y="62" width="140" height="6" fill="#173327" />
-
       <rect x="14" y="76" width="10" height="8" fill="#173327" />
       <rect x="32" y="76" width="16" height="8" fill="#173327" />
       <rect x="56" y="76" width="24" height="8" fill="#1F6B4F" />
       <rect x="88" y="76" width="14" height="8" fill="#173327" />
-      <rect x="110" y="76" width="20" height="8" fill="#173327" />
-      <rect x="138" y="76" width="16" height="8" fill="#173327" />
-
-      <rect x="14" y="90" width="22" height="8" fill="#173327" />
-      <rect x="44" y="90" width="14" height="8" fill="#1F6B4F" />
-      <rect x="66" y="90" width="20" height="8" fill="#173327" />
-      <rect x="94" y="90" width="16" height="8" fill="#173327" />
-      <rect x="118" y="90" width="14" height="8" fill="#1F6B4F" />
-      <rect x="140" y="90" width="14" height="8" fill="#173327" />
-
-      <rect x="62" y="116" width="16" height="12" fill="#173327" />
-      <rect x="86" y="116" width="18" height="8" fill="#173327" />
-      <rect x="112" y="116" width="14" height="8" fill="#1F6B4F" />
-      <rect x="134" y="116" width="20" height="8" fill="#173327" />
-
-      <rect x="62" y="136" width="24" height="18" fill="#173327" />
-      <rect x="94" y="132" width="12" height="12" fill="#1F6B4F" />
-      <rect x="114" y="132" width="22" height="12" fill="#173327" />
-      <rect x="144" y="132" width="10" height="18" fill="#173327" />
     </svg>
   );
 }
 
-// 6-digit CodeBoxes Component
+// 6-digit CodeBoxes Component for TOTP verification
 interface CodeBoxesProps {
   label: string;
   onOk: (code: string) => void;
@@ -100,17 +75,33 @@ function CodeBoxes({ label, onOk }: CodeBoxesProps): React.JSX.Element {
   }, []);
 
   const handleChange = (index: number, val: string) => {
-    const cleaned = val.replace(/\D/g, '').slice(-1);
-    const next = [...digits];
-    next[index] = cleaned;
-    setDigits(next);
+    const clean = val.replace(/\D/g, '');
+    const newDigits = [...digits];
 
-    if (cleaned && index < 5) {
+    if (clean.length > 1) {
+      // Pasting full code
+      const pasted = clean.slice(0, 6).split('');
+      for (let i = 0; i < 6; i++) {
+        newDigits[i] = pasted[i] || '';
+      }
+      setDigits(newDigits);
+      const nextFocus = Math.min(pasted.length, 5);
+      inputsRef.current[nextFocus]?.focus();
+      if (newDigits.every((d) => d !== '')) {
+        onOk(newDigits.join(''));
+      }
+      return;
+    }
+
+    newDigits[index] = clean;
+    setDigits(newDigits);
+
+    if (clean && index < 5) {
       inputsRef.current[index + 1]?.focus();
     }
 
-    if (next.every((d) => d.length === 1)) {
-      onOk(next.join(''));
+    if (newDigits.every((d) => d !== '')) {
+      onOk(newDigits.join(''));
     }
   };
 
@@ -120,42 +111,24 @@ function CodeBoxes({ label, onOk }: CodeBoxesProps): React.JSX.Element {
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    const next = [...digits];
-    for (let i = 0; i < 6; i++) {
-      next[i] = pasted[i] || '';
-    }
-    setDigits(next);
-    if (pasted.length === 6) {
-      inputsRef.current[5]?.focus();
-      onOk(pasted);
-    } else {
-      inputsRef.current[Math.min(pasted.length, 5)]?.focus();
-    }
-  };
-
   return (
     <div>
-      <label className="lbl mb-2.5 block text-sm font-semibold text-[var(--ink2)]">{label}</label>
-      <div className="flex gap-2.5 sm:gap-3" onPaste={handlePaste}>
-        {digits.map((digit, i) => (
+      <label className="lbl block text-sm font-semibold text-[var(--ink)] mb-2">{label}</label>
+      <div className="flex justify-between gap-2 sm:gap-3" role="group" aria-label={label}>
+        {digits.map((digit, idx) => (
           <input
-            key={i}
+            key={idx}
             ref={(el) => {
-              inputsRef.current[i] = el;
+              inputsRef.current[idx] = el;
             }}
             type="text"
             inputMode="numeric"
-            pattern="[0-9]*"
             maxLength={1}
             value={digit}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            className="num h-14 w-full flex-1 rounded-2xl border border-[var(--line)] bg-white text-center text-2xl font-bold text-[var(--ink)] shadow-xs transition-all focus:border-[var(--leaf)] focus:shadow-[0_0_0_4px_rgba(31,107,79,0.14)] focus:outline-none"
-            aria-label={`${label} digit ${i + 1}`}
+            onChange={(e) => handleChange(idx, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(idx, e)}
+            className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold font-mono rounded-xl border border-[var(--line)] bg-white text-[var(--ink)] focus:border-[var(--leaf)] focus:ring-2 focus:ring-[var(--leaf)]/20 focus:outline-hidden transition shadow-xs"
+            aria-label={`Digit ${idx + 1}`}
           />
         ))}
       </div>
@@ -163,37 +136,16 @@ function CodeBoxes({ label, onOk }: CodeBoxesProps): React.JSX.Element {
   );
 }
 
-import { generateTotp } from '../../lib/totp';
-
 export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React.JSX.Element {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<StaffAuthStep>(initialStep);
-  const [email, setEmail] = useState(MOCK_DOCTOR.email);
-  const [secCheck, setSecCheck] = useState<number>(0);
+  const [email] = useState('dr.rahul@example.com');
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [lockCode, setLockCode] = useState('');
-  const [lockError, setLockError] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  const lockInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setSecCheck(1), 300);
-    const t2 = setTimeout(() => setSecCheck(2), 1200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (step === 'lock') {
-      lockInputRef.current?.focus();
-    }
-  }, [step]);
+  const [detectedRole, setDetectedRole] = useState<string>('doctor');
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -201,246 +153,153 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   };
 
   const toggleLanguage = () => {
-    const next = i18n.language === 'ml' ? 'en' : 'ml';
-    void i18n.changeLanguage(next);
+    const nextLang = i18n.language === 'ml' ? 'en' : 'ml';
+    i18n.changeLanguage(nextLang);
   };
 
-  const formatAuthError = (err: unknown): string => {
-    const rawMessage =
-      (err as { message?: string })?.message ||
-      (err instanceof Error ? err.message : String(err));
-
-    if (!rawMessage) return t('staffAuth.signInFailed', 'Sign-in failed. Please try again.');
-
-    if (
-      rawMessage.toLowerCase().includes('failed to fetch') ||
-      rawMessage.toLowerCase().includes('networkerror') ||
-      rawMessage.toLowerCase().includes('refused to connect')
-    ) {
-      console.error('[CareOne Technical Error] Failed to reach backend:', err);
-      return t(
-        'staffAuth.serverUnreachable',
-        "We can't reach the server right now. Please try again."
-      );
-    }
-
-    return rawMessage;
-  };
-
-  const handleSignInSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || secCheck < 2 || busy) return;
-    setBusy(true);
+  // 1. Staff Passkey Authentication Handler
+  const handlePasskeySignIn = async () => {
     setAuthError(null);
-    try {
-      const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
 
-      if (!isConfigured) {
-        setBusy(false);
-        setStep('twofa');
-        return;
-      }
-
-      const { error } = await client.auth.signInWithOtp({
-        email: normalizedEmail,
-      });
-      if (error) {
-        setAuthError(formatAuthError(error));
-        setBusy(false);
-        return;
-      }
-      setBusy(false);
-      setStep('twofa');
-    } catch (err: unknown) {
-      setAuthError(formatAuthError(err));
-      setBusy(false);
-    }
-  };
-
-  const handle2FASuccess = async (enteredCode?: string) => {
-    setBusy(true);
-    setAuthError(null);
-    if (!isConfigured) {
-      setBusy(false);
-      navigate(email.includes('admin') ? '/admin' : '/doctor');
+    if (!browserSupportsWebAuthn()) {
+      setAuthError('Your browser does not support WebAuthn security keys or passkeys.');
       return;
     }
+
+    setBusy(true);
+
     try {
-      const { data: factors } = await client.auth.mfa.listFactors();
-      const totpFactor = factors?.totp?.[0];
-      if (totpFactor) {
-        const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
-        const generatedCode = await generateTotp(secret);
-        let codeToUse = enteredCode;
-        if (!codeToUse || codeToUse.length !== 6) {
-          codeToUse = generatedCode;
-        }
+      // Fetch authentication options
+      const optRes = await fetch('/api/auth/passkey/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-        let result = await client.auth.mfa.challengeAndVerify({
-          factorId: totpFactor.id,
-          code: codeToUse,
-        });
-
-        // Fallback to computed TOTP if manual code had skew
-        if (result.error && codeToUse !== generatedCode) {
-          result = await client.auth.mfa.challengeAndVerify({
-            factorId: totpFactor.id,
-            code: generatedCode,
-          });
-        }
-
-        if (result.error) {
-          setAuthError(formatAuthError(result.error));
-          setBusy(false);
-          return;
-        }
+      const optData = (await optRes.json()) as { options?: unknown; error?: string };
+      if (!optRes.ok || !optData.options) {
+        throw new Error(optData.error || 'Failed to initialize passkey sign-in');
       }
-      setBusy(false);
-      navigate('/doctor');
+
+      // Prompt hardware security key or device biometric
+      const authResponse = await startAuthentication(optData.options as Parameters<typeof startAuthentication>[0]);
+
+      // Verify on backend
+      const verifyRes = await fetch('/api/auth/passkey/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: authResponse }),
+      });
+
+      const verifyData = (await verifyRes.json()) as {
+        ok?: boolean;
+        error?: string;
+        require_totp?: boolean;
+        role?: string;
+      };
+
+      if (!verifyRes.ok || !verifyData.ok) {
+        throw new Error(verifyData.error || 'Passkey verification failed');
+      }
+
+      setDetectedRole(verifyData.role || 'doctor');
+
+      // Staff requirement: passkey satisfies Factor 1; advance to Factor 2 (TOTP)
+      if (verifyData.require_totp) {
+        setStep('twofa');
+        showToast('Passkey verified. Enter authenticator code.');
+      } else {
+        // Direct navigation if already elevated
+        navigate(verifyData.role === 'admin' ? '/admin' : '/doctor');
+      }
     } catch (err: unknown) {
-      setAuthError(formatAuthError(err));
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('NotAllowedError') || message.toLowerCase().includes('cancel')) {
+        setAuthError('Passkey authentication was cancelled. Please try again.');
+      } else {
+        setAuthError(message);
+      }
+    } finally {
       setBusy(false);
     }
   };
 
-  const handleEnrollSuccess = async (enteredCode?: string) => {
-    showToast(t('staffAuth.enrollSuccess'));
-    await handle2FASuccess(enteredCode);
+  // 2. Staff Factor 2: TOTP Verification Handler
+  const handleTotpVerify = async (code: string) => {
+    setAuthError(null);
+    setBusy(true);
+
+    try {
+      const res = await fetch('/api/auth/mfa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+
+      const data = (await res.json()) as { ok?: boolean; error?: string; user?: { role?: string } };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Invalid authenticator code. Check device time sync.');
+      }
+
+      showToast('Two-factor authentication successful');
+      const role = data.user?.role || detectedRole;
+
+      setTimeout(() => {
+        if (role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/doctor');
+        }
+      }, 500);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Invalid authenticator code');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Local demo sign-in handler for developers
+  const handleDemoSignIn = async (role: 'doctor' | 'front_desk' | 'admin') => {
+    setBusy(true);
+    setAuthError(null);
+    try {
+      const res = await fetch('/api/auth/demo-signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Demo sign-in failed');
+      }
+      showToast(`Signed in as ${role}`);
+      setTimeout(() => {
+        navigate(role === 'admin' ? '/admin' : '/doctor');
+      }, 500);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copySetupKey = () => {
-    const rawKey = 'JBSWY3DPEHPK3PXP';
-    try {
-      void navigator.clipboard.writeText(rawKey);
-    } catch {
-      // fallback
-    }
+    navigator.clipboard.writeText('JBSWY3DPEHPK3PXP');
     showToast(t('staffAuth.keyCopied'));
   };
 
-  const handleUnlockSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (lockCode.length < 6) {
-      setLockError(true);
-      return;
-    }
-    setBusy(true);
-    setAuthError(null);
-    if (!isConfigured) {
-      setBusy(false);
-      navigate(email.includes('admin') ? '/admin' : '/doctor');
-      return;
-    }
-    try {
-      await handle2FASuccess(lockCode);
-    } catch {
-      setLockError(true);
-      setBusy(false);
-    }
-  };
-
-  // Fullscreen Lock Screen
-  if (step === 'lock') {
-    return (
-      <div className="staff-theme">
-        <div className="lockscr min-h-screen px-5 py-16 flex flex-col justify-center">
-          <div className="zari-band fixed top-0 left-0 right-0" />
-          <main className="w-full max-w-sm mx-auto flex flex-col items-center">
-            <span className="lock-ico mb-6">
-              <Lock size={32} />
-            </span>
-            <h1 className="disp h1 text-center text-white">{t('staffAuth.lockTitle')}</h1>
-            <p className="mt-3 text-center text-white/75 text-base">
-              {t('staffAuth.lockSub')}
-            </p>
-
-            <form onSubmit={handleUnlockSubmit} className="mt-8 w-full" noValidate>
-              <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-white/10 border border-white/15">
-                <div className="w-10 h-10 rounded-full bg-[var(--leaf)] text-white font-bold flex items-center justify-center flex-none">
-                  RN
-                </div>
-                <div className="min-w-0 flex-1">
-                  <b className="block truncate text-white">{MOCK_DOCTOR.name}</b>
-                  <span className="block text-xs text-white/70">{MOCK_DOCTOR.dept}</span>
-                </div>
-              </div>
-
-              <label className="lbl text-white/90" htmlFor="ulpw">
-                {t('staffAuth.authCode')}
-              </label>
-              <div className="field mb-3 bg-white/95">
-                <input
-                  ref={lockInputRef}
-                  id="ulpw"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="123456"
-                  value={lockCode}
-                  onChange={(e) => {
-                    setLockCode(e.target.value);
-                    setLockError(false);
-                  }}
-                  className="w-full text-center text-xl font-bold tracking-widest"
-                />
-              </div>
-
-              {lockError && (
-                <p className="mt-2 text-sm font-semibold text-rose-300" role="alert">
-                  {t('staffAuth.authCode')} must be a 6-digit code.
-                </p>
-              )}
-
-              <button type="submit" className="btn btn-pri w-full mt-4">
-                {t('staffAuth.unlock')}
-              </button>
-            </form>
-
-            <button
-              type="button"
-              className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
-              onClick={async () => {
-                try {
-                  await client.auth.signOut();
-                } catch {
-                  // ignore
-                }
-                try {
-                  sessionStorage.clear();
-                } catch {
-                  // ignore
-                }
-                setStep('signin');
-                showToast(t('common.signOut'));
-              }}
-            >
-              {t('staffAuth.notYouSignOut')}
-            </button>
-          </main>
-
-          {toastMsg && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[var(--ink)] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-semibold">
-              <Check size={18} className="text-emerald-400" />
-              {toastMsg}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const isLocal = import.meta.env.DEV;
 
   return (
     <div className="staff-theme min-h-screen flex flex-col bg-[var(--paper)] overflow-x-hidden w-full">
       <div className="zari-band" />
 
-      {/* Top bar with Branding & Language Switcher */}
+      {/* Top Header Bar */}
       <header className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 pt-4">
         {step !== 'signin' ? (
           <button
             type="button"
             className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--leaf)] hover:text-[var(--leafd)] transition-colors"
-            onClick={() => setStep(step === 'enroll' ? 'twofa' : 'signin')}
+            onClick={() => setStep('signin')}
           >
             <ChevronLeft size={20} />
             {t('staffAuth.back')}
@@ -474,79 +333,88 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
         </button>
       </header>
 
-      {/* Auth Content Container */}
+      {/* Auth Content Area */}
       <main className="flex-1 w-full max-w-md mx-auto px-5 pt-8 pb-24 lg:pt-14">
         {step === 'signin' && (
           <div className="fadein">
             <h1 className="disp h1 text-[var(--ink)]">{t('staffAuth.signInTitle')}</h1>
             <p className="mt-3 text-lg text-[var(--ink2)] leading-relaxed">
-              {t('staffAuth.signInSub')}
+              Sign in using your hardware security key or device passkey. Two-factor authenticator app is required.
             </p>
 
-            <form onSubmit={handleSignInSubmit} className="mt-8" noValidate>
-              <label className="lbl" htmlFor="staff-em">
-                {t('staffAuth.email')}
-              </label>
-              <div className="field">
-                <input
-                  id="staff-em"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+            {authError && (
+              <div className="mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-2.5">
+                <AlertCircle size={18} className="flex-none mt-0.5" />
+                <span>{authError}</span>
               </div>
+            )}
 
-              <div className="secchk mt-5" aria-live="polite">
-                <ShieldCheck
-                  size={20}
-                  className={secCheck === 2 ? 'text-emerald-600' : 'text-[var(--ink3)]'}
-                />
-                <span className="flex-1 text-sm font-semibold">{t('staffAuth.secCheck')}</span>
-                {secCheck < 2 ? (
-                  <span className="flex items-center gap-2 text-sm text-[var(--ink3)]">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--leaf)] border-t-transparent" />
-                    {t('staffAuth.checking')}
-                  </span>
-                ) : (
-                  <span className="tag tag-leaf">
-                    <Check size={14} />
-                    {t('staffAuth.done')}
-                  </span>
-                )}
-              </div>
-
-              {authError && (
-                <p className="mt-3 text-sm font-semibold text-rose-600" role="alert">
-                  {authError}
-                </p>
-              )}
-
+            <div className="mt-8 flex flex-col gap-4">
+              {/* Primary Passkey Sign-in Button */}
               <button
-                type="submit"
-                className="btn btn-pri w-full mt-6"
-                disabled={!email || secCheck < 2 || busy}
+                type="button"
+                className="btn btn-pri w-full py-4 text-base font-bold shadow-md flex items-center justify-center gap-2.5"
+                disabled={busy}
+                onClick={handlePasskeySignIn}
               >
                 {busy ? (
                   <>
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    {t('staffAuth.signingIn')}
+                    <span>Verifying passkey...</span>
                   </>
                 ) : (
-                  t('staffAuth.sendCodeBtn')
+                  <>
+                    <KeyRound size={20} />
+                    <span>Sign in with security key / passkey</span>
+                  </>
                 )}
               </button>
-            </form>
 
-            <p className="mt-5 text-sm text-[var(--ink3)] leading-normal">
-              {t('staffAuth.lostPhone')}
-            </p>
+              <div className="p-4 rounded-2xl bg-[var(--mist)] flex items-start gap-3 mt-2">
+                <ShieldCheck size={20} className="leaf flex-none mt-0.5" />
+                <p className="text-xs text-[var(--ink2)] leading-snug">
+                  Hospital staff must use physical security keys or registered biometric passkeys plus TOTP. Single-factor passwords and email codes are prohibited.
+                </p>
+              </div>
+
+              {/* Local-only Demo Sign-in buttons */}
+              {isLocal && (
+                <div className="mt-6 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-left">
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-2">
+                    Local Development Only (Demo Accounts)
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoSignIn('doctor')}
+                      className="px-2 py-2 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-xs text-center"
+                    >
+                      Dr. Rahul
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoSignIn('front_desk')}
+                      className="px-2 py-2 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-xs text-center"
+                    >
+                      Front Desk
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoSignIn('admin')}
+                      className="px-2 py-2 text-xs font-semibold rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-xs text-center"
+                    >
+                      Admin
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="mt-8 pt-6 border-t border-[var(--line)]">
               <button
                 type="button"
                 className="link text-sm"
-                onClick={() => navigate('/patient/signin')}
+                onClick={() => navigate('/patient/login')}
               >
                 {t('staffAuth.patientApp')}
               </button>
@@ -558,24 +426,16 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           <div className="fadein">
             <h1 className="disp h1 text-[var(--ink)]">{t('staffAuth.twofaTitle')}</h1>
             <p className="mt-3 text-lg text-[var(--ink2)] leading-relaxed">
-              {t('staffAuth.twofaSub')}
+              Enter the 6-digit verification code from your authenticator app (Google Authenticator / Microsoft Authenticator).
             </p>
 
             <div className="mt-8">
-              <CodeBoxes label={t('staffAuth.authCode')} onOk={handle2FASuccess} />
+              <CodeBoxes label={t('staffAuth.authCode')} onOk={handleTotpVerify} />
               {authError && (
                 <p className="mt-3 text-sm font-semibold text-rose-600" role="alert">
                   {authError}
                 </p>
               )}
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void handle2FASuccess()}
-                className="btn btn-leaf btn-lg mt-6 w-full font-bold"
-              >
-                {busy ? t('staffAuth.checking') : t('staffAuth.signInBtn')}
-              </button>
             </div>
 
             <div className="lock-note mt-6">
@@ -642,12 +502,44 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                   <div className="mt-3">
                     <CodeBoxes
                       label={t('staffAuth.codeFromApp')}
-                      onOk={handleEnrollSuccess}
+                      onOk={handleTotpVerify}
                     />
                   </div>
                 </div>
               </li>
             </ol>
+          </div>
+        )}
+
+        {step === 'lock' && (
+          <div className="fadein text-center">
+            <div className="w-16 h-16 rounded-full bg-[var(--leaft)] text-[var(--leafd)] flex items-center justify-center font-bold text-2xl mx-auto mb-4 select-none">
+              RN
+            </div>
+            <h1 className="disp h1 text-[var(--ink)]">Screen locked</h1>
+            <p className="mt-1 font-semibold text-[var(--ink)]">Dr. Rahul Nair</p>
+            <p className="mt-2 text-sm text-[var(--ink2)]">
+              Enter your 6-digit authenticator code or tap your passkey to unlock.
+            </p>
+
+            <div className="mt-8 text-left">
+              <CodeBoxes label="Authenticator code" onOk={handleTotpVerify} />
+              {authError && (
+                <p className="mt-3 text-sm font-semibold text-rose-600" role="alert">
+                  {authError}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                className="btn btn-primary w-full py-3"
+                onClick={handlePasskeySignIn}
+              >
+                Unlock
+              </button>
+            </div>
           </div>
         )}
       </main>

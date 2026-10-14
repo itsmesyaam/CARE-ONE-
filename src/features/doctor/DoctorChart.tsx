@@ -18,10 +18,12 @@ import {
   Check,
   Eye,
   CheckCircle2,
+  QrCode,
 } from 'lucide-react';
 import { NoteComposer } from './NoteComposer';
 import { AddendumModal } from './AddendumModal';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
+import { SetupQrModal } from '../../components/SetupQrModal';
 
 interface PatientRecord {
   id: string;
@@ -165,6 +167,7 @@ export function DoctorChart(): React.JSX.Element {
   const [composerOpen, setComposerOpen] = useState(false);
   const [selectedEncounterForAddendum, setSelectedEncounterForAddendum] = useState<EncounterRecord | null>(null);
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
+  const [setupQrOpen, setSetupQrOpen] = useState(false);
   const [expandedEncounterId, setExpandedEncounterId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -520,8 +523,18 @@ export function DoctorChart(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Primary Action Button: Consultation Note */}
-          <div>
+          {/* Action Buttons: Passkey App Setup & Consultation Note */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSetupQrOpen(true)}
+              className="btn btn-sec inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold py-2 px-3.5 border-[var(--line)] shadow-2xs"
+              title="Generate 30-minute passkey setup QR code for patient"
+            >
+              <QrCode size={16} className="text-[var(--leaf)]" />
+              <span>Set up app</span>
+            </button>
+
             {todaysSignedEncounter ? (
               <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--leaft)] text-[var(--leafd)] font-semibold text-sm">
                 <BadgeCheck size={18} />
@@ -1379,6 +1392,17 @@ export function DoctorChart(): React.JSX.Element {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Passkey Setup QR Modal */}
+      {setupQrOpen && patient && (
+        <SetupQrModal
+          patientId={patient.id}
+          patientName={patient.full_name}
+          uhid={patient.uhid}
+          isOpen={setupQrOpen}
+          onClose={() => setSetupQrOpen(false)}
+        />
       )}
     </div>
   );

@@ -12,11 +12,9 @@ describe('Staff Auth Feature: StaffSignIn (Passwordless 2FA)', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1, name: /Staff sign-in/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Email$/i)).toBeInTheDocument();
     // Strict requirement: zero password field or hashing
     expect(screen.queryByLabelText(/^Password$/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Security check/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Send sign-in code|Sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign in with security key \/ passkey/i })).toBeInTheDocument();
   });
 
   it('can navigate to 2FA verification step and display 6-digit code entry', async () => {
