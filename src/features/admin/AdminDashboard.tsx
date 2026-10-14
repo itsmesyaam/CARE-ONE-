@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Users, BarChart3, ShieldCheck, LogOut } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import { AdminOverviewPanel } from './AdminOverviewPanel';
 import { AccessLogPage } from './AccessLogPage';
 import { DepartmentList } from './DepartmentList';
@@ -83,6 +83,20 @@ export function AdminDashboard(): React.JSX.Element {
     queryFn: fetchStaff,
   });
 
+  const { data: emailUsage } = useQuery<{ warningBanner: boolean; count: number; max: number }>({
+    queryKey: ['admin', 'email-usage'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/admin/email/usage');
+        if (!res.ok) return { warningBanner: false, count: 0, max: 95 };
+        return res.json();
+      } catch {
+        return { warningBanner: false, count: 0, max: 95 };
+      }
+    },
+    refetchInterval: 30000,
+  });
+
   const saveDeptMutation = useMutation({
     mutationFn: async (formData: DepartmentFormData) => {
       if (editingDept) {
@@ -160,7 +174,7 @@ export function AdminDashboard(): React.JSX.Element {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await supabase.auth.signOut();
+      await client.auth.signOut();
       queryClient.clear();
       window.location.href = '/';
     } catch {
@@ -170,6 +184,24 @@ export function AdminDashboard(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      {emailUsage?.warningBanner && (
+        <div
+          role="alert"
+          className="flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-xs dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl" aria-hidden="true">⚠️</span>
+            <div className="text-xs sm:text-sm font-semibold">
+              Warning: Daily notification email quota is at {emailUsage.count}/{emailUsage.max} (≥75%).
+              Non-staff notifications are restricted to preserve doctor emergency sign-in.
+            </div>
+          </div>
+          <span className="rounded-md bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
+            {Math.round((emailUsage.count / emailUsage.max) * 100)}% Used
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col items-start justify-between gap-4 border-slate-200 border-b pb-4 sm:flex-row sm:items-center dark:border-slate-800">
         <div>
           <h1 className="font-bold text-2xl text-slate-900 dark:text-white">

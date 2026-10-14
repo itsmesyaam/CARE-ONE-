@@ -143,9 +143,14 @@
     "switchToMalayalam": "മലയാളം"
   },
   "config": {
-    "noticeTitle": "Supabase Environment Pending",
-    "noticeMessage": "VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are not configured in this environment. The application is running in static preview mode.",
-    "noticeInstructions": "To enable database features, configure these variables in the hosting provider dashboard."
+    "noticeTitle": "Environment Configuration Pending",
+    "noticeMessage": "Backend services are not configured in this environment. The application is running in static preview mode.",
+    "noticeInstructions": "To enable database features, configure your worker bindings in the Cloudflare dashboard."
+  },
+  "serviceUnavailable": {
+    "title": "Service temporarily unavailable",
+    "message": "We are experiencing a temporary disruption. Please check back shortly.",
+    "retry": "Reload Application"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -172,6 +177,7 @@
     "totpLabel": "Authenticator Code (MFA)",
     "totpPlaceholder": "Enter 6-digit MFA code",
     "verifyTotp": "Verify MFA & Sign In",
+    "sendStaffOtp": "Send Staff Sign-in Code",
     "demoAccounts": "Demo Accounts",
     "useDemo": "Use Demo: {{name}}",
     "signInSuccess": "Signed in successfully",
@@ -230,6 +236,10 @@
     "checking": "Checking",
     "done": "Done",
     "signInBtn": "Sign in",
+    "sendCodeBtn": "Send sign-in code",
+    "emailOtpTitle": "Enter email code",
+    "emailOtpSub": "We sent a 6-digit one-time code to your hospital email.",
+    "emailCode": "Sign-in code",
     "signingIn": "Signing in",
     "serverUnreachable": "We can't reach the server right now. Please try again.",
     "forgotPassword": "Forgot your password? The hospital admin can reset it.",

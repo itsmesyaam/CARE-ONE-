@@ -14,7 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 
 export function DoctorLayout(): React.JSX.Element {
   const { t, i18n } = useTranslation();
@@ -26,7 +26,7 @@ export function DoctorLayout(): React.JSX.Element {
 
   const handleDoctorSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
     } catch {
       // ignore
     }
@@ -40,29 +40,20 @@ export function DoctorLayout(): React.JSX.Element {
 
   const lastActiveRef = useRef<number>(0);
 
-  const { data: pendingDocsCount = 0 } = useQuery({
-    queryKey: ['doctor', 'layout', 'pending_docs_count'],
+  const { data: countsData } = useQuery<{
+    pendingReportsCount: number;
+    pendingSymptomsCount: number;
+  }>({
+    queryKey: ['doctor', 'layout', 'counts'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('review_status', 'pending');
-      if (error) return 0;
-      return count || 0;
+      const res = await fetch('/api/doctor/today');
+      if (!res.ok) return { pendingReportsCount: 0, pendingSymptomsCount: 0 };
+      return res.json();
     },
   });
 
-  const { data: pendingSymptomsCount = 0 } = useQuery({
-    queryKey: ['doctor', 'layout', 'pending_symptoms_count'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('symptom_reports')
-        .select('*', { count: 'exact', head: true })
-        .is('reviewed_at', null);
-      if (error) return 0;
-      return count || 0;
-    },
-  });
+  const pendingDocsCount = countsData?.pendingReportsCount || 0;
+  const pendingSymptomsCount = countsData?.pendingSymptomsCount || 0;
 
   const reviewCount = pendingDocsCount + pendingSymptomsCount;
 

@@ -7,7 +7,7 @@ import { PatientProfile } from '../../src/features/patient/PatientProfile';
 import { PatientReminders } from '../../src/features/patient/PatientReminders';
 import { PatientAppointments } from '../../src/features/patient/PatientAppointments';
 import { PatientLayout } from '../../src/features/patient/PatientLayout';
-import { supabase } from '../../src/lib/supabase';
+import { client } from '../../src/lib/client';
 
 describe('Patient Reminders & Appointments Feature', () => {
   beforeEach(async () => {
@@ -104,8 +104,8 @@ describe('Patient Reminders & Appointments Feature', () => {
     });
   });
 
-  it('signs out user completely by calling supabase.auth.signOut and clearing session', async () => {
-    const signOutSpy = vi.spyOn(supabase.auth, 'signOut').mockResolvedValue({ error: null } as never);
+  it('signs out user completely by calling client.auth.signOut and clearing session', async () => {
+    const signOutSpy = vi.spyOn(client.auth, 'signOut').mockResolvedValue({ error: null } as never);
 
     render(
       <MemoryRouter initialEntries={['/patient/profile']}>

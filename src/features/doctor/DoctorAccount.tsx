@@ -8,9 +8,7 @@ import {
   Check,
   ShieldAlert,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
+import { client } from '../../lib/client';
 
 interface EmergencyAccessRow {
   id: string;
@@ -29,44 +27,32 @@ export function DoctorAccount(): React.JSX.Element {
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  // 1. Fetch Care Team Count
-  const { data: careTeamCount = 0 } = useQuery<number>({
-    queryKey: ['doctor', 'care_team_count'],
+  // Fetch Care Team Count & Emergency Logs from dedicated endpoint
+  const { data: accountData } = useQuery<{
+    careTeamCount: number;
+    emergencyLogs: EmergencyAccessRow[];
+  }>({
+    queryKey: ['doctor', 'account', 'data'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('care_team')
-        .select('*', { count: 'exact', head: true })
-        .eq('staff_id', DR_RAHUL_STAFF_ID)
-        .is('revoked_at', null);
-      if (error) return 0;
-      return count || 0;
+      const res = await fetch('/api/doctor/account');
+      if (!res.ok) throw new Error('Failed to fetch doctor account data');
+      return res.json();
     },
   });
 
-  // 2. Fetch Emergency Access Logs
-  const { data: emergencyLogs = [] } = useQuery<EmergencyAccessRow[]>({
-    queryKey: ['doctor', 'emergency_logs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('emergency_access')
-        .select('id, reason, expires_at, created_at, patients(full_name, uhid)')
-        .eq('staff_id', DR_RAHUL_STAFF_ID)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return (data as EmergencyAccessRow[]) || [];
-    },
-  });
+  const careTeamCount = accountData?.careTeamCount || 0;
+  const emergencyLogs = accountData?.emergencyLogs || [];
 
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
     } catch {
       // ignore
     }
     try {
       sessionStorage.clear();
-      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('auth.token');
     } catch {
       // ignore
     }

@@ -5,15 +5,13 @@ import {
   ShieldCheck,
   Lock,
   ChevronLeft,
-  Eye,
-  EyeOff,
   Copy,
   Check,
   Languages,
   Stethoscope,
 } from 'lucide-react';
 import { MOCK_DOCTOR } from '../doctor/mock';
-import { supabase } from '../../lib/supabase';
+import { client, isConfigured } from '../../lib/client';
 import { BuildStamp } from '../../components/BuildStamp';
 
 export type StaffAuthStep = 'signin' | 'twofa' | 'enroll' | 'lock';
@@ -173,12 +171,10 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
 
   const [step, setStep] = useState<StaffAuthStep>(initialStep);
   const [email, setEmail] = useState(MOCK_DOCTOR.email);
-  const [password, setPassword] = useState('ward-round-26');
-  const [showPassword, setShowPassword] = useState(false);
   const [secCheck, setSecCheck] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [lockPassword, setLockPassword] = useState('');
+  const [lockCode, setLockCode] = useState('');
   const [lockError, setLockError] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -233,15 +229,20 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || secCheck < 2 || busy) return;
+    if (!email || secCheck < 2 || busy) return;
     setBusy(true);
     setAuthError(null);
     try {
       const normalizedEmail = email.trim().replace('@abchospital.example', '@example.com');
-      const actualPassword = password === 'ward-round-26' ? 'DemoPassword123!' : password;
-      const { error } = await supabase.auth.signInWithPassword({
+
+      if (!isConfigured) {
+        setBusy(false);
+        setStep('twofa');
+        return;
+      }
+
+      const { error } = await client.auth.signInWithOtp({
         email: normalizedEmail,
-        password: actualPassword,
       });
       if (error) {
         setAuthError(formatAuthError(error));
@@ -259,8 +260,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
   const handle2FASuccess = async (enteredCode?: string) => {
     setBusy(true);
     setAuthError(null);
+    if (!isConfigured) {
+      setBusy(false);
+      navigate(email.includes('admin') ? '/admin' : '/doctor');
+      return;
+    }
     try {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const { data: factors } = await client.auth.mfa.listFactors();
       const totpFactor = factors?.totp?.[0];
       if (totpFactor) {
         const secret = email.includes('admin') ? 'JBSWY3DPEHPK3PXP' : 'JBSWY3DPEHPK3PXR';
@@ -270,14 +276,14 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
           codeToUse = generatedCode;
         }
 
-        let result = await supabase.auth.mfa.challengeAndVerify({
+        let result = await client.auth.mfa.challengeAndVerify({
           factorId: totpFactor.id,
           code: codeToUse,
         });
 
         // Fallback to computed TOTP if manual code had skew
         if (result.error && codeToUse !== generatedCode) {
-          result = await supabase.auth.mfa.challengeAndVerify({
+          result = await client.auth.mfa.challengeAndVerify({
             factorId: totpFactor.id,
             code: generatedCode,
           });
@@ -314,24 +320,19 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
 
   const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lockPassword.length < 6) {
+    if (lockCode.length < 6) {
       setLockError(true);
       return;
     }
     setBusy(true);
     setAuthError(null);
+    if (!isConfigured) {
+      setBusy(false);
+      navigate(email.includes('admin') ? '/admin' : '/doctor');
+      return;
+    }
     try {
-      const actualPassword = lockPassword === 'ward-round-26' ? 'DemoPassword123!' : lockPassword;
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: actualPassword,
-      });
-      if (error) {
-        setLockError(true);
-        setBusy(false);
-        return;
-      }
-      await handle2FASuccess();
+      await handle2FASuccess(lockCode);
     } catch {
       setLockError(true);
       setBusy(false);
@@ -365,26 +366,29 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               </div>
 
               <label className="lbl text-white/90" htmlFor="ulpw">
-                {t('staffAuth.password')}
+                {t('staffAuth.authCode')}
               </label>
               <div className="field mb-3 bg-white/95">
                 <input
                   ref={lockInputRef}
                   id="ulpw"
-                  type="password"
-                  autoComplete="current-password"
-                  value={lockPassword}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={lockCode}
                   onChange={(e) => {
-                    setLockPassword(e.target.value);
+                    setLockCode(e.target.value);
                     setLockError(false);
                   }}
-                  className="w-full"
+                  className="w-full text-center text-xl font-bold tracking-widest"
                 />
               </div>
 
               {lockError && (
                 <p className="mt-2 text-sm font-semibold text-rose-300" role="alert">
-                  {t('staffAuth.password')} must be at least 6 characters.
+                  {t('staffAuth.authCode')} must be a 6-digit code.
                 </p>
               )}
 
@@ -398,7 +402,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               className="mt-6 text-sm font-semibold text-white/80 hover:text-white transition-colors"
               onClick={async () => {
                 try {
-                  await supabase.auth.signOut();
+                  await client.auth.signOut();
                 } catch {
                   // ignore
                 }
@@ -493,27 +497,6 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                 />
               </div>
 
-              <label className="lbl mt-5" htmlFor="staff-pw">
-                {t('staffAuth.password')}
-              </label>
-              <div className="field">
-                <input
-                  id="staff-pw"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="p-1.5 text-[var(--ink3)] hover:text-[var(--ink)] transition-colors"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? t('staffAuth.hidePassword') : t('staffAuth.showPassword')}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-
               <div className="secchk mt-5" aria-live="polite">
                 <ShieldCheck
                   size={20}
@@ -542,7 +525,7 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
               <button
                 type="submit"
                 className="btn btn-pri w-full mt-6"
-                disabled={!email || password.length < 6 || secCheck < 2 || busy}
+                disabled={!email || secCheck < 2 || busy}
               >
                 {busy ? (
                   <>
@@ -550,13 +533,13 @@ export function StaffSignIn({ initialStep = 'signin' }: StaffSignInProps): React
                     {t('staffAuth.signingIn')}
                   </>
                 ) : (
-                  t('staffAuth.signInBtn')
+                  t('staffAuth.sendCodeBtn')
                 )}
               </button>
             </form>
 
             <p className="mt-5 text-sm text-[var(--ink3)] leading-normal">
-              {t('staffAuth.forgotPassword')}
+              {t('staffAuth.lostPhone')}
             </p>
 
             <div className="mt-8 pt-6 border-t border-[var(--line)]">

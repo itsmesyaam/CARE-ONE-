@@ -29,8 +29,8 @@ describe('Auth Feature: SignInPage', () => {
 
     // Switch to staff tab
     fireEvent.click(screen.getByText('Staff Sign-In'));
-    expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Send Staff Sign-in Code|Sign In/i })).toBeInTheDocument();
   });
 
   it('populates demo credentials when clicking quick demo buttons', () => {

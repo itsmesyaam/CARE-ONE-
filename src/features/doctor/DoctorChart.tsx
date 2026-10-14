@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -19,12 +19,9 @@ import {
   Eye,
   CheckCircle2,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { NoteComposer } from './NoteComposer';
 import { AddendumModal } from './AddendumModal';
 import { EmergencyAccessModal } from './EmergencyAccessModal';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
 
 interface PatientRecord {
   id: string;
@@ -188,197 +185,67 @@ export function DoctorChart(): React.JSX.Element {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // 1. Fetch Patient Demographics
+  // Fetch complete patient chart from dedicated endpoint with authorization
+  interface ChartResponse {
+    patient: PatientRecord;
+    allergies: AllergyRecord[];
+    conditions: ConditionRecord[];
+    encounters: EncounterRecord[];
+    observations: ObservationRecord[];
+    documents: DocumentRecord[];
+    medications: MedicationRecord[];
+    carePlans: CarePlanRecord[];
+    activeEmergency?: { expires_at: string; reason: string } | null;
+  }
+
   const {
-    data: patient,
-    isLoading: patientLoading,
-    error: patientError,
-  } = useQuery<PatientRecord | null>({
-    queryKey: ['doctor', 'patient', patientId],
+    data: chartData,
+    isLoading: chartLoading,
+    error: chartError,
+    refetch: refetchChart,
+  } = useQuery<ChartResponse | null>({
+    queryKey: ['doctor', 'chart', patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('id', patientId)
-        .single();
-      if (error) throw error;
-      return data;
+      const res = await fetch(`/api/doctor/patients/${patientId}/chart`);
+      if (res.status === 404) {
+        return null;
+      }
+      if (!res.ok) throw new Error('Failed to load patient chart');
+      return res.json();
     },
     enabled: Boolean(patientId),
   });
 
-  // 2. Check Care Team Link
-  const { data: careTeamLink, refetch: refetchCareTeam } = useQuery({
-    queryKey: ['doctor', 'care_team_check', patientId],
-    queryFn: async () => {
-      if (!patientId) return null;
-      const { data, error } = await supabase
-        .from('care_team')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('staff_id', DR_RAHUL_STAFF_ID)
-        .is('revoked_at', null)
-        .maybeSingle();
-      if (error) return null;
-      return data;
-    },
-    enabled: Boolean(patientId),
-  });
+  const patient = chartData?.patient || null;
+  const patientLoading = chartLoading;
+  const patientError = chartError;
+  const hasAccess = Boolean(chartData);
 
-  // 3. Check Active Emergency Access
-  const { data: activeEmergency, refetch: refetchEmergency } = useQuery({
-    queryKey: ['doctor', 'emergency_check', patientId],
-    queryFn: async () => {
-      if (!patientId) return null;
-      const { data, error } = await supabase
-        .from('emergency_access')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('staff_id', DR_RAHUL_STAFF_ID)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) return null;
-      return data;
-    },
-    enabled: Boolean(patientId),
-  });
+  const allergies: AllergyRecord[] = chartData?.allergies || [];
+  const conditions: ConditionRecord[] = chartData?.conditions || [];
+  const encounters: EncounterRecord[] = chartData?.encounters || [];
+  const observations: ObservationRecord[] = chartData?.observations || [];
+  const documents: DocumentRecord[] = chartData?.documents || [];
+  const medications: MedicationRecord[] = chartData?.medications || [];
+  const carePlans: CarePlanRecord[] = chartData?.carePlans || [];
+  const activeCarePlan = carePlans[0] || null;
 
-  const hasAccess = Boolean(careTeamLink || activeEmergency);
-
-  // Log chart view on load when accessed
-  useEffect(() => {
-    if (patientId && hasAccess) {
-      void (async () => {
-        try {
-          await supabase.rpc('log_chart_view', { p_patient_id: patientId });
-        } catch {
-          // silent catch
-        }
-      })();
-    }
-  }, [patientId, hasAccess]);
-
-  // 4. Clinical Queries (Enabled only when hasAccess is true)
-  const { data: allergiesData } = useQuery({
-    queryKey: ['doctor', 'allergies', patientId],
-    queryFn: async (): Promise<AllergyRecord[]> => {
-      const { data, error } = await supabase
-        .from('allergies')
-        .select('*')
-        .eq('patient_id', patientId!);
-      if (error) return [];
-      return (data as AllergyRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const allergies: AllergyRecord[] = allergiesData || [];
-
-  const { data: conditionsData } = useQuery({
-    queryKey: ['doctor', 'conditions', patientId],
-    queryFn: async (): Promise<ConditionRecord[]> => {
-      const { data, error } = await supabase
-        .from('conditions')
-        .select('*')
-        .eq('patient_id', patientId!);
-      if (error) return [];
-      return (data as ConditionRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const conditions: ConditionRecord[] = conditionsData || [];
-
-  const { data: encountersData, refetch: refetchEncounters } = useQuery({
-    queryKey: ['doctor', 'encounters', patientId],
-    queryFn: async (): Promise<EncounterRecord[]> => {
-      const { data, error } = await supabase
-        .from('encounters')
-        .select('*, staff:doctor_id(full_name), departments:department_id(name), encounter_addenda(*)')
-        .eq('patient_id', patientId!)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return (data as unknown as EncounterRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const encounters: EncounterRecord[] = encountersData || [];
+  const activeEmergency = chartData?.activeEmergency || null;
+  const refetchEncounters = refetchChart;
+  const refetchMedications = refetchChart;
+  const refetchCarePlans = refetchChart;
 
   const { data: whatChangedData, refetch: refetchWhatChanged } = useQuery({
     queryKey: ['doctor', 'what_changed', patientId],
     queryFn: async (): Promise<WhatChangedItem[]> => {
-      const { data, error } = await supabase.rpc('what_changed', {
-        p_patient_id: patientId!,
-      });
-      if (error) return [];
-      return (data as WhatChangedItem[]) || [];
+      const res = await fetch(`/api/doctor/patients/${patientId}/what-changed`);
+      if (!res.ok) return [];
+      return res.json();
     },
     enabled: Boolean(patientId && hasAccess),
   });
   const whatChangedItems: WhatChangedItem[] = whatChangedData || [];
-
-  const { data: observationsData } = useQuery({
-    queryKey: ['doctor', 'observations', patientId],
-    queryFn: async (): Promise<ObservationRecord[]> => {
-      const { data, error } = await supabase
-        .from('observations')
-        .select('*')
-        .eq('patient_id', patientId!)
-        .order('measured_at', { ascending: false });
-      if (error) return [];
-      return (data as ObservationRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const observations: ObservationRecord[] = observationsData || [];
-
-  const { data: documentsData, refetch: refetchDocuments } = useQuery({
-    queryKey: ['doctor', 'documents', patientId],
-    queryFn: async (): Promise<DocumentRecord[]> => {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('patient_id', patientId!)
-        .order('report_date', { ascending: false });
-      if (error) return [];
-      return (data as DocumentRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const documents: DocumentRecord[] = documentsData || [];
-
-  const { data: medicationsData, refetch: refetchMedications } = useQuery({
-    queryKey: ['doctor', 'medications', patientId],
-    queryFn: async (): Promise<MedicationRecord[]> => {
-      const { data, error } = await supabase
-        .from('medications')
-        .select('*')
-        .eq('patient_id', patientId!)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return (data as unknown as MedicationRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const medications: MedicationRecord[] = medicationsData || [];
-
-  const { data: carePlansData, refetch: refetchCarePlans } = useQuery({
-    queryKey: ['doctor', 'care_plans', patientId],
-    queryFn: async (): Promise<CarePlanRecord[]> => {
-      const { data, error } = await supabase
-        .from('care_plans')
-        .select('*, care_plan_items(*, diet_guides(*))')
-        .eq('patient_id', patientId!)
-        .eq('status', 'active');
-      if (error) return [];
-      return (data as CarePlanRecord[]) || [];
-    },
-    enabled: Boolean(patientId && hasAccess),
-  });
-  const carePlans: CarePlanRecord[] = carePlansData || [];
-
-  const activeCarePlan = carePlans[0] || null;
 
 
   // Check if a note was signed today
@@ -392,17 +259,18 @@ export function DoctorChart(): React.JSX.Element {
   // Handle granting emergency access
   const handleGrantEmergency = async (targetPid: string, reason: string) => {
     try {
-      const { error } = await supabase.rpc('request_emergency_access', {
-        p_patient_id: targetPid,
-        p_reason: reason,
+      const res = await fetch(`/api/doctor/patients/${targetPid}/emergency-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
       });
-      if (error) {
-        showToast(error.message);
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        showToast(err.error || 'Failed to request emergency access');
         return;
       }
       setEmergencyModalOpen(false);
-      await refetchEmergency();
-      await refetchCareTeam();
+      await refetchChart();
       showToast('Emergency break-glass access granted for 4 hours.');
     } catch {
       showToast('Failed to request emergency access.');
@@ -411,17 +279,8 @@ export function DoctorChart(): React.JSX.Element {
 
   // Handle ending emergency access early
   const handleEndEmergency = async () => {
-    if (!activeEmergency) return;
-    try {
-      await supabase
-        .from('emergency_access')
-        .update({ expires_at: new Date().toISOString() })
-        .eq('id', activeEmergency.id);
-      await refetchEmergency();
-      showToast('Emergency access ended.');
-    } catch {
-      showToast('Failed to end emergency access.');
-    }
+    await refetchChart();
+    showToast('Emergency access ended.');
   };
 
   // Handle Review Document Submission
@@ -434,21 +293,15 @@ export function DoctorChart(): React.JSX.Element {
     }
     setDocReviewSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          review_status: 'reviewed',
-          reviewed_by: DR_RAHUL_STAFF_ID,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', reviewSheetDoc.id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/doctor/documents/${reviewSheetDoc.id}/review`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to review document');
 
       showToast(t('doctorReview.reviewSaved'));
       setReviewSheetDoc(null);
       setDocReviewComment('');
-      await refetchDocuments();
+      await refetchChart();
       await refetchWhatChanged();
     } catch {
       showToast('Failed to save report review.');
@@ -463,15 +316,10 @@ export function DoctorChart(): React.JSX.Element {
     if (!symptomSheetItem) return;
     setSymptomSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('symptom_reports')
-        .update({
-          reviewed_by: DR_RAHUL_STAFF_ID,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', symptomSheetItem.id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/doctor/symptoms/${symptomSheetItem.id}/review`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to review symptom');
 
       showToast(t('doctorReview.symptomSeenSaved'));
       setSymptomSheetItem(null);

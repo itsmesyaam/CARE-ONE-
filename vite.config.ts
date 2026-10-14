@@ -16,13 +16,15 @@ try {
 const buildTime = new Date().toISOString();
 
 try {
+  const pkgPath = path.resolve(import.meta.dirname, 'package.json');
+  const pkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || '0.1.1';
   const publicDir = path.resolve(import.meta.dirname, 'public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
   fs.writeFileSync(
     path.join(publicDir, 'version.json'),
-    JSON.stringify({ version: '0.1.0', commit: commitHash, buildTime }, null, 2)
+    JSON.stringify({ version: pkgVersion, commit: commitHash, buildTime }, null, 2)
   );
 } catch {}
 
@@ -32,19 +34,6 @@ export default defineConfig({
     __APP_BUILD_TIME__: JSON.stringify(buildTime),
   },
   plugins: [
-    {
-      name: 'validate-backend-url',
-      buildStart() {
-        if (process.env.STRICT_PROD_CHECK === 'true' || process.env.CF_PAGES || process.env.CLOUDFLARE_BUILD) {
-          const supabaseUrl = process.env.VITE_SUPABASE_URL;
-          if (!supabaseUrl || supabaseUrl.includes('localhost') || supabaseUrl.includes('127.0.0.1') || supabaseUrl.includes('YOUR-PROJECT')) {
-            throw new Error(
-              `[Production Build Blocked] Missing or invalid VITE_SUPABASE_URL: "${supabaseUrl}". Must be configured with a remote URL like https://kndkohgpbnbbndvtgqvx.supabase.co.`
-            );
-          }
-        }
-      },
-    },
     tailwindcss(),
     react(),
     VitePWA({
@@ -62,7 +51,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/rest\/v1\//, /^\/auth\/v1\//, /^\/storage\/v1\//],
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [],
       },
     }),
@@ -79,7 +68,7 @@ export default defineConfig({
           if (id.includes('node_modules/recharts')) {
             return 'vendor-charts';
           }
-          if (id.includes('node_modules/@supabase') || id.includes('node_modules/@tanstack')) {
+          if (id.includes('node_modules/@tanstack')) {
             return 'vendor-query';
           }
           if (

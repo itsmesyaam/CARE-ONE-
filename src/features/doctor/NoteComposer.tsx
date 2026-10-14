@@ -10,10 +10,6 @@ import {
   Trash2,
   BadgeCheck,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-
-const DR_RAHUL_STAFF_ID = 'b0000000-0000-0000-0000-000000000003';
-const GEN_MED_DEPT_ID = 'd0000000-0000-0000-0000-000000000001';
 
 const COMMON_DRUGS = [
   'Metformin ER 500mg',
@@ -147,22 +143,6 @@ export function NoteComposer({
 
     try {
       // 1. Determine active doctor and department ID
-      let doctorId = DR_RAHUL_STAFF_ID;
-      let deptId = GEN_MED_DEPT_ID;
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user) {
-        const { data: staffRow } = await supabase
-          .from('staff')
-          .select('id, department_id')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-        if (staffRow) {
-          doctorId = staffRow.id;
-          if (staffRow.department_id) deptId = staffRow.department_id;
-        }
-      }
-
-      // 2. Insert draft encounter (RLS requires status = 'draft' on insert)
       const dxSummary = diagnoses
         .filter((d) => d.active)
         .map((d) => d.name)
@@ -172,97 +152,25 @@ export function NoteComposer({
         customPlan || 'Continue oral anti-diabetic and antihypertensive therapy with strict dietary adherence.'
       }`;
 
-      const { data: enc, error: encErr } = await supabase
-        .from('encounters')
-        .insert({
+      const res = await fetch('/api/doctor/encounters/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           patient_id: patientId,
-          doctor_id: doctorId,
-          department_id: deptId,
-          status: 'draft',
-          sensitivity: 'normal',
           chief_complaint: reason,
           clinical_notes: clinicalNotesText,
+          examination: `BP ${vitals.sys}/${vitals.dia}, Pulse ${vitals.pulse}, Wt ${vitals.wt}`,
           diagnosis: dxSummary,
-        })
-        .select()
-        .single();
+          prescriptions,
+          vitals,
+          diet_guide_id: selectedDietGuide || undefined,
+          diet_note: dietNote || undefined,
+        }),
+      });
 
-      if (encErr) throw encErr;
-
-      // 3. Freeze & sign encounter
-      const { error: signErr } = await supabase
-        .from('encounters')
-        .update({
-          status: 'signed',
-          signed_at: new Date().toISOString(),
-        })
-        .eq('id', enc.id);
-
-      if (signErr) throw signErr;
-
-      // 4. Insert newly prescribed medications
-      for (const rx of prescriptions) {
-        await supabase.from('medications').insert({
-          patient_id: patientId,
-          doctor_id: doctorId,
-          department_id: deptId,
-          drug: rx.name,
-          dose: rx.dose,
-          timing: rx.timing,
-          instructions: rx.food === 'after_food' ? 'Take after meals' : 'Take before food',
-          status: 'active',
-        });
-      }
-
-      // 5. Insert Vitals observations if changed
-      if (vitals.sys && vitals.dia) {
-        await supabase.from('observations').insert({
-          patient_id: patientId,
-          kind: 'Blood Pressure',
-          value_text: `${vitals.sys}/${vitals.dia}`,
-          unit: 'mmHg',
-          source: 'clinic',
-          out_of_range: parseInt(vitals.sys, 10) >= 140 || parseInt(vitals.dia, 10) >= 90,
-          measured_at: new Date().toISOString(),
-          recorded_by: doctorId,
-        });
-      }
-
-      // 6. Attach diet guidance to active care plan if selected
-      if (selectedDietGuide) {
-        const { data: carePlans } = await supabase
-          .from('care_plans')
-          .select('id')
-          .eq('patient_id', patientId)
-          .eq('status', 'active')
-          .limit(1);
-
-        let planId = carePlans?.[0]?.id;
-        if (!planId) {
-          const { data: newPlan } = await supabase
-            .from('care_plans')
-            .insert({
-              patient_id: patientId,
-              title: 'Comprehensive Chronic Care Plan',
-              doctor_id: doctorId,
-              status: 'active',
-            })
-            .select()
-            .single();
-          planId = newPlan?.id;
-        }
-
-        if (planId) {
-          await supabase.from('care_plan_items').insert({
-            care_plan_id: planId,
-            patient_id: patientId,
-            kind: 'diet',
-            detail: 'Diet guidance: follow hospital nutritional recommendations.',
-            diet_guide_id: selectedDietGuide,
-            doctor_note: dietNote || null,
-            status: 'pending',
-          });
-        }
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error || 'Failed to sign encounter note');
       }
 
       setBusy(false);

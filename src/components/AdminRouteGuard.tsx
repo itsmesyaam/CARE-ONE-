@@ -1,15 +1,16 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { client, isConfigured } from '../lib/client';
 import { useTranslation } from 'react-i18next';
 
 export function AdminRouteGuard({ children }: { children: ReactNode }): React.JSX.Element {
   const { t } = useTranslation();
-  const [checked, setChecked] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
+  const [checked, setChecked] = useState(true);
+  const [hasSession, setHasSession] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setHasSession(!!data.session);
+    if (!isConfigured) return;
+    client.auth.getSession().then(({ data }) => {
+      setHasSession(!!data?.session);
       setChecked(true);
     });
   }, []);

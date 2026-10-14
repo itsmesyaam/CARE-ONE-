@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../lib/supabase';
+import { client } from '../../lib/client';
 import { SAMPLE_PEOPLE, createSampleSeed, PatientPerson, PatientRecordData } from './mock';
 
 export interface PatientSheetConfig {
@@ -237,6 +237,19 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
 
   const addReading = (k: string, v: number | [number, number], ctx?: string | null) => {
     const high = isReadingHigh(k, v);
+    try {
+      void fetch('/api/patient/readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: k,
+          value_text: Array.isArray(v) ? `${v[0]}/${v[1]}` : String(v),
+        }),
+      }).catch(() => {});
+    } catch {
+      // offline fallback
+    }
+
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;
       const currentReadings = target.readings[k as keyof typeof target.readings] || [];
@@ -295,6 +308,19 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     ].filter(Boolean);
     const text = parts.join('. ') || 'Reported symptom';
 
+    try {
+      void fetch('/api/patient/symptoms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: text,
+          severity: sev,
+        }),
+      }).catch(() => {});
+    } catch {
+      // offline fallback
+    }
+
     setDb((prev: Record<string, PatientRecordData>): Record<string, PatientRecordData> => {
       const target: PatientRecordData = prev[pid] ?? fallbackRecord;
       const newSymptom = {
@@ -321,7 +347,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
 
   const signOut = async (msg?: string) => {
     try {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
     } catch {
       // ignore
     }
