@@ -1,5 +1,4 @@
 import { queryClient } from './queryClient';
-import { router } from '../app/routes';
 
 export const SIGNED_OUT_NOTICE_KEY = 'careone_signed_out_notice';
 
@@ -9,6 +8,13 @@ export interface LogoutOptions {
 }
 
 let isLoggingOut = false;
+let logoutNavigator: ((to: string, opts?: { replace?: boolean }) => Promise<unknown> | void) | null = null;
+
+export function registerLogoutNavigator(
+  nav: (to: string, opts?: { replace?: boolean }) => Promise<unknown> | void
+): void {
+  logoutNavigator = nav;
+}
 
 /**
  * Shared logout function:
@@ -55,8 +61,8 @@ export async function logout(options?: LogoutOptions): Promise<void> {
   }
 
   try {
-    if (router && typeof router.navigate === 'function') {
-      void router.navigate('/', { replace: true });
+    if (logoutNavigator) {
+      void logoutNavigator('/', { replace: true });
     } else if (typeof window !== 'undefined' && window.location) {
       window.location.replace('/');
     }

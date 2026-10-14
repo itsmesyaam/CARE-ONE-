@@ -15,12 +15,14 @@ import { PatientReminders } from '../features/patient/PatientReminders';
 import { PatientAppointments } from '../features/patient/PatientAppointments';
 
 import { StaffSignIn } from '../features/auth/StaffSignIn';
+import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
 import { DoctorLayout } from '../features/doctor/DoctorLayout';
 import { DoctorToday } from '../features/doctor/DoctorToday';
 import { DoctorPatients } from '../features/doctor/DoctorPatients';
 import { DoctorChart } from '../features/doctor/DoctorChart';
 import { DoctorReview } from '../features/doctor/DoctorReview';
 import { DoctorAccount } from '../features/doctor/DoctorAccount';
+import { registerLogoutNavigator } from '../lib/logout';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -58,7 +60,7 @@ export const router = createBrowserRouter([
   {
     path: '/doctor',
     element: (
-      <ProtectedRoute allowedRoles={['doctor', 'front_desk', 'admin', 'staff']}>
+      <ProtectedRoute allowedRoles={['doctor', 'specialist', 'front_desk', 'admin', 'staff']}>
         <DoctorLayout />
       </ProtectedRoute>
     ),
@@ -166,6 +168,10 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: '/change-password',
+    element: <ChangePasswordPage />,
+  },
+  {
     path: '/admin',
     element: (
       <AdminRouteGuard>
@@ -182,3 +188,6 @@ export const router = createBrowserRouter([
     ),
   },
 ]);
+
+registerLogoutNavigator((to, opts) => router.navigate(to, opts));
+

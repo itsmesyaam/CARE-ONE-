@@ -17,7 +17,9 @@ export interface UserSession {
   user: {
     id: string;
     email?: string;
+    username?: string;
     role?: string;
+    must_change_password?: boolean;
   };
 }
 
@@ -28,9 +30,9 @@ export const client = {
         if (typeof fetch === 'function') {
           const res = await fetch('/api/auth/session');
           if (res.ok) {
-            const user = (await res.json()) as UserSession['user'];
-            if (user && user.id) {
-              return { data: { session: { user } }, error: null };
+            const body = (await res.json()) as { session?: { user: UserSession['user'] } | null };
+            if (body && body.session && body.session.user && body.session.user.id) {
+              return { data: { session: body.session }, error: null };
             }
           }
         }

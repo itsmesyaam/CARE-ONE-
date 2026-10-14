@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { client } from '../lib/client';
+import { getRoleHome } from '../lib/role-routing';
 
 export interface ProtectedRouteProps {
   children: ReactNode;
@@ -9,7 +10,7 @@ export interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps): React.JSX.Element {
   const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
+  const [user, setUser] = useState<{ id: string; role?: string; must_change_password?: boolean } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -17,27 +18,19 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps):
       .getSession()
       .then(({ data }) => {
         if (!active) return;
-        const user = data?.session?.user;
-        if (!user) {
-          setAuthorized(false);
-        } else if (allowedRoles && allowedRoles.length > 0) {
-          const userRole = user.role || '';
-          setAuthorized(allowedRoles.includes(userRole));
-        } else {
-          setAuthorized(true);
-        }
+        setUser(data?.session?.user ?? null);
         setLoading(false);
       })
       .catch(() => {
         if (!active) return;
-        setAuthorized(false);
+        setUser(null);
         setLoading(false);
       });
 
     return () => {
       active = false;
     };
-  }, [allowedRoles]);
+  }, []);
 
   if (loading) {
     return (
@@ -47,8 +40,16 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps):
     );
   }
 
-  if (!authorized) {
+  if (!user) {
     return <Navigate to="/" replace />;
+  }
+
+  if (user.must_change_password) {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role || '')) {
+    return <Navigate to={getRoleHome(user.role)} replace />;
   }
 
   return <>{children}</>;

@@ -10,14 +10,14 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders children when session exists and role is allowed', async () => {
+  it('renders children when session exists and role is allowed (including specialist)', async () => {
     vi.spyOn(client.auth, 'getSession').mockResolvedValue({
       data: {
         session: {
           user: {
-            id: 'doc-1',
-            email: 'dr.rahul@example.com',
-            role: 'doctor',
+            id: 'spec-1',
+            email: 'dr.kavitha@example.com',
+            role: 'specialist',
           },
         },
       },
@@ -31,7 +31,7 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
           <Route
             path="/doctor"
             element={
-              <ProtectedRoute allowedRoles={['doctor']}>
+              <ProtectedRoute allowedRoles={['doctor', 'specialist']}>
                 <div>Doctor Content</div>
               </ProtectedRoute>
             }
@@ -73,7 +73,8 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
     });
   });
 
-  it('redirects to "/" when role is not in allowedRoles', async () => {
+  it('redirects signed-in user with mismatched role to their own home (/patient, /doctor, /admin) not "/"', async () => {
+    // Patient visits /admin -> must redirect to /patient
     vi.spyOn(client.auth, 'getSession').mockResolvedValue({
       data: {
         session: {
@@ -90,6 +91,8 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
           <Route path="/" element={<div>Home Page</div>} />
+          <Route path="/patient" element={<div>Patient Home</div>} />
+          <Route path="/doctor" element={<div>Doctor Home</div>} />
           <Route
             path="/admin"
             element={
@@ -103,14 +106,94 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Home Page')).toBeInTheDocument();
+      expect(screen.getByText('Patient Home')).toBeInTheDocument();
       expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
+      expect(screen.queryByText('Home Page')).not.toBeInTheDocument();
     });
   });
 
-  it('AdminRouteGuard redirects to "/" when no session exists', async () => {
+  it('redirects doctor who visits /patient to /doctor (their own home)', async () => {
     vi.spyOn(client.auth, 'getSession').mockResolvedValue({
-      data: { session: null },
+      data: {
+        session: {
+          user: {
+            id: 'doc-1',
+            role: 'doctor',
+          },
+        },
+      },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/patient']}>
+        <Routes>
+          <Route path="/" element={<div>Home Page</div>} />
+          <Route path="/doctor" element={<div>Doctor Home</div>} />
+          <Route
+            path="/patient"
+            element={
+              <ProtectedRoute allowedRoles={['patient', 'guardian']}>
+                <div>Patient Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Doctor Home')).toBeInTheDocument();
+      expect(screen.queryByText('Patient Content')).not.toBeInTheDocument();
+    });
+  });
+
+  it('redirects to /change-password when must_change_password is true', async () => {
+    vi.spyOn(client.auth, 'getSession').mockResolvedValue({
+      data: {
+        session: {
+          user: {
+            id: 'doc-1',
+            role: 'doctor',
+            must_change_password: true,
+          },
+        },
+      },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/doctor']}>
+        <Routes>
+          <Route path="/change-password" element={<div>Change Password Screen</div>} />
+          <Route
+            path="/doctor"
+            element={
+              <ProtectedRoute allowedRoles={['doctor']}>
+                <div>Doctor Content</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Change Password Screen')).toBeInTheDocument();
+      expect(screen.queryByText('Doctor Content')).not.toBeInTheDocument();
+    });
+  });
+
+  it('AdminRouteGuard requires role === "admin" and redirects non-admin to their own home', async () => {
+    vi.spyOn(client.auth, 'getSession').mockResolvedValue({
+      data: {
+        session: {
+          user: {
+            id: 'doc-1',
+            role: 'doctor',
+          },
+        },
+      },
       error: null,
     });
 
@@ -118,6 +201,7 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
           <Route path="/" element={<div>Home Page</div>} />
+          <Route path="/doctor" element={<div>Doctor Home</div>} />
           <Route
             path="/admin"
             element={
@@ -131,7 +215,7 @@ describe('Client Route Guards (ProtectedRoute & AdminRouteGuard)', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Home Page')).toBeInTheDocument();
+      expect(screen.getByText('Doctor Home')).toBeInTheDocument();
       expect(screen.queryByText('Admin Secret')).not.toBeInTheDocument();
     });
   });
