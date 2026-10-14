@@ -354,4 +354,27 @@ describe('Task 2: Password Authentication Routes & Policies', () => {
     }, mockEnv);
     expect(blockedActiveRes.status).toBe(401);
   });
+
+  it('POST /api/auth/login fails loudly with 500 server_not_configured when JWT_SECRET is missing', async () => {
+    const envWithoutJwt: WorkerEnv = {
+      ...mockEnv,
+      JWT_SECRET: '' as unknown as string,
+    };
+    delete (envWithoutJwt as Partial<WorkerEnv>).JWT_SECRET;
+
+    const res = await app.request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'dr.rahul@example.com',
+        password: 'DemoPassword123!',
+      }),
+    }, envWithoutJwt);
+
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('server_not_configured');
+    expect(res.headers.get('set-cookie')).toBeNull();
+  });
 });
+

@@ -173,25 +173,27 @@ authRouter.post('/login', async (c) => {
   const isStaff = ['doctor', 'specialist', 'front_desk', 'admin'].includes(user.role);
   const maxAge = isStaff ? 12 * 60 * 60 : 30 * 24 * 60 * 60;
 
-  let token: string | undefined;
-  if (c.env.JWT_SECRET) {
-    token = await signJwt(
-      {
-        sub: user.id,
-        id: user.record_id || user.id,
-        role: user.role,
-        session_version: user.session_version,
-        must_change_password: user.must_change_password,
-        exp: Math.floor(Date.now() / 1000) + maxAge,
-      },
-      c.env.JWT_SECRET
-    );
-
-    c.header(
-      'Set-Cookie',
-      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
-    );
+  if (!c.env.JWT_SECRET) {
+    console.error('[AUTH_CONFIG_ERROR] Missing JWT_SECRET in environment');
+    return c.json({ error: 'server_not_configured' }, 500);
   }
+
+  const token = await signJwt(
+    {
+      sub: user.id,
+      id: user.record_id || user.id,
+      role: user.role,
+      session_version: user.session_version,
+      must_change_password: user.must_change_password,
+      exp: Math.floor(Date.now() / 1000) + maxAge,
+    },
+    c.env.JWT_SECRET
+  );
+
+  c.header(
+    'Set-Cookie',
+    `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
+  );
 
   return c.json({
     ok: true,
@@ -332,25 +334,27 @@ meRouter.post('/password', async (c) => {
   const isStaff = ['doctor', 'specialist', 'front_desk', 'admin'].includes(user.role);
   const maxAge = isStaff ? 12 * 60 * 60 : 30 * 24 * 60 * 60;
 
-  let token: string | undefined;
-  if (c.env.JWT_SECRET) {
-    token = await signJwt(
-      {
-        sub: user.id,
-        id: user.record_id || user.id,
-        role: user.role,
-        session_version: nextSessionVersion,
-        must_change_password: 0,
-        exp: Math.floor(Date.now() / 1000) + maxAge,
-      },
-      c.env.JWT_SECRET
-    );
-
-    c.header(
-      'Set-Cookie',
-      `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
-    );
+  if (!c.env.JWT_SECRET) {
+    console.error('[AUTH_CONFIG_ERROR] Missing JWT_SECRET in environment');
+    return c.json({ error: 'server_not_configured' }, 500);
   }
+
+  const token = await signJwt(
+    {
+      sub: user.id,
+      id: user.record_id || user.id,
+      role: user.role,
+      session_version: nextSessionVersion,
+      must_change_password: 0,
+      exp: Math.floor(Date.now() / 1000) + maxAge,
+    },
+    c.env.JWT_SECRET
+  );
+
+  c.header(
+    'Set-Cookie',
+    `careone_session=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`
+  );
 
   return c.json({
     ok: true,
