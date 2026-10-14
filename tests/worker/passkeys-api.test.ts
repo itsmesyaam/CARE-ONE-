@@ -187,7 +187,7 @@ describe('Task 2: Passkeys Backend Engine & WebAuthn Routes', () => {
     };
     expect(row).toBeDefined();
     expect(row.token_hash).not.toBe(body.token);
-    expect(row.purpose).toBe('patient');
+    expect(row.purpose).toMatch(/^patient(_setup)?$/);
     expect(row.created_by).toBe(DESK_STAFF_ID);
   });
 

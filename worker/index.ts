@@ -49,6 +49,7 @@ app.get('/api/health', async (c) => {
 // Passkeys and Auth routes
 app.route('/api/auth/passkey', passkeyRouter);
 app.route('/api/auth/passkeys', passkeyRouter);
+app.route('/api/me/passkeys', passkeyRouter);
 app.route('/api/auth', passkeyRouter);
 app.route('/api/auth', authRouter);
 

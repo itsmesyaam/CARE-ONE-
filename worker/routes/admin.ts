@@ -229,7 +229,7 @@ staffRouter.post(
     await c.env.DB.batch([
       c.env.DB.prepare(
         `INSERT INTO setup_tokens (id, user_id, token_hash, purpose, created_by, expires_at)
-         VALUES (?, ?, ?, 'staff', ?, ?)`
+         VALUES (?, ?, ?, 'staff_setup', ?, ?)`
       ).bind(tokenId, staffId, tokenHash, principal.id, expiresAt),
       c.env.DB.prepare(
         `INSERT INTO audit_log (at, actor_id, action, table_name, record_id)

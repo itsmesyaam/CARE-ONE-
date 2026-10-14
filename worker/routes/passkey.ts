@@ -47,7 +47,7 @@ interface SetupTokenRow {
   id: string;
   user_id: string;
   token_hash: string;
-  purpose: 'patient' | 'staff';
+  purpose: 'patient_setup' | 'staff_setup' | 'patient' | 'staff';
   created_by: string;
   expires_at: string;
   used_at: string | null;
@@ -90,7 +90,8 @@ passkeyRouter.post('/register/options', async (c) => {
   let userName = setupToken.user_id;
   let userDisplayName = 'CareOne User';
 
-  if (setupToken.purpose === 'patient') {
+  const isPatientSetup = setupToken.purpose === 'patient' || setupToken.purpose === 'patient_setup';
+  if (isPatientSetup) {
     const patient = await c.env.DB.prepare('SELECT full_name, uhid FROM patients WHERE id = ?')
       .bind(setupToken.user_id)
       .first<{ full_name: string; uhid: string }>();
@@ -226,12 +227,12 @@ passkeyRouter.post('/register/verify', async (c) => {
     ).bind(
       setupToken.user_id,
       passkeyId,
-      setupToken.purpose === 'patient' ? setupToken.user_id : null
+      (setupToken.purpose === 'patient' || setupToken.purpose === 'patient_setup') ? setupToken.user_id : null
     ),
   ]);
 
   // Issue session token
-  const isPatient = setupToken.purpose === 'patient';
+  const isPatient = setupToken.purpose === 'patient' || setupToken.purpose === 'patient_setup';
   const maxAge = isPatient ? 30 * 24 * 3600 : 12 * 3600;
   let token: string | undefined;
 
@@ -286,6 +287,18 @@ passkeyRouter.post('/login/options', async (c) => {
 
 // 4. POST /api/auth/passkey/login/verify
 passkeyRouter.post('/login/verify', async (c) => {
+  const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  if (c.env.CODE_LIMIT) {
+    try {
+      const limitRes = await c.env.CODE_LIMIT.limit({ key: `passkey_login_${ip}` });
+      if (!limitRes.success) {
+        return c.json({ error: 'Too many sign-in attempts. Please wait a minute.' }, 429);
+      }
+    } catch {
+      // In test or environments without rate limiter binding, proceed
+    }
+  }
+
   const body = await c.req.json<{ response: AuthenticationResponseJSON }>();
   if (!body.response || !body.response.id) {
     return c.json({ error: 'Valid WebAuthn response is required' }, 400);
