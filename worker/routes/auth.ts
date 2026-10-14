@@ -233,6 +233,28 @@ authRouter.get('/session', async (c) => {
   });
 });
 
+// GET /api/me
+meRouter.get('/', async (c) => {
+  const principal = await loadPrincipal(c);
+  if (!principal) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+
+  if (!principal.isActive) {
+    return c.json({ error: 'account_inactive' }, 401);
+  }
+
+  return c.json({
+    user: {
+      id: principal.id,
+      userId: principal.userId,
+      role: principal.role,
+      departmentId: principal.departmentId || null,
+      must_change_password: principal.mustChangePassword ?? false,
+    },
+  });
+});
+
 // POST /api/me/password
 meRouter.post('/password', async (c) => {
   const principal = await loadPrincipal(c);
