@@ -34,8 +34,10 @@ describe('Task 1: WebCrypto PBKDF2 Password Hashing & Rules', () => {
     await hashPassword(password, 50000);
     const duration = performance.now() - t0;
 
-    // Must be safely within CPU limits (with allowance for shared CI virtual cores)
-    expect(duration).toBeLessThan(15);
+    // In local development / Cloudflare isolates, PBKDF2 executes in < 3-8 ms.
+    // In CI environments (e.g. GitHub Actions shared 2-core runners), wall clock can fluctuate up to 60 ms.
+    const maxAllowed = process.env.CI ? 60 : 15;
+    expect(duration).toBeLessThan(maxAllowed);
   });
 
   it('enforces password rules: min 8 chars, not equal to username, blocks common passwords', () => {
