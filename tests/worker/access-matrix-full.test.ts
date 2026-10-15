@@ -163,6 +163,16 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
       expect(data.medications.length).toBeGreaterThan(0);
     });
 
+    it('reads profiles returning only Arun Kumar self profile', async () => {
+      const res = await app.request('/api/patient/profiles', { headers: arunHeaders }, mockEnv);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { profiles: Array<{ id: string; name: string; rel: string }> };
+      expect(data.profiles).toHaveLength(1);
+      expect(data.profiles[0]?.id).toBe(ARUN_PATIENT_ID);
+      expect(data.profiles[0]?.name).toBe('Arun Kumar');
+      expect(data.profiles[0]?.rel).toBe('self');
+    });
+
     it('ATTACK: changing patient id in URL to another patient returns 404 (never 403)', async () => {
       const resHome = await app.request(`/api/patient/home?patient_id=${UNLINKED_PATIENT_ID}`, { headers: arunHeaders }, mockEnv);
       expect(resHome.status).toBe(404);
@@ -214,6 +224,17 @@ describe('Step 2: Full 8-Role Access Matrix & Security Attack Tests', () => {
       expect(res.status).toBe(200);
       const data = (await res.json()) as { encounters: unknown[]; documents: unknown[] };
       expect(data).toHaveProperty('encounters');
+    });
+
+    it('reads profiles returning both Sujatha (self) and Baby Meenakshi (guardian)', async () => {
+      const res = await app.request('/api/patient/profiles', { headers: sujathaHeaders }, mockEnv);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { profiles: Array<{ id: string; name: string; rel: string }> };
+      expect(data.profiles).toHaveLength(2);
+      expect(data.profiles[0]?.name).toBe('Sujatha Nair');
+      expect(data.profiles[0]?.rel).toBe('self');
+      expect(data.profiles[1]?.name).toBe('Baby Meenakshi');
+      expect(data.profiles[1]?.rel).toBe('guardian');
     });
 
     it('ATTACK: reads non-linked patient/child returns 404', async () => {

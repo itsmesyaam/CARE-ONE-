@@ -66,31 +66,38 @@ jobs:
 
       - name: Encrypt Database Exports with age
         env:
-          AGE_PUBLIC_KEY: ${{ secrets.AGE_PUBLIC_KEY }}
-          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
         run: |
           mkdir -p backups
 
-          if [ -n "$AGE_PUBLIC_KEY" ]; then
-            echo "Encrypting with configured AGE_PUBLIC_KEY recipient..."
-            age -r "$AGE_PUBLIC_KEY" -o backups/backup-careone-db.sql.age backup-careone-db.sql
-            age -r "$AGE_PUBLIC_KEY" -o backups/backup-careone-files.sql.age backup-careone-files.sql
-          elif [ -n "$BACKUP_PASSPHRASE" ]; then
-            echo "Encrypting with configured BACKUP_PASSPHRASE..."
-            echo "$BACKUP_PASSPHRASE" | age -p -o backups/backup-careone-db.sql.age backup-careone-db.sql
-            echo "$BACKUP_PASSPHRASE" | age -p -o backups/backup-careone-files.sql.age backup-careone-files.sql
-          else
-            echo "::warning::No AGE_PUBLIC_KEY or BACKUP_PASSPHRASE configured in repository secrets."
-            echo "Generating fallback transient keypair for demonstration encryption..."
-            age-keygen -o transient_key.txt
-            PUBKEY=$(grep 'public key:' transient_key.txt | cut -d' ' -f4)
-            age -r "$PUBKEY" -o backups/backup-careone-db.sql.age backup-careone-db.sql
-            age -r "$PUBKEY" -o backups/backup-careone-files.sql.age backup-careone-files.sql
-            echo "::warning::To enable permanent decryption, add AGE_PUBLIC_KEY and AGE_SECRET_KEY to repo secrets."
+          if [ -z "$BACKUP_AGE_PUBLIC_KEY" ]; then
+            echo "::error::BACKUP_AGE_PUBLIC_KEY secret is missing. Backups must be encrypted with a valid age public key."
+            shred -u backup-careone-db.sql backup-careone-files.sql 2>/dev/null || rm -f backup-careone-db.sql backup-careone-files.sql
+            exit 1
           fi
+
+          if [[ ! "$BACKUP_AGE_PUBLIC_KEY" =~ ^age1 ]]; then
+            echo "::error::BACKUP_AGE_PUBLIC_KEY is invalid: key must start with 'age1'."
+            shred -u backup-careone-db.sql backup-careone-files.sql 2>/dev/null || rm -f backup-careone-db.sql backup-careone-files.sql
+            exit 1
+          fi
+
+          echo "Encrypting database exports with BACKUP_AGE_PUBLIC_KEY..."
+          age -r "$BACKUP_AGE_PUBLIC_KEY" -o backups/backup-careone-db.sql.age backup-careone-db.sql
+          age -r "$BACKUP_AGE_PUBLIC_KEY" -o backups/backup-careone-files.sql.age backup-careone-files.sql
 
           # Securely wipe raw plaintext SQL files immediately
           shred -u backup-careone-db.sql backup-careone-files.sql 2>/dev/null || rm -f backup-careone-db.sql backup-careone-files.sql
+
+          if [ -f backup-careone-db.sql ] || [ -f backup-careone-files.sql ]; then
+            echo "::error::Failed to delete unencrypted plaintext SQL exports."
+            exit 1
+          fi
+
+          if [ ! -s backups/backup-careone-db.sql.age ] || [ ! -s backups/backup-careone-files.sql.age ]; then
+            echo "::error::Encrypted backup files were not created or are empty."
+            exit 1
+          fi
 
       - name: Upload Encrypted Backup Artifacts (30-day retention)
         uses: actions/upload-artifact@v4

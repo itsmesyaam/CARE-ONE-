@@ -110,6 +110,7 @@ describe('Security: Auth Bypass Prevention in Production/Local Environments', ()
     { path: '/api/doctor/patients', method: 'GET' },
     { path: '/api/doctor/patients/e0000000-0000-0000-0000-000000000001/what-changed', method: 'GET' },
     { path: '/api/patient/home', method: 'GET' },
+    { path: '/api/patient/profiles', method: 'GET' },
     { path: '/api/patient/records', method: 'GET' },
     { path: '/api/patient/appointments', method: 'GET' },
     { path: '/api/admin/dashboard', method: 'GET' },

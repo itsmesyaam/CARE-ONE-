@@ -4,6 +4,100 @@ import { withPolicy, canPatientAccessRecord } from '../auth/policy';
 
 export const patientRouter = new Hono<{ Bindings: WorkerEnv }>();
 
+// GET /api/patient/profiles
+patientRouter.get(
+  '/profiles',
+  withPolicy({ allowedRoles: ['patient', 'guardian'], isClinical: true }, async (c, principal) => {
+    const actorId = principal.id;
+    const query = `
+      SELECT DISTINCT
+        p.id,
+        p.uhid as mrn,
+        p.full_name as name,
+        p.dob,
+        p.phone,
+        p.gender,
+        COALESCE(pa.relationship, CASE WHEN p.id = ? THEN 'self' ELSE 'guardian' END) as relationship
+      FROM patients p
+      LEFT JOIN patient_access pa ON pa.patient_id = p.id AND pa.revoked_at IS NULL
+      LEFT JOIN patient_access self_pa ON self_pa.user_id = pa.user_id
+      WHERE (
+        p.id = ?
+        OR pa.user_id = ?
+        OR (self_pa.patient_id = ? AND pa.user_id = self_pa.user_id)
+      )
+      AND p.deleted_at IS NULL
+      ORDER BY CASE WHEN p.id = ? THEN 0 ELSE 1 END, p.created_at ASC
+    `;
+
+    const { results } = await c.env.DB.prepare(query)
+      .bind(actorId, actorId, actorId, actorId, actorId)
+      .all<{
+        id: string;
+        mrn: string;
+        name: string;
+        dob: string;
+        phone: string | null;
+        gender: string;
+        relationship: 'self' | 'guardian';
+      }>();
+
+    const profiles = (results || []).map((row) => {
+      const parts = row.name.trim().split(/\s+/);
+      const first = parts[0] || row.name;
+      const ini =
+        parts.length > 1
+          ? (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
+          : row.name.slice(0, 2).toUpperCase();
+
+      let isKid = false;
+      if (row.dob) {
+        const birthDate = new Date(row.dob);
+        if (!isNaN(birthDate.getTime())) {
+          const now = new Date();
+          let age = now.getFullYear() - birthDate.getFullYear();
+          const m = now.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          isKid = age < 18;
+        }
+      }
+
+      let formattedDob = row.dob;
+      if (row.dob) {
+        try {
+          const d = new Date(row.dob);
+          if (!isNaN(d.getTime())) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            formattedDob = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+          }
+        } catch {
+          // fallback to raw
+        }
+      }
+
+      const maskedPhone = row.phone
+        ? `+91 ${row.phone.slice(-10, -2).replace(/./g, '•')}${row.phone.slice(-2)}`
+        : undefined;
+
+      return {
+        id: row.id,
+        name: row.name,
+        first,
+        ini,
+        rel: row.relationship === 'guardian' ? ('guardian' as const) : ('self' as const),
+        mrn: row.mrn,
+        dob: formattedDob,
+        phone: maskedPhone,
+        kid: isKid,
+      };
+    });
+
+    return c.json({ profiles });
+  })
+);
+
 // GET /api/patient/home
 patientRouter.get(
   '/home',

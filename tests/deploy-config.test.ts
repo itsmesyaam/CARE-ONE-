@@ -20,13 +20,12 @@ describe('Deploy configuration files', () => {
     expect(content).not.toContain('sentry.io');
   });
 
-  it('.github/workflows/keepalive.yml exists and contains scheduled cron job', () => {
-    expect(fs.existsSync(keepalivePath), '.github/workflows/keepalive.yml must exist').toBe(true);
-    const content = fs.readFileSync(keepalivePath, 'utf8');
-    expect(content).toMatch(/schedule:[\s\S]*?- cron:/);
-    expect(content).toContain('SUPABASE_URL');
-    expect(content).toContain('SUPABASE_ANON_KEY');
-    expect(content).toContain('/rest/v1/hospital_settings');
+  it('.github/workflows/ci.yml and d1-backup.yml exist and keepalive.yml is removed', () => {
+    const ciPath = path.join(root, '.github', 'workflows', 'ci.yml');
+    const d1BackupPath = path.join(root, '.github', 'workflows', 'd1-backup.yml');
+    expect(fs.existsSync(ciPath), 'ci.yml must exist').toBe(true);
+    expect(fs.existsSync(d1BackupPath), 'd1-backup.yml must exist').toBe(true);
+    expect(fs.existsSync(keepalivePath), 'keepalive.yml must be removed').toBe(false);
   });
 
   it('vercel.json exists, enforces SPA rewrites and identical security headers', () => {

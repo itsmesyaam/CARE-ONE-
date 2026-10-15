@@ -19,6 +19,7 @@ export interface PatientContextType {
   go: (step: 'welcome' | 'signin' | 'consent' | 'who' | 'app') => void;
   pid: string;
   setPid: (pid: string) => void;
+  people: PatientPerson[];
   p: PatientPerson;
   d: PatientRecordData;
   tab: string;
@@ -104,6 +105,42 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
   const [size, setSize] = useState<number>(0);
   const [inst, setInst] = useState<boolean>(false);
   const [db, setDb] = useState(() => createSampleSeed());
+  const [people, setPeople] = useState<PatientPerson[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfiles() {
+      try {
+        const res = await fetch('/api/patient/profiles', {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { profiles: PatientPerson[] };
+          if (!cancelled && data.profiles && data.profiles.length > 0) {
+            setPeople(data.profiles);
+            setPid((current) => {
+              if (current && current !== 'anjali' && data.profiles.some((x) => x.id === current)) {
+                return current;
+              }
+              const firstId = data.profiles[0]!.id;
+              try {
+                sessionStorage.setItem('careone_patient_profile', firstId);
+              } catch {
+                // ignore
+              }
+              return firstId;
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    void loadProfiles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const sizes = ['16px', '17.5px', '19px'];
@@ -128,6 +165,15 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     }
     i18n.changeLanguage(newLang);
   };
+
+  const handleSetPid = useCallback((newPid: string) => {
+    setPid(newPid);
+    try {
+      sessionStorage.setItem('careone_patient_profile', newPid);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const toast = (msg: string) => {
     setToastMsg(msg);
@@ -181,10 +227,11 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     }
   }, []);
 
+  const activePeople = useMemo(() => (people.length > 0 ? people : SAMPLE_PEOPLE), [people]);
   const fallbackRecord: PatientRecordData = useMemo(() => createSampleSeed()['anjali'] as PatientRecordData, []);
-  const fallbackPerson: PatientPerson = SAMPLE_PEOPLE[0] as PatientPerson;
+  const fallbackPerson: PatientPerson = useMemo(() => activePeople[0] as PatientPerson, [activePeople]);
   const d: PatientRecordData = useMemo(() => (db[pid] || fallbackRecord), [db, pid, fallbackRecord]);
-  const p: PatientPerson = useMemo(() => SAMPLE_PEOPLE.find(x => x.id === pid) || fallbackPerson, [pid, fallbackPerson]);
+  const p: PatientPerson = useMemo(() => activePeople.find(x => x.id === pid) || fallbackPerson, [activePeople, pid, fallbackPerson]);
 
   const take = (key: string) => {
     const was = !!d.doses[key];
@@ -353,12 +400,14 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
 
   const signOut = async (msg?: string) => {
     setDb(createSampleSeed());
+    setPeople([]);
     setPid('anjali');
     setTabState('home');
     setSheet(null);
     setInst(false);
     setStep('welcome');
     try {
+      sessionStorage.removeItem('careone_patient_profile');
       await client.auth.signOut();
       if (msg) {
         sessionStorage.setItem('careone_flash_toast', msg);
@@ -375,7 +424,8 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     setStep,
     go,
     pid,
-    setPid,
+    setPid: handleSetPid,
+    people: activePeople,
     p,
     d,
     tab,

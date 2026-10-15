@@ -72,6 +72,12 @@ test.describe('End-to-End: Authentication, Roles, Reload Persistence & No-Loop I
     const dialog = page.locator('div[role="dialog"][aria-label="Switch profile"]');
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
+    // Verify dialog lists real API profiles and not mock data
+    await expect(dialog.locator('text=Sujatha Nair')).toBeVisible();
+    await expect(dialog.locator('text=Baby Meenakshi')).toBeVisible();
+    await expect(dialog.locator('text=Anjali Menon')).not.toBeVisible();
+    await expect(dialog.locator('text=Aarav Menon')).not.toBeVisible();
+
     // Click Baby Meenakshi
     const meenakshiBtn = dialog.locator('button:has-text("Meenakshi")');
     await expect(meenakshiBtn).toBeVisible();

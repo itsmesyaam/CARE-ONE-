@@ -252,7 +252,8 @@ function BottomNav() {
 }
 
 function WhoSheetModal({ onClose }: { onClose: () => void }) {
-  const { lang, pid, setPid, toast } = usePatient();
+  const { lang, pid, setPid, toast, people } = usePatient();
+  const list = people && people.length > 0 ? people : SAMPLE_PEOPLE;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center lg:p-6">
@@ -278,7 +279,7 @@ function WhoSheetModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex flex-col gap-3" role="radiogroup">
-          {SAMPLE_PEOPLE.map((person: PatientPerson) => (
+          {list.map((person: PatientPerson) => (
             <button
               key={person.id}
               type="button"

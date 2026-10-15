@@ -17,7 +17,10 @@ import { ChangePasswordCard } from '../../components/auth/ChangePasswordCard';
 
 function IdCard(): React.JSX.Element {
   const { t } = useTranslation();
-  const { p } = usePatient();
+  const { p, people } = usePatient();
+  const list = people && people.length > 0 ? people : SAMPLE_PEOPLE;
+  const guardianPerson = list.find((x) => x.rel === 'self');
+  const guardianName = guardianPerson ? guardianPerson.name : 'Guardian';
 
   return (
     <section className="idcard shadow-sm" aria-label="Patient ID Card">
@@ -46,7 +49,7 @@ function IdCard(): React.JSX.Element {
       {p.kid ? (
         <p className="text-sm mt-4 text-[var(--ink)]">
           <span className="text-[var(--ink3)]">{t('patientProfile.guardian')}: </span>
-          <b className="font-semibold">Anjali Menon</b>
+          <b className="font-semibold">{guardianName}</b>
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 text-sm">
@@ -82,7 +85,9 @@ export function PatientProfile(): React.JSX.Element {
     setTab,
     openSheet,
     toast,
+    people,
   } = usePatient();
+  const list = people && people.length > 0 ? people : SAMPLE_PEOPLE;
 
   const handleLanguageChange = (newLang: string) => {
     setLang(newLang);
@@ -119,7 +124,7 @@ export function PatientProfile(): React.JSX.Element {
               {t('patientProfile.familyTitle')}
             </h2>
             <div className="grp">
-              {SAMPLE_PEOPLE.map((x: PatientPerson) => {
+              {list.map((x: PatientPerson) => {
                 const isSelected = pid === x.id;
                 return (
                   <button
