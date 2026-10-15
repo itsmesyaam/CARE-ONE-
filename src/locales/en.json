@@ -159,6 +159,11 @@
     "message": "An unexpected error occurred while rendering this page.",
     "reload": "Reload Application"
   },
+  "notFound": {
+    "title": "Page not found",
+    "message": "The page you are looking for does not exist or has been moved.",
+    "button": "Return to Home"
+  },
   "auth": {
     "patientTab": "Patient Sign-In",
     "staffTab": "Staff Sign-In",

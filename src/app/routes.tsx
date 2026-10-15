@@ -23,6 +23,8 @@ import { DoctorChart } from '../features/doctor/DoctorChart';
 import { DoctorReview } from '../features/doctor/DoctorReview';
 import { DoctorAccount } from '../features/doctor/DoctorAccount';
 import { registerLogoutNavigator } from '../lib/logout';
+import { RouteErrorElement } from '../components/RouteErrorElement';
+import { NotFoundPage } from '../components/NotFoundPage';
 
 const AdminDashboard = lazy(() =>
   import('../features/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })),
@@ -32,6 +34,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <RouteErrorElement />,
   },
   {
     path: '/login',
@@ -186,6 +189,10 @@ export const router = createBrowserRouter([
         </Suspense>
       </AdminRouteGuard>
     ),
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);
 

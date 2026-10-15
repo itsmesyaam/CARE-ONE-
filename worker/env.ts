@@ -1,4 +1,4 @@
-/// <reference types="@cloudflare/workers-types/2023-07-01" />
+/// <reference types="@cloudflare/workers-types" />
 
 export interface WorkerEnv {
   DB: D1Database;
