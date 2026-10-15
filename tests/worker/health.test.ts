@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import worker, { app } from '../../worker/index';
 import type { WorkerEnv } from '../../worker/env';

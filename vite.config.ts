@@ -86,15 +86,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    environmentMatchGlobs: [
-      ['tests/worker/**', 'node'],
-      ['tests/scripts/**', 'node'],
-    ],
-    server: {
-      deps: {
-        external: ['node:sqlite'],
-      },
-    },
     setupFiles: ['./tests/setup.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**'],
   },
