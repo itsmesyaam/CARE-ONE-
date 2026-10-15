@@ -29,10 +29,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Install Wrangler & Dependencies
+        run: npm install --no-save wrangler@^4.149.0 tsx
 
       - name: Install age CLI
         run: |

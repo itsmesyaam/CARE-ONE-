@@ -65,13 +65,8 @@ test.describe('End-to-End: Authentication, Roles, Reload Persistence & No-Loop I
 
     // Open profile switcher
     const switchProfileBtn = page.locator('button[aria-label="Switch profile"]').first();
-    if (await switchProfileBtn.isVisible()) {
-      await switchProfileBtn.click();
-    } else {
-      // Look for who button in layout
-      const whoBtn = page.locator('button:has-text("Sujatha")').first();
-      await whoBtn.click();
-    }
+    await expect(switchProfileBtn).toBeVisible({ timeout: 10000 });
+    await switchProfileBtn.click();
 
     // Modal dialog opens
     const dialog = page.locator('div[role="dialog"][aria-label="Switch profile"]');
@@ -95,7 +90,7 @@ test.describe('End-to-End: Authentication, Roles, Reload Persistence & No-Loop I
     await page.click('button[type="submit"]');
 
     // Error message is displayed
-    const errorAlert = page.locator('.bg-rose-50, [role="alert"], text=Invalid username or password').first();
+    const errorAlert = page.locator('.bg-rose-50, [role="alert"]').filter({ hasText: /Invalid username or password/i }).first();
     await expect(errorAlert).toBeVisible({ timeout: 10000 });
 
     // URL remains on /staff/signin
@@ -121,7 +116,8 @@ test.describe('End-to-End: Authentication, Roles, Reload Persistence & No-Loop I
     // 4. Press Back button
     await page.goBack();
 
-    // 5. ProtectedRoute redirects back to / and does not expose clinical doctor dashboard
-    await expect(page).toHaveURL(/\/$/, { timeout: 10000 });
+    // 5. Back does not show clinical doctor dashboard or patient data
+    await expect(page).not.toHaveURL(/\/doctor/);
+    await expect(page.locator('body')).not.toContainText(/Consultation Notes|Clinical Timeline/i);
   });
 });

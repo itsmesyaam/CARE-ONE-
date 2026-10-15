@@ -81,6 +81,19 @@ export function PatientSignIn(): React.JSX.Element {
       }
 
       void storeBrowserPasswordCredential(username, password);
+      if (username.trim().toUpperCase() === 'ABC-1002' || username.trim().toLowerCase().includes('sujatha')) {
+        try {
+          sessionStorage.setItem('careone_patient_profile', 'sujatha');
+        } catch {
+          // ignore
+        }
+      } else {
+        try {
+          sessionStorage.removeItem('careone_patient_profile');
+        } catch {
+          // ignore
+        }
+      }
       setSuccess(true);
       setTimeout(() => {
         go('app');

@@ -74,7 +74,13 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     }
   });
   const [step, setStep] = useState<'welcome' | 'signin' | 'consent' | 'who' | 'app'>(initialStep);
-  const [pid, setPid] = useState<string>('anjali');
+  const [pid, setPid] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('careone_patient_profile') || 'anjali';
+    } catch {
+      return 'anjali';
+    }
+  });
   const [tab, setTabState] = useState<string>('home');
   const [recTab, setRecTab] = useState<string>('reports');
   const [metric, setMetric] = useState<string>('bp');

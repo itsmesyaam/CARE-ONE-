@@ -119,6 +119,7 @@ function SideNav({ onOpenWho }: { onOpenWho: () => void }) {
         type="button"
         className="flex items-center gap-3 p-2.5 rounded-2xl border border-[var(--line)] press w-full text-left"
         onClick={onOpenWho}
+        aria-label="Switch profile"
       >
         <span
           className={`av ${p.kid ? 'kid' : ''}`}

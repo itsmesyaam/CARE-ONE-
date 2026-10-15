@@ -36,6 +36,27 @@ export const SAMPLE_PEOPLE: PatientPerson[] = [
     dob: '2 Jun 2017',
     kid: true,
   },
+  {
+    id: 'sujatha',
+    name: 'Sujatha Nair',
+    first: 'Sujatha',
+    ini: 'SN',
+    rel: 'self',
+    mrn: 'ABC-1002',
+    dob: '10 May 1990',
+    phone: '+91 98••••••20',
+    email: 'sujatha@example.com',
+  },
+  {
+    id: 'meenakshi',
+    name: 'Baby Meenakshi',
+    first: 'Meenakshi',
+    ini: 'BM',
+    rel: 'guardian',
+    mrn: 'ABC-1003',
+    dob: '15 Jan 2024',
+    kid: true,
+  },
 ];
 
 export interface MedicationItem {
