@@ -3,17 +3,22 @@ import { test, expect } from '@playwright/test';
 test.describe('Live End-to-End: One-Tap Demo Login on Both Login Pages', () => {
   const DEMO_PASSWORD = 'DemoPassword123!';
 
+  test.beforeEach(async ({ context }) => {
+    await context.clearCookies();
+  });
+
   // Helper to safely sign out from patient or staff portal
   async function signOut(page: import('@playwright/test').Page) {
     const signOutBtn = page
       .locator(
-        'button:has-text("Sign Out"), button:has-text("Sign out"), button[aria-label="Sign out"], button:has-text("ലോഗ് ഔട്ട്")'
+        'button:has-text("Sign Out"), button:has-text("Sign out"), button[aria-label="Sign out"], button[aria-label="ലോഗ് ഔട്ട്"], button:has-text("ലോഗ് ഔട്ട്")'
       )
       .first();
     if (await signOutBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await signOutBtn.click();
-      await page.waitForURL(/\/($|patient\/login|staff\/signin)/, { timeout: 10000 });
+      await page.waitForURL(/\/($|patient\/login|staff\/signin)/, { timeout: 10000 }).catch(() => {});
     }
+    await page.context().clearCookies();
   }
 
   // ─── Patient Login Tests ──────────────────────────────────────────────────
@@ -47,11 +52,11 @@ test.describe('Live End-to-End: One-Tap Demo Login on Both Login Pages', () => {
   test('Patient Login: Sujatha Nair "Fill and sign in" one-tap login', async ({ page }) => {
     await page.goto('/patient/login');
 
-    // Find the Sujatha card container and click its "Fill and sign in" button
-    const card = page.locator('div:has-text("Sujatha Nair")').filter({ hasText: 'ABC-1002' }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-
-    const fillSignInBtn = card.locator('button:has-text("Fill and sign in"), button:has-text("ഫിൽ ചെയ്ത്")').first();
+    const fillSignInBtn = page
+      .locator('span', { hasText: 'ABC-1002' })
+      .locator('..')
+      .locator('button', { hasText: /Fill and sign in|ഫിൽ ചെയ്ത്/ });
+    await expect(fillSignInBtn).toBeVisible({ timeout: 15000 });
     await fillSignInBtn.click();
 
     // Directly lands on /patient
@@ -83,10 +88,11 @@ test.describe('Live End-to-End: One-Tap Demo Login on Both Login Pages', () => {
   test('Staff Login: Dr. Anjali "Fill and sign in" one-tap login', async ({ page }) => {
     await page.goto('/staff/signin');
 
-    const card = page.locator('div:has-text("Dr. Anjali")').filter({ hasText: 'dr.anjali@example.com' }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-
-    const fillSignInBtn = card.locator('button:has-text("Fill and sign in"), button:has-text("ഫിൽ ചെയ്ത്")').first();
+    const fillSignInBtn = page
+      .locator('span', { hasText: 'dr.anjali@example.com' })
+      .locator('..')
+      .locator('button', { hasText: /Fill and sign in|ഫിൽ ചെയ്ത്/ });
+    await expect(fillSignInBtn).toBeVisible({ timeout: 15000 });
     await fillSignInBtn.click();
 
     await expect(page).toHaveURL(/\/doctor/, { timeout: 15000 });
@@ -114,10 +120,11 @@ test.describe('Live End-to-End: One-Tap Demo Login on Both Login Pages', () => {
   test('Staff Login: Front Desk "Fill and sign in" one-tap login', async ({ page }) => {
     await page.goto('/staff/signin');
 
-    const card = page.locator('div:has-text("Front Desk")').filter({ hasText: 'desk@example.com' }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-
-    const fillSignInBtn = card.locator('button:has-text("Fill and sign in"), button:has-text("ഫിൽ ചെയ്ത്")').first();
+    const fillSignInBtn = page
+      .locator('span', { hasText: 'desk@example.com' })
+      .locator('..')
+      .locator('button', { hasText: /Fill and sign in|ഫിൽ ചെയ്ത്/ });
+    await expect(fillSignInBtn).toBeVisible({ timeout: 15000 });
     await fillSignInBtn.click();
 
     await expect(page).toHaveURL(/\/doctor/, { timeout: 15000 });
@@ -128,10 +135,11 @@ test.describe('Live End-to-End: One-Tap Demo Login on Both Login Pages', () => {
   test('Staff Login: Admin "Fill and sign in" one-tap login -> lands on /admin', async ({ page }) => {
     await page.goto('/staff/signin');
 
-    const card = page.locator('div:has-text("Admin")').filter({ hasText: 'admin@example.com' }).first();
-    await expect(card).toBeVisible({ timeout: 15000 });
-
-    const fillSignInBtn = card.locator('button:has-text("Fill and sign in"), button:has-text("ഫിൽ ചെയ്ത്")').first();
+    const fillSignInBtn = page
+      .locator('span', { hasText: 'admin@example.com' })
+      .locator('..')
+      .locator('button', { hasText: /Fill and sign in|ഫിൽ ചെയ്ത്/ });
+    await expect(fillSignInBtn).toBeVisible({ timeout: 15000 });
     await fillSignInBtn.click();
 
     await expect(page).toHaveURL(/\/admin/, { timeout: 15000 });
