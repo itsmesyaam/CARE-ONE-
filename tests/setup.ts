@@ -21,6 +21,12 @@ if (typeof globalThis.fetch === 'function') {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    if (url.includes('/api/config')) {
+      return new Response(JSON.stringify({ demoMode: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     return originalFetch(input, init);
   };
 }

@@ -45,6 +45,12 @@ app.get('/api/health', async (c) => {
   }
 });
 
+// Public configuration endpoint (returns demoMode flag, never credentials/secrets)
+app.get('/api/config', (c) => {
+  const demoMode = c.env.DEMO_MODE === 'true';
+  return c.json({ demoMode });
+});
+
 // Auth and Account routes
 app.route('/api/auth', authRouter);
 app.route('/api/me', meRouter);

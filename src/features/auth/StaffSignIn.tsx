@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +14,8 @@ import {
 import { BuildStamp } from '../../components/BuildStamp';
 import { ForcePasswordChangeModal } from '../../components/auth/ForcePasswordChangeModal';
 import { storeBrowserPasswordCredential } from '../../lib/auth-credentials';
+import { DemoAccountsCard } from '../../components/DemoAccountsCard';
+import { STAFF_DEMO_ACCOUNTS } from '../../lib/demoAccounts';
 
 export interface StaffSignInProps {
   onUnlock?: () => void;
@@ -32,17 +34,18 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
   const [success, setSuccess] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [userRole, setUserRole] = useState<string>('doctor');
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'ml' ? 'en' : 'ml';
     void i18n.changeLanguage(nextLang);
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performSignIn = async (emailToSign: string, passToSign: string) => {
     setError(null);
 
-    if (!email.trim() || !password) {
+    const trimmedEmail = emailToSign.trim();
+    if (!trimmedEmail || !passToSign) {
       setError(
         i18n.language === 'ml'
           ? 'ഇമെയിലും പാസ്‌വേഡും നൽകുക.'
@@ -58,8 +61,8 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: email.trim(),
-          password,
+          username: trimmedEmail,
+          password: passToSign,
         }),
       });
 
@@ -87,7 +90,7 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
         return;
       }
 
-      void storeBrowserPasswordCredential(email, password);
+      void storeBrowserPasswordCredential(trimmedEmail, passToSign);
       setSuccess(true);
       setTimeout(() => {
         if (onUnlock) {
@@ -107,9 +110,9 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
     }
   };
 
-  const handleDemoFill = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('DemoPassword123!');
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performSignIn(email, password);
   };
 
   return (
@@ -230,6 +233,7 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
             </div>
 
             <button
+              ref={submitBtnRef}
               type="submit"
               disabled={loading || success}
               className="w-full py-3.5 px-5 rounded-2xl bg-[#2B59FF] hover:bg-[#1E45D9] text-white font-extrabold text-sm sm:text-base shadow-md transition disabled:opacity-60 cursor-pointer mt-2"
@@ -247,44 +251,20 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
             </p>
           </div>
 
-          {/* Demo account helper (Local / Testing) */}
-          {import.meta.env.DEV && (
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Demo Accounts
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('admin@example.com')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('dr.rahul@example.com')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Dr. Rahul
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('desk@example.com')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Front Desk
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('dr.anjali@example.com')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Dr. Anjali
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Demo account helper */}
+          <DemoAccountsCard
+            accounts={STAFF_DEMO_ACCOUNTS}
+            onFill={(demoEmail, demoPass) => {
+              setEmail(demoEmail);
+              setPassword(demoPass);
+            }}
+            onFillAndSignIn={(demoEmail, demoPass) => {
+              setEmail(demoEmail);
+              setPassword(demoPass);
+              void performSignIn(demoEmail, demoPass);
+            }}
+            submitBtnRef={submitBtnRef}
+          />
         </div>
 
         <div className="mt-6 text-center">

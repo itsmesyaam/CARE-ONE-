@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +14,8 @@ import { usePatient } from './PatientContext';
 import { BuildStamp } from '../../components/BuildStamp';
 import { ForcePasswordChangeModal } from '../../components/auth/ForcePasswordChangeModal';
 import { storeBrowserPasswordCredential } from '../../lib/auth-credentials';
+import { DemoAccountsCard } from '../../components/DemoAccountsCard';
+import { PATIENT_DEMO_ACCOUNTS } from '../../lib/demoAccounts';
 
 export function PatientSignIn(): React.JSX.Element {
   const { lang, setLang, go } = usePatient();
@@ -27,6 +29,7 @@ export function PatientSignIn(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const submitBtnRef = useRef<HTMLButtonElement>(null);
 
   const toggleLanguage = () => {
     const nextLang = lang === 'ml' ? 'en' : 'ml';
@@ -34,11 +37,11 @@ export function PatientSignIn(): React.JSX.Element {
     void i18n.changeLanguage(nextLang);
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performSignIn = async (userToSign: string, passToSign: string) => {
     setError(null);
 
-    if (!username.trim() || !password) {
+    const trimmedUser = userToSign.trim();
+    if (!trimmedUser || !passToSign) {
       setError(
         lang === 'ml'
           ? 'ഹോസ്പിറ്റൽ നമ്പറും പാസ്‌വേഡും നൽകുക.'
@@ -54,8 +57,8 @@ export function PatientSignIn(): React.JSX.Element {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim(),
-          password,
+          username: trimmedUser,
+          password: passToSign,
         }),
       });
 
@@ -80,8 +83,8 @@ export function PatientSignIn(): React.JSX.Element {
         return;
       }
 
-      void storeBrowserPasswordCredential(username, password);
-      if (username.trim().toUpperCase() === 'ABC-1002' || username.trim().toLowerCase().includes('sujatha')) {
+      void storeBrowserPasswordCredential(trimmedUser, passToSign);
+      if (trimmedUser.toUpperCase() === 'ABC-1002' || trimmedUser.toLowerCase().includes('sujatha')) {
         try {
           sessionStorage.setItem('careone_patient_profile', 'sujatha');
         } catch {
@@ -106,9 +109,9 @@ export function PatientSignIn(): React.JSX.Element {
     }
   };
 
-  const handleDemoFill = (demoUhid: string) => {
-    setUsername(demoUhid);
-    setPassword('DemoPassword123!');
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performSignIn(username, password);
   };
 
   return (
@@ -229,6 +232,7 @@ export function PatientSignIn(): React.JSX.Element {
             </div>
 
             <button
+              ref={submitBtnRef}
               type="submit"
               disabled={loading || success}
               className="w-full py-3.5 px-5 rounded-2xl bg-[#15803D] hover:bg-[#166534] text-white font-extrabold text-sm sm:text-base shadow-md transition disabled:opacity-60 cursor-pointer mt-2"
@@ -248,30 +252,20 @@ export function PatientSignIn(): React.JSX.Element {
             </p>
           </div>
 
-          {/* Demo account helper (Local / Testing) */}
-          {import.meta.env.DEV && (
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Demo Accounts
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('ABC-2026-0001')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Arun Kumar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDemoFill('ABC-2026-0002')}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-left truncate"
-                >
-                  Baby Meenakshi
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Demo account helper */}
+          <DemoAccountsCard
+            accounts={PATIENT_DEMO_ACCOUNTS}
+            onFill={(demoUser, demoPass) => {
+              setUsername(demoUser);
+              setPassword(demoPass);
+            }}
+            onFillAndSignIn={(demoUser, demoPass) => {
+              setUsername(demoUser);
+              setPassword(demoPass);
+              void performSignIn(demoUser, demoPass);
+            }}
+            submitBtnRef={submitBtnRef}
+          />
         </div>
 
         <BuildStamp />

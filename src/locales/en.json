@@ -539,5 +539,18 @@
     "newPassword": "New password (min. 8 characters)",
     "confirmPassword": "Confirm new password",
     "button": "Change Password"
+  },
+  "demo": {
+    "cardTitle": "Demo Accounts",
+    "cardWarning": "Demo mode — sample accounts with fictional data. Do not enter real patient information.",
+    "fillBtn": "Fill",
+    "fillAndSignIn": "Fill and sign in",
+    "arunDesc": "Patient",
+    "sujathaDesc": "Guardian of Baby Meenakshi",
+    "rahulDesc": "Doctor",
+    "anjaliDesc": "Specialist",
+    "thomasDesc": "No care link (emergency access demo)",
+    "deskDesc": "Front Desk",
+    "adminDesc": "Admin"
   }
 }

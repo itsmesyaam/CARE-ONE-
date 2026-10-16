@@ -15,4 +15,5 @@ export interface WorkerEnv {
   JWT_SECRET?: string;
   RP_ID?: string;
   ORIGIN?: string;
+  DEMO_MODE?: string;
 }

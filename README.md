@@ -351,6 +351,14 @@ All demo accounts are fictional and seeded into both local and live demo databas
 > [!NOTE]
 > **Demo only**: In production with real patients, all accounts receive temporary passwords upon registration and are strictly required to change their password on first sign-in.
 
+### Demo Mode Configuration
+Both login pages (`/patient/login` and `/staff/signin` / `/doctor/login`) feature a one-tap demo account selector that fills username and password or fills and signs in instantly. This is controlled by the `DEMO_MODE` worker variable:
+
+- **Enable**: In `wrangler.jsonc`, ensure `"DEMO_MODE": "true"` is set under `"vars"`, then deploy (`npm run deploy`).
+- **Disable for Production**: In `wrangler.jsonc`, change `"DEMO_MODE": "false"` under `"vars"`, then deploy (`npm run deploy`).
+- **Endpoint**: The login pages query `GET /api/config` which returns `{ demoMode: boolean }`. When `demoMode` is `false`, the demo card is completely unmounted with zero trace of demo usernames or buttons in the page DOM.
+- **Canonical Source**: Demo account metadata is centralized in `src/lib/demoAccounts.ts` to ensure UI, documentation, and tests never drift.
+
 ---
 
 ## 📜 NPM Scripts Reference
