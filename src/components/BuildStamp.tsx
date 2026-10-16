@@ -1,6 +1,7 @@
 import React from 'react';
 
 export function BuildStamp(): React.JSX.Element {
+  const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.5';
   const commit = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'local';
   const buildTime = typeof __APP_BUILD_TIME__ !== 'undefined' ? __APP_BUILD_TIME__ : '';
 
@@ -10,7 +11,7 @@ export function BuildStamp(): React.JSX.Element {
       className="py-3 text-center text-[10px] text-slate-400 select-none border-t border-slate-100 bg-white"
     >
       <div className="mx-auto flex max-w-5xl items-center justify-center gap-2">
-        <span className="font-semibold text-slate-500">CareOne v0.1.0</span>
+        <span className="font-semibold text-slate-500">CareOne v{version}</span>
         <span>&bull;</span>
         <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
           git:{commit}

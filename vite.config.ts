@@ -14,10 +14,11 @@ try {
 } catch {}
 
 const buildTime = new Date().toISOString();
+let pkgVersion = '0.1.5';
 
 try {
   const pkgPath = path.resolve(import.meta.dirname, 'package.json');
-  const pkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || '0.1.1';
+  pkgVersion = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || '0.1.5';
   const publicDir = path.resolve(import.meta.dirname, 'public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
@@ -30,6 +31,7 @@ try {
 
 export default defineConfig({
   define: {
+    __APP_VERSION__: JSON.stringify(pkgVersion),
     __APP_COMMIT__: JSON.stringify(commitHash),
     __APP_BUILD_TIME__: JSON.stringify(buildTime),
   },
