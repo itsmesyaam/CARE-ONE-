@@ -1,7 +1,7 @@
 {
   "name": "care-one",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
