@@ -26,6 +26,13 @@ function renderWithClient(ui: React.ReactElement) {
         gender: 'male',
         uhid: 'ABC-1001',
         phone: '9847000001',
+        allergies: [
+          {
+            substance: 'Penicillin',
+            reaction: 'Rash',
+            severity: 'moderate',
+          },
+        ],
       },
     },
     {

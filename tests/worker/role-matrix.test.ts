@@ -88,6 +88,18 @@ describe('Step 2: Role Access Matrix & Real Route Security', () => {
     if (fs.existsSync(schemaOtpsPath)) {
       dbSqlite.exec(fs.readFileSync(schemaOtpsPath, 'utf8'));
     }
+    const schemaSessionsPath = path.resolve(__dirname, '../../migrations/0008_sessions.sql');
+    if (fs.existsSync(schemaSessionsPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaSessionsPath, 'utf8'));
+    }
+    const schemaStaffEmailPath = path.resolve(__dirname, '../../migrations/0012_staff_email.sql');
+    if (fs.existsSync(schemaStaffEmailPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaStaffEmailPath, 'utf8'));
+    }
+    const schemaAuthPath = path.resolve(__dirname, '../../migrations/0013_username_password_auth.sql');
+    if (fs.existsSync(schemaAuthPath)) {
+      dbSqlite.exec(fs.readFileSync(schemaAuthPath, 'utf8'));
+    }
     if (fs.existsSync(seedPath)) {
       dbSqlite.exec(fs.readFileSync(seedPath, 'utf8'));
     }

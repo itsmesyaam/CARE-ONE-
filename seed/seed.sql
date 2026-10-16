@@ -182,12 +182,16 @@ ON CONFLICT (id) DO NOTHING;
 -- 15. Appointments (Today's Bookings & Referrals)
 INSERT INTO appointments (id, patient_id, doctor_id, department_id, appointment_date, status, notes, created_at, updated_at)
 VALUES
-  ('aa000000-0000-0000-0000-000000000000', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', datetime('now', '+1 hour'), 'booked', 'Follow-up for uncontrolled sugar and fatigue; cardiology referral review', datetime('now', '-1 day'), datetime('now', '-1 day')),
-  ('aa000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', datetime('now', '+2 hours'), 'booked', 'Referred by Dr. Rahul for cardiac evaluation and exertional palpitations', datetime('now', '-1 day'), datetime('now', '-1 day')),
-  ('aa000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', datetime('now', '+3 hours'), 'booked', 'Routine diabetic review', datetime('now', '-2 days'), datetime('now', '-2 days')),
-  ('aa000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000003', datetime('now', '+4 hours'), 'arrived', 'Pediatric fever follow-up', datetime('now', '-1 day'), datetime('now', '-1 day')),
-  ('aa000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000005', datetime('now', '+5 hours'), 'booked', 'Knee joint pain review', datetime('now', '-3 days'), datetime('now', '-3 days'))
-ON CONFLICT (id) DO NOTHING;
+  ('aa000000-0000-0000-0000-000000000000', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', strftime('%Y-%m-%d', 'now', '+5 hours', '+30 minutes') || 'T04:00:00.000Z', 'booked', 'Follow-up for uncontrolled sugar and fatigue; cardiology referral review', datetime('now', '-1 day'), datetime('now', '-1 day')),
+  ('aa000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', strftime('%Y-%m-%d', 'now', '+5 hours', '+30 minutes') || 'T04:45:00.000Z', 'booked', 'Referred by Dr. Rahul for cardiac evaluation and exertional palpitations', datetime('now', '-1 day'), datetime('now', '-1 day')),
+  ('aa000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', strftime('%Y-%m-%d', 'now', '+5 hours', '+30 minutes') || 'T05:30:00.000Z', 'booked', 'Routine diabetic review', datetime('now', '-2 days'), datetime('now', '-2 days')),
+  ('aa000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000003', strftime('%Y-%m-%d', 'now', '+5 hours', '+30 minutes') || 'T06:15:00.000Z', 'arrived', 'Pediatric fever follow-up', datetime('now', '-1 day'), datetime('now', '-1 day')),
+  ('aa000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000005', strftime('%Y-%m-%d', 'now', '+5 hours', '+30 minutes') || 'T07:00:00.000Z', 'booked', 'Knee joint pain review', datetime('now', '-3 days'), datetime('now', '-3 days'))
+ON CONFLICT (id) DO UPDATE SET
+  appointment_date = excluded.appointment_date,
+  status = excluded.status,
+  notes = excluded.notes,
+  updated_at = datetime('now');
 
 -- 16. Diet Guides
 INSERT INTO diet_guides (

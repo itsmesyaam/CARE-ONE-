@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Timer, X } from 'lucide-react';
-import { GLASS_QUICK_REASONS } from './mock';
+
+const GLASS_QUICK_REASONS = [
+  'In casualty with chest pain, need medication history',
+  'Severe allergic reaction in casualty',
+  'Emergency surgery needed',
+  'Patient unconscious, family requested review',
+];
 
 export interface EmergencyAccessModalProps {
   patient: {

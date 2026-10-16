@@ -8,7 +8,7 @@ export const doctorRouter = new Hono<{ Bindings: WorkerEnv }>();
 doctorRouter.get(
   '/today',
   withPolicy({ allowedRoles: ['doctor'], requireAal2: true, isClinical: true }, async (c, principal) => {
-    const [appointments, pendingReports, pendingSymptoms] = await Promise.all([
+    const [appointments, pendingReports, pendingSymptoms, doctorRow] = await Promise.all([
       c.env.DB.prepare(
         `SELECT a.id, a.patient_id, a.doctor_id, a.appointment_date, a.status, a.notes,
                 p.id as p_id, p.uhid as p_uhid, p.full_name as p_full_name, p.dob as p_dob,
@@ -26,26 +26,73 @@ doctorRouter.get(
       c.env.DB.prepare(
         'SELECT COUNT(*) as c FROM symptom_reports WHERE reviewed_at IS NULL'
       ).first<{ c: number }>(),
+      c.env.DB.prepare(
+        `SELECT s.id, s.full_name, s.email, d.name as department_name
+         FROM staff s
+         LEFT JOIN departments d ON s.department_id = d.id
+         WHERE s.id = ?`
+      )
+        .bind(principal.id)
+        .first<{ id: string; full_name: string; email: string; department_name: string | null }>(),
     ]);
 
-    const formattedAppts = (appointments.results || []).map((row: Record<string, unknown>) => ({
-      id: row.id,
-      patient_id: row.patient_id,
-      doctor_id: row.doctor_id,
-      appointment_date: row.appointment_date,
-      status: row.status,
-      notes: row.notes,
-      patient: {
-        id: row.p_id,
-        uhid: row.p_uhid,
-        full_name: row.p_full_name,
-        dob: row.p_dob,
-        gender: row.p_gender,
-        phone: row.p_phone,
-      },
-    }));
+    const patientIds = Array.from(
+      new Set((appointments.results || []).map((row) => row.patient_id as string))
+    );
+
+    const allergiesByPatient: Record<
+      string,
+      Array<{ substance: string; reaction: string; severity: string }>
+    > = {};
+
+    if (patientIds.length > 0) {
+      const placeholders = patientIds.map(() => '?').join(',');
+      const allergyRows = await c.env.DB.prepare(
+        `SELECT patient_id, substance, reaction, severity FROM allergies WHERE patient_id IN (${placeholders})`
+      )
+        .bind(...patientIds)
+        .all<{ patient_id: string; substance: string; reaction: string; severity: string }>();
+
+      for (const a of allergyRows.results || []) {
+        if (!allergiesByPatient[a.patient_id]) {
+          allergiesByPatient[a.patient_id] = [];
+        }
+        allergiesByPatient[a.patient_id]!.push({
+          substance: a.substance,
+          reaction: a.reaction,
+          severity: a.severity,
+        });
+      }
+    }
+
+    const formattedAppts = (appointments.results || []).map((row: Record<string, unknown>) => {
+      const pid = row.patient_id as string;
+      return {
+        id: row.id,
+        patient_id: row.patient_id,
+        doctor_id: row.doctor_id,
+        appointment_date: row.appointment_date,
+        status: row.status,
+        notes: row.notes,
+        patient: {
+          id: row.p_id,
+          uhid: row.p_uhid,
+          full_name: row.p_full_name,
+          dob: row.p_dob,
+          gender: row.p_gender,
+          phone: row.p_phone,
+          allergies: allergiesByPatient[pid] || [],
+        },
+      };
+    });
 
     return c.json({
+      doctor: {
+        id: doctorRow?.id || principal.id,
+        name: doctorRow?.full_name || 'Dr. Rahul Menon',
+        email: doctorRow?.email || '',
+        dept: doctorRow?.department_name || 'General Medicine',
+      },
       appointments: formattedAppts,
       pendingReportsCount: pendingReports?.c || 0,
       pendingSymptomsCount: pendingSymptoms?.c || 0,

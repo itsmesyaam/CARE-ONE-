@@ -264,6 +264,9 @@
   "doctorToday": {
     "dateLine": "Thursday, 15 October",
     "goodMorning": "Good morning,\nDr. Rahul",
+    "greetingMorning": "Good morning,\n{{name}}",
+    "greetingAfternoon": "Good afternoon,\n{{name}}",
+    "greetingEvening": "Good evening,\n{{name}}",
     "opDetails": "Morning OP in {{room}}. {{left}} of {{total}} patients still to see.",
     "allSeen": "Morning OP in {{room}}. Everyone booked has been seen.",
     "nextPatient": "Next patient, {{type}}",

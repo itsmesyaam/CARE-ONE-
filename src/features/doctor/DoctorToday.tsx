@@ -12,6 +12,11 @@ import {
   Clock,
   BadgeCheck,
 } from 'lucide-react';
+import {
+  getKolkataDateLine,
+  getKolkataGreetingKey,
+  formatKolkataTime,
+} from '../../lib/datetime';
 
 interface AppointmentRow {
   id: string;
@@ -27,6 +32,7 @@ interface AppointmentRow {
     dob: string;
     gender: string;
     phone: string;
+    allergies?: Array<{ substance: string; reaction: string; severity: string }>;
   } | null;
 }
 
@@ -43,21 +49,25 @@ function calculateAge(dob: string | undefined): number {
 }
 
 export function DoctorToday(): React.JSX.Element {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
-  // 1. Fetch Today's Appointments for Dr. Rahul
-  const { data: appointments = [], isLoading: loadingAppts } = useQuery<AppointmentRow[]>({
+  // 1. Fetch Today's Appointments & Doctor Profile from API
+  const { data: todayData, isLoading: loadingAppts } = useQuery<{
+    doctor?: { id: string; name: string; email: string; dept: string };
+    appointments?: AppointmentRow[];
+    pendingReportsCount?: number;
+    pendingSymptomsCount?: number;
+  }>({
     queryKey: ['doctor-today-appointments'],
     queryFn: async () => {
       const res = await fetch('/api/doctor/today');
-      if (!res.ok) return [];
-      const d = (await res.json()) as { appointments?: AppointmentRow[] };
-      return d.appointments || [];
+      if (!res.ok) return {};
+      return res.json();
     },
   });
 
-  // 2. Fetch Pending Reports Count for Dr. Rahul's patients
+  // 2. Fetch Pending Reports for Doctor's review queue
   const { data: pendingReports = [] } = useQuery<Array<{ id: string; title: string; patient_id: string; report_date?: string; patient?: { full_name: string; uhid: string } }>>({
     queryKey: ['doctor-pending-reports'],
     queryFn: async () => {
@@ -79,15 +89,8 @@ export function DoctorToday(): React.JSX.Element {
     },
   });
 
-  // 4. Fetch Allergies for Arun Kumar specifically for the demo ticket
-  const { data: arunAllergies = [] } = useQuery<Array<{ substance: string; reaction: string; severity: string }>>({
-    queryKey: ['patient-allergies-arun'],
-    queryFn: async () => {
-      return [
-        { substance: 'Penicillin', reaction: 'Urticaria and generalized rash', severity: 'moderate' },
-      ];
-    },
-  });
+  const appointments = Array.isArray(todayData) ? todayData : todayData?.appointments || [];
+  const doctor = (!Array.isArray(todayData) && todayData?.doctor) || { name: 'Dr. Rahul Menon', dept: 'General Medicine' };
 
   const live = appointments.filter((a) => a.status !== 'cancelled');
   const nextAppt =
@@ -101,6 +104,20 @@ export function DoctorToday(): React.JSX.Element {
     navigate(`/doctor/chart/${patientId}`);
   };
 
+  const dateLine = getKolkataDateLine(i18n.language);
+  const greetingType = getKolkataGreetingKey();
+  const greetingKey =
+    greetingType === 'morning'
+      ? 'doctorToday.greetingMorning'
+      : greetingType === 'afternoon'
+      ? 'doctorToday.greetingAfternoon'
+      : 'doctorToday.greetingEvening';
+  const greetingText = t(greetingKey, { name: doctor.name });
+
+  const nextPatientAllergies = nextAppt?.patient?.allergies || [];
+  const ticketTime = nextAppt?.appointment_date
+    ? formatKolkataTime(nextAppt.appointment_date)
+    : { time: '09:30', period: 'AM' };
 
   return (
     <div className="staff-theme w-full">
@@ -108,12 +125,12 @@ export function DoctorToday(): React.JSX.Element {
       <div className="pt-2 pb-7 lg:pt-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="font-semibold text-sm text-[var(--ink3)]">
-            {t('doctorToday.dateLine')}
+            {dateLine}
           </p>
         </div>
 
         <h1 className="disp greet kin mt-1 text-[var(--ink)] whitespace-pre-line">
-          {t('doctorToday.goodMorning')}
+          {greetingText}
         </h1>
 
         <p className="mt-3 text-base text-[var(--ink2)]">
@@ -162,12 +179,12 @@ export function DoctorToday(): React.JSX.Element {
                   )}
 
                   {/* Allergy Warning Banner */}
-                  {nextAppt.patient.uhid === 'ABC-1001' && arunAllergies.length > 0 && (
+                  {nextPatientAllergies.length > 0 && (
                     <div className="flex items-center gap-2 mt-3.5 text-sm font-semibold text-[#F3D27A]">
                       <AlertTriangle size={16} className="flex-none" />
                       <span>
                         {t('doctorToday.allergicTo', {
-                          allergies: arunAllergies.map((a) => a.substance.toLowerCase()).join(' and '),
+                          allergies: nextPatientAllergies.map((a: { substance: string }) => a.substance.toLowerCase()).join(' and '),
                         })}
                       </span>
                     </div>
@@ -183,8 +200,8 @@ export function DoctorToday(): React.JSX.Element {
                 </div>
 
                 <div className="tk-stub">
-                  <b className="num">09:30</b>
-                  <span>AM</span>
+                  <b className="num">{ticketTime.time}</b>
+                  <span>{ticketTime.period}</span>
                   <span className="mt-1 text-xs font-semibold text-white/70">OPD 4</span>
                 </div>
               </div>
@@ -230,10 +247,8 @@ export function DoctorToday(): React.JSX.Element {
                 {live.map((item) => {
                   const isNext = nextAppt?.id === item.id;
                   const pat = item.patient;
-                  const timeStr = new Date(item.appointment_date).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+                  const tInfo = formatKolkataTime(item.appointment_date);
+                  const timeStr = `${tInfo.time} ${tInfo.period}`;
 
                   return (
                     <button

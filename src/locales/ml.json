@@ -264,6 +264,9 @@
   "doctorToday": {
     "dateLine": "വ്യാഴാഴ്ച, 15 ഒക്ടോബർ",
     "goodMorning": "ശുഭദിനം,\nഡോ. രാഹുൽ",
+    "greetingMorning": "സുപ്രഭാതം,\n{{name}}",
+    "greetingAfternoon": "ശുഭ ഉച്ചതിരിഞ്ഞ്,\n{{name}}",
+    "greetingEvening": "ശുഭ സായാഹ്നം,\n{{name}}",
     "opDetails": "{{room}}-ൽ ഒ.പി. കാണാനുള്ളത് {{total}}-ൽ {{left}} രോഗികൾ.",
     "allSeen": "{{room}}-ൽ ഒ.പി. എല്ലാവരെയും പരിശോധിച്ചു കഴിഞ്ഞു.",
     "nextPatient": "അടുത്ത രോഗി, {{type}}",

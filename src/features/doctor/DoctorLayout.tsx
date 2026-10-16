@@ -12,7 +12,6 @@ import {
   Languages,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { MOCK_DOCTOR } from './mock';
 import { StaffSignIn } from '../auth/StaffSignIn';
 import { logout } from '../../lib/logout';
 
@@ -30,7 +29,8 @@ export function DoctorLayout(): React.JSX.Element {
 
   const lastActiveRef = useRef<number>(0);
 
-  const { data: countsData } = useQuery<{
+  const { data: todayData } = useQuery<{
+    doctor?: { id: string; name: string; email: string; dept: string };
     pendingReportsCount: number;
     pendingSymptomsCount: number;
   }>({
@@ -42,8 +42,20 @@ export function DoctorLayout(): React.JSX.Element {
     },
   });
 
-  const pendingDocsCount = countsData?.pendingReportsCount || 0;
-  const pendingSymptomsCount = countsData?.pendingSymptomsCount || 0;
+  const doctorName = todayData?.doctor?.name || 'Dr. Rahul Menon';
+  const doctorDept = todayData?.doctor?.dept || 'General Medicine';
+  const doctorInitials =
+    doctorName
+      .replace(/^Dr\.\s*/i, '')
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'RM';
+
+  const pendingDocsCount = todayData?.pendingReportsCount || 0;
+  const pendingSymptomsCount = todayData?.pendingSymptomsCount || 0;
 
   const reviewCount = pendingDocsCount + pendingSymptomsCount;
 
@@ -183,11 +195,11 @@ export function DoctorLayout(): React.JSX.Element {
           <div className="acct mt-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/20 text-white font-bold flex items-center justify-center flex-none">
-                RN
+                {doctorInitials}
               </div>
               <div className="min-w-0 leading-tight">
-                <b className="block truncate text-white text-sm">{MOCK_DOCTOR.name}</b>
-                <span className="block text-xs text-white/70">{MOCK_DOCTOR.dept}</span>
+                <b className="block truncate text-white text-sm">{doctorName}</b>
+                <span className="block text-xs text-white/70">{doctorDept}</span>
               </div>
             </div>
 
