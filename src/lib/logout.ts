@@ -75,12 +75,34 @@ export async function logout(options?: LogoutOptions): Promise<void> {
   }
 }
 
+export const SESSION_ACTIVE_KEY = 'careone_has_session';
+
+export function isProtectedPath(pathname: string): boolean {
+  const publicPaths = [
+    '/',
+    '/login',
+    '/signin',
+    '/patient/login',
+    '/patient/signin',
+    '/patient/setup',
+    '/staff/signin',
+    '/doctor/login',
+    '/change-password',
+    '/setup',
+  ];
+  if (publicPaths.includes(pathname)) return false;
+  return /^\/(patient|doctor|admin|desk|staff)/.test(pathname);
+}
+
 let isInterceptorSetup = false;
 
 /**
  * Global 401 Interceptor:
- * Intercepts any 401 from protected /api/* endpoints and triggers logout({ expired: true }).
- * Excludes /api/auth/login and /api/auth/logout so invalid credentials don't trigger logout or loops.
+ * Intercepts any 401 from protected /api/* endpoints and triggers logout({ expired: true })
+ * ONLY IF:
+ * 1. The user was signed in (we had an active session flag in this tab)
+ * 2. The current route is a protected page (/patient/*, /doctor/*, /admin, etc.)
+ * Never triggers on public/login pages and never bounces away from login forms.
  */
 export function setupAuthInterceptor(force = false): void {
   if ((isInterceptorSetup && !force) || typeof globalThis.fetch !== 'function') return;
@@ -91,6 +113,13 @@ export function setupAuthInterceptor(force = false): void {
     const res = await originalFetch(input, init);
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request)?.url || '';
 
+    const hasSession =
+      typeof sessionStorage !== 'undefined' &&
+      sessionStorage.getItem(SESSION_ACTIVE_KEY) === 'true';
+
+    const currentPath =
+      typeof window !== 'undefined' && window.location ? window.location.pathname : '';
+
     if (
       res.status === 401 &&
       url.includes('/api/') &&
@@ -98,7 +127,9 @@ export function setupAuthInterceptor(force = false): void {
       !url.includes('/api/auth/logout') &&
       !url.includes('/api/auth/signout')
     ) {
-      void logout({ expired: true });
+      if (hasSession && isProtectedPath(currentPath)) {
+        void logout({ expired: true });
+      }
     }
 
     return res;

@@ -84,6 +84,11 @@ export function PatientSignIn(): React.JSX.Element {
       }
 
       void storeBrowserPasswordCredential(trimmedUser, passToSign);
+      try {
+        sessionStorage.setItem('careone_has_session', 'true');
+      } catch {
+        // ignore
+      }
       if (trimmedUser.toUpperCase() === 'ABC-1002' || trimmedUser.toLowerCase().includes('sujatha')) {
         try {
           sessionStorage.setItem('careone_patient_profile', 'sujatha');
@@ -278,6 +283,11 @@ export function PatientSignIn(): React.JSX.Element {
           username={username}
           onSuccess={() => {
             setMustChangePassword(false);
+            try {
+              sessionStorage.setItem('careone_has_session', 'true');
+            } catch {
+              // ignore
+            }
             setSuccess(true);
             setTimeout(() => {
               go('app');

@@ -50,7 +50,53 @@ describe('Shared Logout and 401 Interceptor', () => {
     expect(navigateSpy).toHaveBeenCalledWith('/', { replace: true });
   });
 
-  it('setupAuthInterceptor redirects to / and sets notice on 401 from protected /api endpoints', async () => {
+  it('setupAuthInterceptor does NOT logout on 401 if user had no active session', async () => {
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+    );
+    setupAuthInterceptor(true);
+
+    // No session in sessionStorage
+    const res = await fetch('/api/patient/profiles');
+    expect(res.status).toBe(401);
+
+    await new Promise((r) => setTimeout(r, 10));
+    expect(sessionStorage.getItem(SIGNED_OUT_NOTICE_KEY)).toBeNull();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('setupAuthInterceptor does NOT redirect away from login or public pages on 401', async () => {
+    sessionStorage.setItem('careone_has_session', 'true');
+    // Set window.location.pathname to /patient/login
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/patient/login', replace: vi.fn() },
+      writable: true,
+      configurable: true,
+    });
+
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+    );
+    setupAuthInterceptor(true);
+
+    const res = await fetch('/api/patient/profiles');
+    expect(res.status).toBe(401);
+
+    await new Promise((r) => setTimeout(r, 10));
+    expect(sessionStorage.getItem(SIGNED_OUT_NOTICE_KEY)).toBeNull();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('setupAuthInterceptor redirects to / and sets notice on 401 when user had active session on protected page', async () => {
+    sessionStorage.setItem('careone_has_session', 'true');
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/doctor/today', replace: vi.fn() },
+      writable: true,
+      configurable: true,
+    });
+
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue();
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = typeof input === 'string' ? input : input.toString();
@@ -67,10 +113,8 @@ describe('Shared Logout and 401 Interceptor', () => {
     const res = await fetch('/api/doctor/today');
     expect(res.status).toBe(401);
 
-    // Give microtasks / async logout a moment to finish
     await new Promise((r) => setTimeout(r, 10));
 
-    // Should have recorded notice and navigated to /
     expect(sessionStorage.getItem(SIGNED_OUT_NOTICE_KEY)).toBeTruthy();
     expect(navigateSpy).toHaveBeenCalledWith('/', { replace: true });
   });

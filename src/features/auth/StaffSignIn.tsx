@@ -91,6 +91,11 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
       }
 
       void storeBrowserPasswordCredential(trimmedEmail, passToSign);
+      try {
+        sessionStorage.setItem('careone_has_session', 'true');
+      } catch {
+        // ignore
+      }
       setSuccess(true);
       setTimeout(() => {
         if (onUnlock) {
@@ -291,6 +296,11 @@ export function StaffSignIn({ onUnlock }: StaffSignInProps = {}): React.JSX.Elem
           username={email}
           onSuccess={() => {
             setMustChangePassword(false);
+            try {
+              sessionStorage.setItem('careone_has_session', 'true');
+            } catch {
+              // ignore
+            }
             setSuccess(true);
             setTimeout(() => {
               if (onUnlock) {

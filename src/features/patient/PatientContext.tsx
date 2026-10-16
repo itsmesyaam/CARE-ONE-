@@ -110,6 +110,12 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
   useEffect(() => {
     let cancelled = false;
     async function loadProfiles() {
+      if (initialStep !== 'app') return;
+      const hasSession =
+        typeof sessionStorage !== 'undefined' &&
+        sessionStorage.getItem('careone_has_session') === 'true';
+      if (!hasSession) return;
+
       try {
         const res = await fetch('/api/patient/profiles', {
           credentials: 'include',
@@ -140,7 +146,7 @@ export const PatientProvider: React.FC<{ children: React.ReactNode; initialStep?
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialStep]);
 
   useEffect(() => {
     const sizes = ['16px', '17.5px', '19px'];

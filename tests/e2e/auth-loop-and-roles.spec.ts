@@ -3,6 +3,37 @@ import { test, expect } from '@playwright/test';
 test.describe('End-to-End: Authentication, Roles, Reload Persistence & No-Loop Invariants', () => {
   const PASSWORD = 'DemoPassword123!';
 
+  test('fresh incognito visit to "/" has NO signed-out banner', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('text=You\'ve been signed out')).not.toBeVisible();
+    await expect(page.locator('text=നിങ്ങൾ സൈൻ ഔട്ട് ചെയ്യപ്പെട്ടു')).not.toBeVisible();
+  });
+
+  test('/patient/login stays open for 10 seconds without bouncing to / and shows demo buttons', async ({ page }) => {
+    await page.goto('/patient/login');
+    // Verify on /patient/login
+    expect(page.url()).toContain('/patient/login');
+
+    // Verify Demo accounts card is rendered
+    await expect(page.locator('text=Demo Accounts')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('button:has-text("Arun Kumar")')).toBeVisible();
+    await expect(page.locator('button:has-text("Sujatha Nair")')).toBeVisible();
+
+    // Wait 10 seconds and verify still on /patient/login
+    await page.waitForTimeout(10000);
+    expect(page.url()).toContain('/patient/login');
+    await expect(page.locator('#username')).toBeVisible();
+  });
+
+  test('/staff/signin stays open for 10 seconds without bouncing to /', async ({ page }) => {
+    await page.goto('/staff/signin');
+    expect(page.url()).toContain('/staff/signin');
+    await expect(page.locator('#username')).toBeVisible();
+
+    await page.waitForTimeout(10000);
+    expect(page.url()).toContain('/staff/signin');
+  });
+
   test('dr.rahul@example.com signs in, lands on /doctor, and stays on /doctor after reload', async ({ page }) => {
     await page.goto('/staff/signin');
 
