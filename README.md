@@ -1,4 +1,4 @@
-# CareOne Hospital Platform 🏥
+# CareOne Hospital Platform 
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.3-61dafb.svg)](https://react.dev/)
@@ -15,7 +15,7 @@ The entire backend and data layer run **100% on Cloudflare's serverless edge sta
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 1. [Overview & Live URL](#-overview--live-url)
 2. [Current Status & What Works](#-current-status--what-works)
 3. [Cloudflare Architecture & System Design](#-cloudflare-architecture--system-design)
@@ -35,7 +35,7 @@ The entire backend and data layer run **100% on Cloudflare's serverless edge sta
 
 ---
 
-## 🌟 Overview & Live URL
+##  Overview & Live URL
 
 - **Production Worker & API**: [`https://care-one.syam18official.workers.dev`](https://care-one.syam18official.workers.dev)
 - **Health Endpoint**: [`https://care-one.syam18official.workers.dev/api/health`](https://care-one.syam18official.workers.dev/api/health)
@@ -48,7 +48,7 @@ CareOne is built with a dual-interface architecture:
 
 ---
 
-## ✅ Current Status & What Works
+##  Current Status & What Works
 
 ### What Works Today
 - **Complete Supabase Removal**: Supabase configs, dependencies (`@supabase/supabase-js`), Edge Functions, and database connections have been completely removed. All storage and compute run on Cloudflare Workers and D1.
@@ -88,7 +88,7 @@ CareOne is built with a dual-interface architecture:
 
 ---
 
-## 🏗️ Cloudflare Architecture & System Design
+##  Cloudflare Architecture & System Design
 
 CareOne operates entirely within Cloudflare's serverless infrastructure:
 
@@ -139,7 +139,7 @@ CareOne operates entirely within Cloudflare's serverless infrastructure:
 
 ---
 
-## 🔐 Security Model & Access Control Matrix
+##  Security Model & Access Control Matrix
 
 CareOne implements an onion-layered defense model. Every incoming API request passes through:
 1. **Security Headers Middleware**: Enforces strict CSP, HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
@@ -166,7 +166,7 @@ CareOne implements an onion-layered defense model. Every incoming API request pa
 
 ---
 
-## 🔑 Authentication & Password System
+##  Authentication & Password System
 
 CareOne uses a fast, secure, and resource-efficient **Username + Password** authentication system engineered specifically for Cloudflare Workers Free Tier:
 
@@ -200,7 +200,7 @@ npm run set-password -- --username admin@example.com --remote
 
 ---
 
-## 🛠️ Tech Stack & Versions
+##  Tech Stack & Versions
 
 All dependencies and versions are verified from [`package.json`](file:///d:/CareOne/package.json):
 
@@ -226,7 +226,7 @@ All dependencies and versions are verified from [`package.json`](file:///d:/Care
 
 ---
 
-## 📂 Repository Structure
+##  Repository Structure
 
 ```text
 CareOne/
@@ -279,7 +279,7 @@ CareOne/
 
 ---
 
-## 🖥️ Local Setup Guide (Windows)
+##  Local Setup Guide (Windows)
 
 Follow these steps to run CareOne locally on Windows:
 
@@ -334,7 +334,7 @@ npm run worker:dev
 
 ---
 
-## 👥 Demo Accounts (Demo Only)
+##  Demo Accounts (Demo Only)
 
 All demo accounts are fictional and seeded into both local and live demo databases with password `DemoPassword123!` and `must_change_password = 0`:
 
@@ -361,7 +361,7 @@ Both login pages (`/patient/login` and `/staff/signin` / `/doctor/login`) featur
 
 ---
 
-## 📜 NPM Scripts Reference
+##  NPM Scripts Reference
 
 | Script | Command | Purpose |
 |---|---|---|
@@ -383,7 +383,7 @@ Both login pages (`/patient/login` and `/staff/signin` / `/doctor/login`) featur
 
 ---
 
-## 🧪 Testing & Quality Assurance
+##  Testing & Quality Assurance
 
 CareOne enforces rigorous test gates before any commit or deployment:
 
@@ -413,7 +413,7 @@ npm run build
 
 ---
 
-## 🚀 Cloudflare Deployment Guide
+##  Cloudflare Deployment Guide
 
 CareOne deploys to Cloudflare as a unified Worker serving both the Hono API routes and the client SPA:
 
@@ -450,7 +450,7 @@ npm run deploy
 
 ---
 
-## 📦 Backups & Disaster Recovery
+##  Backups & Disaster Recovery
 
 - **D1 Snapshot Exports**: Backups are performed via `wrangler d1 export` on a scheduled GitHub Actions cron job.
 - **Age Encryption**: Exported SQL dumps are encrypted using `age` public-key cryptography before leaving the runner.
@@ -459,7 +459,7 @@ npm run deploy
 
 ---
 
-## 📈 Free-Tier Resource Limits
+##  Free-Tier Resource Limits
 
 CareOne is architected to operate comfortably within Cloudflare's free quotas:
 
@@ -473,7 +473,7 @@ CareOne is architected to operate comfortably within Cloudflare's free quotas:
 
 ---
 
-## 📜 DPDP Act Compliance Notes
+##  DPDP Act Compliance Notes
 
 CareOne is built from the ground up to comply with India's **Digital Personal Data Protection (DPDP) Act 2023**:
 1. **Purpose Limitation**: Patient health records are accessible only to healthcare professionals actively providing care.
@@ -484,7 +484,7 @@ CareOne is built from the ground up to comply with India's **Digital Personal Da
 
 ---
 
-## 🗺️ Roadmap & Next Steps
+##  Roadmap & Next Steps
 
 - [x] Complete migration from Supabase to Cloudflare Workers and D1 ($0/mo cost).
 - [x] WebAuthn passkey engine and setup QR flow implementation.
